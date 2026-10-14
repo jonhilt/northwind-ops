@@ -1,0 +1,10 @@
+@*
+    Demo only: makes this browser lose the server for 10 seconds, so you can watch it rejoin.
+    The button is plain HTML, wired up by WifiDropout.razor.js, so it works on this static page.
+*@
+<div class="dropout">
+    <span>Demo only:</span>
+    <button type="button" class="drop" data-dropout-seconds="10">Drop my Wi-Fi for 10 seconds</button>
+    <span class="status" data-dropout-status>Wi-Fi on</span>
+</div>
+<script type="module" src="@Assets["Components/Guide/Demos/Reconnect/WifiDropout.razor.js"]"></script>

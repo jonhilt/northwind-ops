@@ -1,0 +1,33 @@
+@page "/demo/hosted-services/customers"
+@layout DemoLayout
+@using NorthwindOps.Client.HostedServices
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+<nav class="tabs">
+    <a href="demo/hosted-services/orders">Orders</a>
+    <a href="demo/hosted-services/customers" class="on">Customers</a>
+</nav>
+
+@* Another page, another bell: the watcher behind it kept running. *@
+<OrderBell @rendermode="new InteractiveWebAssemblyRenderMode(prerender: false)" />
+
+<h1>Customers</h1>
+<table class="quickgrid">
+    <thead><tr><th>Company</th><th>Contact</th><th>City</th></tr></thead>
+    <tbody>
+        @foreach (var c in customers)
+        {
+            <tr><td>@c.Company</td><td>@c.Contact</td><td>@c.City</td></tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    List<Customer> customers = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        customers = await db.Customers.OrderBy(c => c.Company).Take(6).ToListAsync();
+    }
+}

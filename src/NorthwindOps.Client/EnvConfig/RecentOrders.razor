@@ -1,0 +1,49 @@
+@using Microsoft.Extensions.Configuration
+@using Microsoft.Extensions.Configuration.EnvironmentVariables
+@inject IConfiguration Config
+@inject HttpClient Http
+
+<p><RuntimeBadge /> Calling <code>@apiUrl?take=@pageSize</code></p>
+<p class="error">@error</p>
+
+<table class="quickgrid">
+    <thead><tr><th>Order</th><th>Customer</th><th>Total</th></tr></thead>
+    @foreach (var o in orders ?? [])
+    {
+        <tr><td>@o.Id</td><td>@o.Customer</td><td>@o.Total.ToString("C")</td></tr>
+    }
+</table>
+
+<p class="sources">
+    <code>Orders:ApiUrl</code> came from <b>@SourceOf("Orders:ApiUrl")</b>.
+    <code>Orders:PageSize</code> came from <b>@SourceOf("Orders:PageSize")</b>.
+</p>
+
+@code {
+    record OrderRow(int Id, string Customer, decimal Total);
+
+    string? apiUrl, error;
+    int pageSize;
+    OrderRow[]? orders = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        // xray:wasm-env-vars-config
+        // Plain IConfiguration: an environment variable beats wwwroot/appsettings.json.
+        apiUrl = Config["Orders:ApiUrl"];
+        pageSize = Config.GetValue("Orders:PageSize", 10);
+        // /xray:wasm-env-vars-config
+        var url = $"{apiUrl}?take={pageSize}";
+        try { orders = await Http.GetFromJsonAsync<OrderRow[]>(url); }
+        catch (HttpRequestException) { error = $"Couldn't reach {apiUrl}"; }
+    }
+
+    // For the demo: of the sources holding a key, the last one added wins.
+    string SourceOf(string key) => ((IConfigurationRoot)Config).Providers
+        .LastOrDefault(p => p.TryGet(key, out _)) switch
+        {
+            EnvironmentVariablesConfigurationProvider => "an environment variable",
+            null => "nowhere (the default in code)",
+            _ => "wwwroot/appsettings.json",
+        };
+}

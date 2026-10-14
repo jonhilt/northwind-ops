@@ -1,0 +1,12 @@
+@*
+    Tabs for whichever order is showing, wherever the page lives. Each link resolves
+    against the current URL's folder: from /orders/11077/summary, "lines" means
+    /orders/11077/lines.
+*@
+<nav class="tabs">
+    @* xray:relative-navigation *@
+    <NavLink href="summary" RelativeToCurrentUri="true">Summary</NavLink>
+    <NavLink href="lines" RelativeToCurrentUri="true">Lines</NavLink>
+    <NavLink href="customer" RelativeToCurrentUri="true">Customer</NavLink>
+    @* /xray:relative-navigation *@
+</nav>

@@ -1,0 +1,24 @@
+@*
+    Marks part of a page as demonstrating a .NET 11 feature. Outlines and badges only show when
+    X-ray mode is on (a class on <html>, set by wwwroot/js/xray.js), so this works on static SSR
+    pages with no circuit. Without JavaScript the badge is a plain link to the feature's page.
+*@
+@inject FeatureRegistry Registry
+
+<div class="xray-zone @Class" data-xray="@For">
+    <a class="xray-badge" href="xray/@For" data-xray-open="@For" title="@feature?.Title">@(feature?.Badge ?? For)</a>
+    @ChildContent
+</div>
+
+@code {
+    Feature? feature;
+
+    /// <summary>The feature id, matching a file in Showcase/Features.</summary>
+    [Parameter, EditorRequired] public string For { get; set; } = "";
+
+    [Parameter] public string? Class { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    protected override void OnParametersSet() => feature = Registry.Find(For);
+}

@@ -1,0 +1,53 @@
+@page "/demo/session/restock/review"
+@layout DemoLayout
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+<h1>Restock · 2. Review</h1>
+
+@if (sent)
+{
+    <div class="flash" role="status">✓ Sent to the supplier. The draft is gone.</div>
+}
+else if (lines.Count == 0)
+{
+    <p>There's no draft in session.</p>
+}
+else
+{
+    <form method="post" @formname="restock-send" @onsubmit="Send" data-enhance>
+        <AntiforgeryToken />
+        @foreach (var (product, packs) in lines)
+        {
+            <div>@packs packs of @product.Name</div>
+        }
+        <button type="submit">Send to supplier</button>
+    </form>
+}
+<p><a href="demo/session/restock">← Change quantities</a></p>
+
+@code {
+    bool sent;
+    List<(Product, int)> lines = [];
+
+    // xray:supply-parameter-from-session
+    // The same key as step 1: session belongs to the browser, not to a page.
+    [SupplyParameterFromSession(Name = "restock-draft")]
+    public Dictionary<string, int>? Draft { get; set; }
+    // /xray:supply-parameter-from-session
+
+    protected override async Task OnInitializedAsync()
+    {
+        var ids = Draft?.Keys.Select(int.Parse).ToList() ?? [];
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var products = await db.Products.Where(p => ids.Contains(p.Id)).ToListAsync();
+        lines = [.. products.Select(p => (p, Draft![$"{p.Id}"]))];
+    }
+
+    void Send()
+    {
+        // xray:supply-parameter-from-session
+        Draft = null; // removes the key from session
+        // /xray:supply-parameter-from-session
+        sent = true; // a real app saves the purchase order too
+    }
+}

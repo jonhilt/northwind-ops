@@ -1,0 +1,22 @@
+@* English / Deutsch links for the supplier pages. Plain links, so they work on static pages with no circuit. *@
+@using Microsoft.Extensions.Localization
+@using NorthwindOps.Features.Suppliers
+@inject NavigationManager Navigation
+@inject IStringLocalizer<SupplierText> T
+
+<nav class="culture-switch" aria-label="@T["Ui_Language"]">
+    <span>@T["Ui_Language"]</span>
+    <a href="@Link(SupplierCultures.English)" hreflang="en" aria-current="@Current(SupplierCultures.English)">English</a>
+    <a href="@Link(SupplierCultures.German)" hreflang="de" aria-current="@Current(SupplierCultures.German)">Deutsch</a>
+</nav>
+
+@code {
+    string Link(string culture) => Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
+    {
+        ["culture"] = culture == SupplierCultures.English ? null : culture,
+        ["added"] = null, // drop the "saved" banner when switching language
+        ["codeDropped"] = null,
+    });
+
+    static string? Current(string culture) => (SupplierCultures.Current ?? SupplierCultures.English) == culture ? "true" : null;
+}

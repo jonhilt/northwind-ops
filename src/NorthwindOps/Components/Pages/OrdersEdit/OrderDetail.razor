@@ -1,0 +1,182 @@
+@page "/orders/{id:int}"
+@using NorthwindOps.Features.OrdersEdit
+@inject IDbContextFactory<NorthwindDb> DbFactory
+@inject NavigationManager Navigation
+@inject TimeProvider Clock
+
+@if (order is null)
+{
+    return;
+}
+
+<PageTitle>Order @order.Id · Northwind Ops</PageTitle>
+
+<a class="back" href="@returnUrl">← Back to orders</a>
+
+<div class="page-head">
+    <div>
+        <h1>Order @order.Id <span class="pill @order.Status.ToString().ToLowerInvariant()">@order.Status</span></h1>
+        <p>@order.Customer.Company · placed @order.PlacedOn.ToString("d MMM yyyy, HH:mm")</p>
+    </div>
+    <span class="mode-chip">Static SSR · no circuit</span>
+</div>
+
+<div class="layout">
+    <section class="card lines">
+        <h2>Lines</h2>
+        <table class="quickgrid">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th class="col-justify-end">Qty</th>
+                    <th class="col-justify-end">Price</th>
+                    <th class="col-justify-end">Discount</th>
+                    <th class="col-justify-end">Line total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var line in order.Lines)
+                {
+                    <tr>
+                        <td>
+                            @line.Product.Name
+                            <small class="muted">@line.Product.QuantityPerUnit</small>
+                        </td>
+                        <td class="num col-justify-end">@line.Quantity</td>
+                        <td class="num col-justify-end">@line.UnitPrice.ToString("C")</td>
+                        <td class="num col-justify-end">@(line.Discount == 0 ? "–" : line.Discount.ToString("P0"))</td>
+                        <td class="num col-justify-end">@LineTotal(line).ToString("C")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <dl class="totals">
+            <dt>Subtotal</dt>
+            <dd>@subtotal.ToString("C")</dd>
+            @if (discount > 0)
+            {
+                <dt>Discounts</dt>
+                <dd>−@discount.ToString("C")</dd>
+            }
+            <dt class="grand">Total</dt>
+            <dd class="grand">@order.Total.ToString("C")</dd>
+        </dl>
+    </section>
+
+    <div class="side">
+        <section class="card customer">
+            <h2>Customer</h2>
+            <p class="company">@order.Customer.Company</p>
+            <p>@order.Customer.Contact</p>
+            <p class="muted">@string.Join(", ", new[] { order.Customer.City, order.Customer.Country }.Where(s => !string.IsNullOrEmpty(s)))</p>
+            <p class="muted">Account <code>@order.Customer.Id</code></p>
+        </section>
+
+        <XRay For="tempdata-ssr">
+            <section class="card edit">
+                <h2>Update order</h2>
+                <p class="muted hint">Save takes you back to the list you came from, with a one-time confirmation.</p>
+
+                <EditForm EditContext="editContext" FormName="edit-order" OnValidSubmit="SaveAsync" Enhance>
+                    <DataAnnotationsValidator />
+
+                    <label for="status">Status</label>
+                    <InputSelect id="status" @bind-Value="Input!.Status">
+                        @foreach (var status in Enum.GetValues<OrderStatus>())
+                        {
+                            <option value="@status">@status</option>
+                        }
+                    </InputSelect>
+
+                    <label for="shipped-on">Shipped on</label>
+                    <InputDate id="shipped-on" @bind-Value="Input!.ShippedOn" />
+                    <ValidationMessage For="() => Input!.ShippedOn" />
+
+                    <label for="notes">Internal note</label>
+                    <InputTextArea id="notes" rows="4" maxlength="@OrderEditForm.MaxNotesLength" @bind-Value="Input!.Notes"
+                                   placeholder="For the warehouse and account managers. Customers never see this." />
+                    <ValidationMessage For="() => Input!.Notes" />
+
+                    <div class="actions">
+                        <button type="submit">Save changes</button>
+                        <a href="@returnUrl">Cancel</a>
+                    </div>
+                </EditForm>
+            </section>
+        </XRay>
+    </div>
+</div>
+
+@code {
+    Order? order;
+    decimal subtotal;
+    decimal discount;
+    string returnUrl = OrderLinks.List;
+    EditContext editContext = default!;
+    ValidationMessageStore rules = default!;
+
+    [Parameter] public int Id { get; set; }
+
+    [SupplyParameterFromQuery(Name = "returnUrl")] public string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromForm] public OrderEditForm? Input { get; set; }
+
+    // xray:tempdata-ssr
+    // Setting this property writes the message to TempData, which goes out with the redirect
+    // in an encrypted cookie and is read once by the Orders list.
+    [SupplyParameterFromTempData(Name = FlashMessage.Key)] public string? Flash { get; set; }
+    // /xray:tempdata-ssr
+
+    protected override async Task OnInitializedAsync()
+    {
+        returnUrl = OrderLinks.SafeReturnUrl(ReturnUrl);
+
+        await using var db = await DbFactory.CreateDbContextAsync();
+        order = await db.Orders
+            .AsNoTracking()
+            .Include(o => o.Customer)
+            .Include(o => o.Lines.OrderBy(l => l.Id)).ThenInclude(l => l.Product)
+            .SingleOrDefaultAsync(o => o.Id == Id);
+
+        if (order is null)
+        {
+            Navigation.NotFound();
+            return;
+        }
+
+        subtotal = order.Lines.Sum(l => l.UnitPrice * l.Quantity);
+        discount = subtotal - order.Lines.Sum(LineTotal);
+
+        // On a GET the form starts from the saved order; on a POST it's what the user sent.
+        Input ??= OrderEditForm.From(order);
+        editContext = new EditContext(Input);
+        rules = new ValidationMessageStore(editContext);
+        editContext.OnValidationRequested += (_, _) => CheckOrderRules();
+    }
+
+    // Rules that need the order and today's date run alongside the data annotations whenever the form validates.
+    void CheckOrderRules()
+    {
+        rules.Clear();
+        foreach (var error in Input!.Check(order!.PlacedOn, DateOnly.FromDateTime(Clock.GetLocalNow().DateTime)))
+        {
+            rules.Add(editContext.Field(error.MemberNames.First()), error.ErrorMessage!);
+        }
+    }
+
+    async Task SaveAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var saved = await db.Orders.SingleAsync(o => o.Id == Id);
+        Input!.ApplyTo(saved);
+        await db.SaveChangesAsync();
+
+        // xray:tempdata-ssr
+        Flash = $"Order {saved.Id} saved";
+        Navigation.NavigateTo(returnUrl);
+        // /xray:tempdata-ssr
+    }
+
+    static decimal LineTotal(OrderLine line) => line.UnitPrice * line.Quantity * (1 - line.Discount);
+}

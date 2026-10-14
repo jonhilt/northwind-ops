@@ -1,0 +1,52 @@
+@page "/demo/displayname/suppliers"
+@layout DemoLayout
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+@* Request localization reads ?culture=de-DE (see Program.cs) *@
+<nav class="languages">
+    <a href="demo/displayname/suppliers">English</a>
+    <a href="demo/displayname/suppliers?culture=de-DE">Deutsch</a>
+</nav>
+
+<h1>Suppliers</h1>
+
+<table class="quickgrid">
+    <thead>
+        <tr>
+            @* xray:displayname-component *@
+            <th><DisplayName For="() => names.Code" /></th>
+            <th><DisplayName For="() => names.Company" /></th>
+            <th><DisplayName For="() => names.Contact" /></th>
+            <th><DisplayName For="() => names.Country" /></th>
+            @* /xray:displayname-component *@
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var supplier in suppliers)
+        {
+            <tr>
+                <td>@supplier.Code</td>
+                <td>@supplier.Company</td>
+                <td>@supplier.Contact</td>
+                <td>@supplier.Country</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    // xray:displayname-component
+    // Never shown or run: <DisplayName For> only reads the property's [Display] name.
+    static readonly SupplierForm names = new();
+    // /xray:displayname-component
+
+    List<Supplier> suppliers = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        // The first suppliers by id: the seeded ones, not rows visitors have added.
+        suppliers = await db.Set<Supplier>().Where(s => s.Code != null)
+            .OrderBy(s => s.Id).Take(8).ToListAsync();
+    }
+}

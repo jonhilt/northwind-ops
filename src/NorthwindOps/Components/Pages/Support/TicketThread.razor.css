@@ -1,0 +1,241 @@
+.thread {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.thread-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 14px 20px 10px;
+}
+
+.thread-head h2 {
+    margin: 0 0 3px;
+    font-size: 18px;
+}
+
+.thread-head p {
+    margin: 0;
+    font-size: 13px;
+}
+
+.thread-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px 12px;
+    border-bottom: 1px solid var(--line);
+}
+
+.jump {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 8px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.jump input {
+    width: 78px;
+    font: inherit;
+    color: var(--ink);
+    padding: 5px 8px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+}
+
+.expand {
+    margin-left: auto;
+}
+
+.btn {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    background: #f1eff7;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 5px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn:hover:not(:disabled) { background: #e6e2f2; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+
+/* The X-ray wrapper around the messages is a flex item; the scroller inside it takes the remaining height. */
+.thread ::deep .messages-zone {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.thread-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+/* Padding and borders rather than margins, so every pixel of a message belongs to its element. */
+.msg {
+    padding: 14px 20px 12px;
+    border-bottom: 1px solid #f0eef6;
+}
+
+.msg.agent { background: #fcfbff; }
+
+.msg header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.msg header strong { font-size: 14px; }
+
+.role {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+}
+
+.msg.agent .role { color: var(--brand); }
+
+.msg time { color: var(--muted); }
+
+.num {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: #a19bb8;
+}
+
+.body {
+    font-size: 14px;
+    color: var(--ink-soft);
+}
+
+.body p {
+    margin: 8px 0 0;
+    white-space: pre-line;
+}
+
+.body ul {
+    margin: 8px 0 0;
+    padding-left: 20px;
+}
+
+.body.clamped {
+    max-height: 9.6em;
+    overflow: hidden;
+    mask-image: linear-gradient(to bottom, #000 65%, transparent);
+}
+
+.more {
+    margin-top: 6px;
+    padding: 0;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--brand);
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+
+.more:hover { text-decoration: underline; }
+
+.msg.system {
+    padding: 5px 20px;
+    background: #fafafc;
+}
+
+.log {
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+}
+
+.log time { flex: none; }
+.log b { flex: none; font-weight: 600; color: var(--muted); }
+
+.new-marker {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: -4px 0 10px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--bad);
+}
+
+.new-marker::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid currentColor;
+}
+
+.msg.target {
+    animation: target-flash 2s ease-out;
+}
+
+@keyframes target-flash {
+    from { background: #fef3c7; }
+}
+
+.thread ::deep .reply {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 6px 10px;
+    align-items: end;
+    padding: 12px 20px 14px;
+    border-top: 1px solid var(--line);
+}
+
+.thread ::deep .reply textarea {
+    font: inherit;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 44px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+}
+
+.thread ::deep .reply .validation-message {
+    grid-column: 1 / -1;
+    font-size: 13px;
+}
+
+.btn.primary {
+    color: #fff;
+    background: var(--brand);
+    padding: 9px 16px;
+}
+
+.btn.primary:hover:not(:disabled) { background: #5b21b6; }
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}

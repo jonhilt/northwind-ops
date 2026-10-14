@@ -1,0 +1,20 @@
+@page "/demo/auto-pause/stock-take"
+@layout DemoLayout
+
+<h1>Stock take: Beverages</h1>
+
+@* xray:circuit-auto-pause *@
+@* Auto-pause for this page only. Most apps turn it on for every page in Program.cs. *@
+<ConfigureBrowser Options="autoPause" />
+@* /xray:circuit-auto-pause *@
+
+@* The page is static. Only the count sheet runs interactively, on a circuit. *@
+<StockSheet @rendermode="new InteractiveServerRenderMode(prerender: false)" />
+
+@code {
+    // xray:circuit-auto-pause
+    // Pause once the tab has been hidden for 10 seconds. The default is 2 minutes.
+    static readonly BrowserOptions autoPause = new BrowserOptions()
+        .AddAutoPause(o => o.HiddenDelay = TimeSpan.FromSeconds(10));
+    // /xray:circuit-auto-pause
+}

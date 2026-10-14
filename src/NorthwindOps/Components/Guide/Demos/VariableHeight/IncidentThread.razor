@@ -1,0 +1,48 @@
+@using NorthwindOps.Features.Support
+@inject SupportDesk Desk
+
+<p class="tools">
+    @messages.Count messages
+    <button type="button" disabled="@(!RendererInfo.IsInteractive)" @onclick="ToggleAll">
+        @(expandAll ? "Collapse all" : "Expand all")
+    </button>
+</p>
+
+<div class="thread">
+    @* xray:virtualize-variable-height *@
+    @* ItemSize is only a first guess. Virtualize measures each message as it renders. *@
+    <Virtualize Items="messages" Context="m" ItemSize="80">
+        <article class="@(IsLong(m) && !IsOpen(m) ? "msg clamped" : "msg")">
+            <header><b>@m.Author</b> #@m.Number</header>
+            <p>@m.Body</p>
+            @if (IsLong(m))
+            {
+                <button type="button" class="more" @onclick="() => Toggle(m)">
+                    @(IsOpen(m) ? "Show less" : "Show more")
+                </button>
+            }
+        </article>
+    </Virtualize>
+    @* /xray:virtualize-variable-height *@
+</div>
+
+@code {
+    List<TicketMessage> messages = [];
+    readonly HashSet<int> toggled = [];
+    bool expandAll;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // The desk's longest thread: one-line log entries mixed with long emails.
+        var longest = (await Desk.ListAsync()).MaxBy(t => t.MessageCount)!;
+        messages = (await Desk.GetAsync(longest.Id))!.Messages;
+    }
+
+    // xray:virtualize-variable-height
+    // Long messages start clamped. Opening one changes its height, and the list copes.
+    static bool IsLong(TicketMessage m) => m.Body.Length > 300;
+    bool IsOpen(TicketMessage m) => expandAll != toggled.Contains(m.Id);
+    void Toggle(TicketMessage m) { if (!toggled.Add(m.Id)) toggled.Remove(m.Id); }
+    void ToggleAll() { expandAll = !expandAll; toggled.Clear(); }
+    // /xray:virtualize-variable-height
+}

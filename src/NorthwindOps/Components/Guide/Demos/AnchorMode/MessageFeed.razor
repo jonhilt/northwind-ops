@@ -1,0 +1,45 @@
+@implements IDisposable
+
+@* xray:virtualize-anchor-mode *@
+<div class="feed" style="height: 300px; overflow-y: auto">
+    <Virtualize Items="messages" AnchorMode="VirtualizeAnchorMode.End" Context="m">
+        <div class="msg">
+            <b>@m.From</b> <span>@m.Text</span> <time>@m.At.ToString("HH:mm:ss")</time>
+        </div>
+    </Virtualize>
+</div>
+@* /xray:virtualize-anchor-mode *@
+
+@code {
+    record Message(string From, string Text, DateTime At);
+
+    static readonly string[] Customers = ["Ana Trujillo", "Thomas Hardy", "Hanna Moos"];
+    static readonly string[] Asks = [
+        "Has order {0} shipped?", "Order {0} arrived, thanks!",
+        "Can I change the address on {0}?", "Please add 6 more chai to {0}."];
+
+    // Thirty earlier messages, so there's something to scroll up and read.
+    List<Message> messages = [.. Enumerable.Range(0, 30).Select(n => Make(n, 30 - n))];
+    Timer? timer;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        // Once the circuit is up, a message arrives every 2.5 seconds.
+        if (firstRender) timer = new(_ => InvokeAsync(Arrive), null, 2500, 2500);
+    }
+
+    void Arrive()
+    {
+        if (messages.Count == 200) return; // keep the demo small
+        // xray:virtualize-anchor-mode
+        // Just add it. If you're at the bottom, Virtualize scrolls down to show it.
+        messages.Add(Make(messages.Count, 0));
+        StateHasChanged();
+        // /xray:virtualize-anchor-mode
+    }
+
+    static Message Make(int n, int minutesAgo) => new(Customers[n % 3],
+        string.Format(Asks[n % 4], 10900 + n), DateTime.Now.AddMinutes(-minutesAgo));
+
+    public void Dispose() => timer?.Dispose();
+}

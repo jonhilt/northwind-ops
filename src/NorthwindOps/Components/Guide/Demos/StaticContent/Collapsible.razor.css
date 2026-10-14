@@ -1,0 +1,15 @@
+.card { padding: 12px 16px; }
+
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+.card header button {
+    margin: 0;
+    padding: 4px 0;
+    border: 0;
+    background: none;
+    color: var(--ink);
+    font-size: 16px;
+}
+.card header button:disabled { cursor: default; }
+
+header span { font-size: 12px; font-weight: 600; color: var(--muted); }

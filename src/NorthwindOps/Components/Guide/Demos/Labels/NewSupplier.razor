@@ -1,0 +1,47 @@
+@page "/demo/labels/suppliers/new"
+@layout DemoLayout
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+@if (added is not null)
+{
+    <div class="flash" role="status">✓ @added added to suppliers</div>
+}
+
+<h1>New supplier</h1>
+
+<EditForm Model="Input" FormName="new-supplier" OnValidSubmit="SaveAsync" Enhance>
+    <DataAnnotationsValidator />
+    @* xray:label-and-input-ids *@
+    @* Renders <label for="Input_Company">Company name</label> *@
+    <Label For="() => Input!.Company" />
+    @* Renders <input id="Input_Company" name="Input.Company"> *@
+    <InputText @bind-Value="Input!.Company" />
+    @* /xray:label-and-input-ids *@
+    <ValidationMessage For="() => Input!.Company" />
+
+    @* xray:label-and-input-ids *@
+    <Label For="() => Input!.Email" />
+    <InputText @bind-Value="Input!.Email" type="email" />
+    @* /xray:label-and-input-ids *@
+    <ValidationMessage For="() => Input!.Email" />
+
+    <button type="submit">Save supplier</button>
+</EditForm>
+
+@code {
+    string? added;
+
+    [SupplyParameterFromForm] public NewSupplierForm? Input { get; set; }
+
+    protected override void OnInitialized() => Input ??= new();
+
+    async Task SaveAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        db.Add(new Supplier { Company = Input!.Company!, Email = Input.Email });
+        await db.SaveChangesAsync();
+
+        added = Input.Company;
+        Input = new(); // a blank form for the next supplier
+    }
+}

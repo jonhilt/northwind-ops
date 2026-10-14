@@ -1,0 +1,58 @@
+@page "/demo/nested-validation/suppliers/new"
+@layout DemoLayout
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+@if (added is not null)
+{
+    <div class="flash" role="status">✓ @added added, with its contact</div>
+}
+
+<h1>New supplier</h1>
+
+<EditForm Model="Input" FormName="new-supplier" OnValidSubmit="SaveAsync" Enhance>
+    <DataAnnotationsValidator />
+    <Label For="() => Input!.Company" />
+    <InputText @bind-Value="Input!.Company" />
+    <ValidationMessage For="() => Input!.Company" />
+
+    @* xray:validatable-type-stable *@
+    <Label For="() => Input!.Address.City" />
+    <InputText @bind-Value="Input!.Address.City" />
+    <ValidationMessage For="() => Input!.Address.City" />
+
+    @for (var i = 0; i < Input.Contacts.Count; i++)
+    {
+        var n = i; // so the fields post as Input.Contacts[0].Name and so on
+        <Label For="() => Input.Contacts[n].Name" />
+        <InputText @bind-Value="Input.Contacts[n].Name" />
+        <ValidationMessage For="() => Input.Contacts[n].Name" />
+        <Label For="() => Input.Contacts[n].Email" />
+        <InputText @bind-Value="Input.Contacts[n].Email" />
+        <ValidationMessage For="() => Input.Contacts[n].Email" />
+    }
+    @* /xray:validatable-type-stable *@
+    <button type="submit">Save supplier</button>
+</EditForm>
+
+@code {
+    string? added;
+
+    [SupplyParameterFromForm] public NewSupplierForm? Input { get; set; }
+
+    protected override void OnInitialized() => Input ??= new();
+
+    // Only called once the whole graph is valid: the address and every contact too.
+    async Task SaveAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var supplier = new Supplier
+            { Company = Input!.Company!, City = Input.Address.City };
+        db.Add(supplier);
+        await db.SaveChangesAsync(); // gives the supplier its id
+        db.AddRange(Input.Contacts.Select(c => new SupplierContact
+            { SupplierId = supplier.Id, Name = c.Name!, Email = c.Email }));
+        await db.SaveChangesAsync();
+        added = Input.Company;
+        Input = new();
+    }
+}

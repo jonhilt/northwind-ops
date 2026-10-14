@@ -1,0 +1,183 @@
+@page "/guide/{Id}"
+@page "/guide/{Id}/{Step}"
+@layout GuideLayout
+@inject GuideRegistry Guide
+@inject SourceCatalog Sources
+@inject NavigationManager Navigation
+
+@*
+    One feature, three steps: the problem in .NET 10, a small demo that runs for real, and that demo's code.
+    Each step has its own URL, so the steps are plain links and work without JavaScript.
+*@
+
+@if (entry is null)
+{
+    return;
+}
+
+<PageTitle>@entry.Title · Field Guide · Northwind Ops</PageTitle>
+
+<SectionContent SectionName="guide-crumb">
+    <span class="sep">/</span><span>@entry.Group</span><span class="sep">/</span><span>@entry.Title</span>
+</SectionContent>
+
+<header class="g-head">
+    <div>
+        <h1>@entry.Title</h1>
+        <p>@entry.Intro</p>
+    </div>
+    <span class="mode-chip">@entry.Mode</span>
+</header>
+
+<nav class="g-steps" aria-label="Steps">
+    @for (var i = 0; i < Steps.Length; i++)
+    {
+        <a href="@StepUrl(entry, i)" class="@StepClass(i)" aria-current="@(i == step ? "step" : null)">
+            <span class="n">@(i + 1)</span>@Steps[i].Title
+        </a>
+    }
+</nav>
+
+<section class="g-stage" data-guide-step="@Steps[step].Slug">
+    @switch (step)
+    {
+        case 0:
+            <h2 class="q">@((MarkupString)entry.Problem.Question)</h2>
+            <div class="lead">@((MarkupString)entry.Problem.LeadHtml)</div>
+            <div class="ways">
+                @for (var i = 0; i < entry.Problem.Options.Count; i++)
+                {
+                    var option = entry.Problem.Options[i];
+                    <div class="way">
+                        <span class="lbl">.NET 10 · workaround @(i + 1)</span>
+                        <h3>@option.Title</h3>
+                        <div class="way-body">@((MarkupString)option.Html)</div>
+                    </div>
+                }
+            </div>
+            break;
+
+        case 1:
+            <h2 class="q">@((MarkupString)entry.Try.Question)</h2>
+            <div class="lead">@((MarkupString)entry.Try.LeadHtml)</div>
+            <div class="try">
+                <div class="browser" data-demo>
+                    <div class="bar">
+                        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                        <span class="addr" data-demo-address>/@entry.DemoUrl</span>
+                        <button type="button" data-demo-refresh title="Refresh the demo, like pressing F5">⟳</button>
+                        <button type="button" data-demo-reset title="Start the demo again">Start over</button>
+                    </div>
+                    <iframe src="@entry.DemoUrl" data-demo-frame title="@entry.Title demo"></iframe>
+                </div>
+                <div class="watch">
+                    <ol>
+                        @foreach (var item in entry.Try.WatchHtml)
+                        {
+                            <li><span>@((MarkupString)item)</span></li>
+                        }
+                    </ol>
+                    <div class="links">
+                        @if (entry.AppUrl is not null)
+                        {
+                            <a href="@entry.AppUrl">▶ See it in the full Northwind Ops app</a>
+                        }
+                        <a href="@entry.DemoUrl" target="_blank" rel="noopener">↗ Open this demo in its own tab</a>
+                    </div>
+                </div>
+            </div>
+            break;
+
+        case 2:
+            <h2 class="q">@((MarkupString)entry.Code.Question)</h2>
+            <div class="lead">@((MarkupString)entry.Code.LeadHtml)</div>
+            <div class="cards">
+                @for (var i = 0; i < codeViews.Count; i++)
+                {
+                    var (card, view) = codeViews[i];
+                    <figure class="code-card">
+                        <figcaption><span class="n">@(i + 1)</span>@card.Caption</figcaption>
+                        <div class="file">@view.Path</div>
+                        <pre class="line-numbers" data-line="@view.HighlightedLines"><code class="language-@view.Language">@view.Code</code></pre>
+                        @if (card.NoteHtml is not null)
+                        {
+                            <div class="note">@((MarkupString)card.NoteHtml)</div>
+                        }
+                    </figure>
+                }
+            </div>
+            @if (entry.GoodToKnow.Count > 0)
+            {
+                <div class="gk">
+                    <h3>Good to know</h3>
+                    <div class="gk-list">
+                        @foreach (var note in entry.GoodToKnow)
+                        {
+                            <details>
+                                <summary>@((MarkupString)note.Title)</summary>
+                                <p>@((MarkupString)note.Html)</p>
+                            </details>
+                        }
+                    </div>
+                    <a class="deep" href="xray/@entry.Id">The full write-up →</a>
+                </div>
+            }
+            break;
+    }
+</section>
+
+<nav class="g-nav">
+    @if (step > 0)
+    {
+        <a class="btn" href="@StepUrl(entry, step - 1)" data-guide-prev>← @Steps[step - 1].Title</a>
+    }
+    else
+    {
+        <a class="btn" href="guide" data-guide-prev>← All features</a>
+    }
+    <span class="hint"><kbd>←</kbd> <kbd>→</kbd> to step through</span>
+    @if (step < Steps.Length - 1)
+    {
+        <a class="btn primary" href="@StepUrl(entry, step + 1)" data-guide-next>Next: @Steps[step + 1].Title →</a>
+    }
+    else if (Guide.After(entry) is { } next)
+    {
+        <a class="btn primary" href="guide/@next.Id" data-guide-next>Next feature: @next.Title →</a>
+    }
+    else
+    {
+        <a class="btn primary" href="guide" data-guide-next>Back to all features →</a>
+    }
+</nav>
+
+@code {
+    static readonly (string Slug, string Title)[] Steps = [("", "The problem"), ("try", "See it work"), ("code", "How it's built")];
+
+    GuideEntry? entry;
+    int step;
+    List<(GuideCodeCard Card, SourceView View)> codeViews = [];
+
+    [Parameter] public string Id { get; set; } = "";
+
+    [Parameter] public string? Step { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        entry = Guide.Find(Id);
+        step = Array.FindIndex(Steps, s => string.Equals(s.Slug, Step ?? "", StringComparison.OrdinalIgnoreCase));
+        if (entry is null || step < 0)
+        {
+            entry = null;
+            Navigation.NotFound();
+            return;
+        }
+
+        codeViews = step == 2
+            ? entry.Code.Cards.Select(card => (card, Sources.View(card.Path, entry.Id)!)).ToList()
+            : [];
+    }
+
+    static string StepUrl(GuideEntry entry, int index) => index == 0 ? $"guide/{entry.Id}" : $"guide/{entry.Id}/{Steps[index].Slug}";
+
+    string StepClass(int index) => index == step ? "on" : index < step ? "done" : "";
+}

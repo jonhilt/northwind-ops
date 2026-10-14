@@ -1,0 +1,37 @@
+@page "/demo/browser-options/pick-list"
+@layout DemoLayout
+
+@* xray:browser-options *@
+@* Written into the page as it renders. blazor.web.js applies it as it starts. *@
+<ConfigureBrowser Options="warehouseWifi" />
+@* /xray:browser-options *@
+
+<h1>Pick list · order 10950</h1>
+
+@* The page is static. Only the pick list runs on the server, over a connection. *@
+<PickLines @rendermode="InteractiveServer" />
+
+@* xray:browser-options *@
+@* blazor.web.js fills these in while it retries, from the options it was given. *@
+<p class="rejoin">
+    Rejoin attempt <b id="components-reconnect-current-attempt"></b>
+    of <b id="components-reconnect-max-retries"></b>
+</p>
+@* /xray:browser-options *@
+
+<WifiDropout />
+
+@code {
+    // xray:browser-options
+    // Warehouse Wi-Fi drops out for a few seconds at a time:
+    // retry every 2 seconds, 20 times.
+    static readonly BrowserOptions warehouseWifi = new()
+    {
+        InteractiveServer =
+        {
+            ReconnectionMaxRetries = 20,
+            ReconnectionRetryInterval = TimeSpan.FromSeconds(2),
+        },
+    };
+    // /xray:browser-options
+}

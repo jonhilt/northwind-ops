@@ -1,0 +1,29 @@
+/* The demo's own control: dashed, so it reads as "not part of the app". */
+.dropout {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 10px 12px;
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.dropout .drop {
+    margin: 0;
+    padding: 5px 12px;
+    font-size: 13px;
+    background: #fff;
+    color: var(--brand);
+}
+
+.dropout .drop:disabled { opacity: .5; cursor: default; }
+
+.dropout .status {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 12px;
+}

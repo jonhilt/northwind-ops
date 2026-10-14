@@ -1,0 +1,7 @@
+@page "/demo/row-click/tickets"
+@layout DemoLayout
+
+<h1>Support tickets</h1>
+
+@* The page is static. Only the ticket list, which handles clicks, runs interactively. *@
+<TicketList @rendermode="InteractiveServer" />

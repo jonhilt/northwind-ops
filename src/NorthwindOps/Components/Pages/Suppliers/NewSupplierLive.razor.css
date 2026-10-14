@@ -1,0 +1,13 @@
+.supplier-toolbar { margin-bottom: 18px; }
+
+.note {
+    display: inline-block;
+    font-size: 13px;
+    color: var(--muted);
+    background: #efedf5;
+    padding: 6px 12px;
+    border-radius: 999px;
+}
+
+.back { margin-top: 18px; font-size: 14px; }
+.back a { text-decoration: none; }

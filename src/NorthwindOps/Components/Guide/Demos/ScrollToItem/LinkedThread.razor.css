@@ -1,0 +1,25 @@
+.tools { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+form.tools { flex-direction: row; max-width: none; }
+form.tools label { margin: 0; }
+form.tools input { width: 90px; padding: 6px 10px; }
+form.tools button { margin: 0; padding: 6px 14px; }
+form.tools button[type=button] { margin-left: auto; background: #fff; color: var(--brand); }
+form.tools button:disabled { opacity: 0.5; cursor: default; }
+
+/* Virtualize scrolls inside the nearest box with overflow-y: auto, so give it a fixed height. */
+.thread {
+    height: 440px;
+    overflow-y: auto;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fcfcfe;
+}
+
+.msg { padding: 10px 14px; border-bottom: 1px solid #f0eef6; }
+.msg header { font-size: 13px; color: var(--muted); }
+.msg header b { color: var(--ink); font-weight: 600; margin-right: 6px; }
+.msg p { margin: 4px 0 0; white-space: pre-line; color: var(--ink-soft); }
+
+/* The message you asked for. */
+.msg.target { background: #fff6d8; box-shadow: inset 3px 0 0 #f0b400; animation: arrive 1.2s ease-out; }
+@keyframes arrive { from { background: #ffe58a; } }

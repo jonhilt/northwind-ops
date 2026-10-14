@@ -1,0 +1,51 @@
+@using NorthwindOps.Features.Support
+@inject SupportDesk Desk
+
+<form class="tools" @onsubmit="() => GoToAsync(jumpTo ?? 1)">
+    <label for="jump">Jump to message #</label>
+    <input id="jump" type="number" @bind="jumpTo" />
+    <button disabled="@(!RendererInfo.IsInteractive)">Go</button>
+    <button type="button" disabled="@(!RendererInfo.IsInteractive)"
+            @onclick="() => GoToAsync(messages.Count)">Latest</button>
+</form>
+
+@* Wait for the messages, so the list opens knowing how many there are. *@
+@if (messages.Count > 0)
+{
+    <div class="thread">
+        @* xray:virtualize-scroll-to-item *@
+        @* Opens at the linked message. Even the prerendered HTML starts around it. *@
+        <Virtualize @ref="list" Items="messages" Context="m"
+                    InitialItemIndex="(Message ?? 1) - 1">
+        @* /xray:virtualize-scroll-to-item *@
+            <article class="@(m.Number == (target ?? Message) ? "msg target" : "msg")">
+                <header><b>@m.Author</b> #@m.Number</header>
+                <p>@m.Body</p>
+            </article>
+        </Virtualize>
+    </div>
+}
+
+@code {
+    Virtualize<TicketMessage>? list;
+    List<TicketMessage> messages = [];
+    int? jumpTo, target;
+
+    [SupplyParameterFromQuery] public int? Message { get; set; } // like ?message=240
+
+    protected override async Task OnInitializedAsync()
+    {
+        // The desk's longest thread: one-line log entries mixed with long emails.
+        var longest = (await Desk.ListAsync()).MaxBy(t => t.MessageCount)!;
+        messages = (await Desk.GetAsync(longest.Id))!.Messages;
+    }
+
+    // xray:virtualize-scroll-to-item
+    async Task GoToAsync(int number)
+    {
+        target = Math.Clamp(number, 1, messages.Count);
+        // Renders the messages around it if need be, then aligns it to the top.
+        await list!.ScrollToItemAsync(target.Value - 1);
+    }
+    // /xray:virtualize-scroll-to-item
+}

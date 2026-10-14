@@ -1,0 +1,52 @@
+@page "/demo/relative-nav/orders/{Id:int}/{Tab?}"
+@layout DemoLayout
+@inject IDbContextFactory<NorthwindDb> DbFactory
+@inject NavigationManager Navigation
+
+<a href="demo/relative-nav/orders">← Orders</a>
+<h1>Order @Id</h1>
+
+@* No parameters: the tabs work out which order they're on from the URL. *@
+<OrderTabs />
+
+@if (order is null) { @* redirecting to a tab *@ }
+else if (Tab == "lines")
+{
+    @foreach (var line in order.Lines)
+    {
+        <p>@line.Quantity × @line.Product.Name at @line.UnitPrice.ToString("C")</p>
+    }
+}
+else if (Tab == "customer")
+{
+    <p><b>@order.Customer.Company</b>, @order.Customer.City, @order.Customer.Country</p>
+}
+else
+{
+    <p>@order.Status · placed @order.PlacedOn.ToString("d MMM yyyy")</p>
+    <p>Total <b>@order.Total.ToString("C")</b></p>
+}
+
+@code {
+    Order? order;
+
+    [Parameter] public int Id { get; set; }
+    [Parameter] public string? Tab { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Tab is null)
+        {
+            // xray:relative-navigation
+            // From /orders/11077 the current folder is /orders/, so the id goes in too.
+            var options = new NavigationOptions { RelativeToCurrentUri = true };
+            Navigation.NavigateTo($"{Id}/summary", options);
+            // /xray:relative-navigation
+            return;
+        }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        order = await db.Orders.Include(o => o.Customer).Include(o => o.Lines)
+            .ThenInclude(l => l.Product).FirstOrDefaultAsync(o => o.Id == Id);
+        if (order is null) Navigation.NotFound();
+    }
+}

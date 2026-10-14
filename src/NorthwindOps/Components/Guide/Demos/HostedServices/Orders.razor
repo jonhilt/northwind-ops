@@ -1,0 +1,36 @@
+@page "/demo/hosted-services/orders"
+@layout DemoLayout
+@using NorthwindOps.Client.HostedServices
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+<nav class="tabs">
+    <a href="demo/hosted-services/orders" class="on">Orders</a>
+    <a href="demo/hosted-services/customers">Customers</a>
+</nav>
+
+@* The page is static. Only the bell runs in the browser, on WebAssembly. *@
+<OrderBell @rendermode="new InteractiveWebAssemblyRenderMode(prerender: false)" />
+
+<h1>Orders</h1>
+<table class="quickgrid">
+    <thead><tr><th>Order</th><th>Customer</th><th>Status</th></tr></thead>
+    <tbody>
+        @foreach (var order in orders)
+        {
+            <tr>
+                <td>@order.Id</td><td>@order.Customer.Company</td><td>@order.Status</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    List<Order> orders = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        orders = await db.Orders.Include(o => o.Customer)
+            .OrderByDescending(o => o.Id).Take(6).ToListAsync();
+    }
+}

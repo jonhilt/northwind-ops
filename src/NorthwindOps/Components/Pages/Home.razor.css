@@ -1,0 +1,68 @@
+.page-head h2 { margin: 0 0 4px; font-size: 24px; }
+
+/* Key figures: the cached KPI tiles */
+
+.kpi-panel { padding: 16px 18px 12px; margin-bottom: 24px; }
+
+.kpi-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 12px;
+    font-size: 13px;
+}
+.kpi-head h2 { margin: 0; font-size: 16px; }
+
+.kpi-head time, ::deep .kpi-foot time { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--ink); }
+
+::deep .kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+}
+::deep .kpis .stat { background: #fbfaff; box-shadow: none; }
+::deep .kpis .trend { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+::deep .kpis .trend.up { color: var(--ok); }
+::deep .kpis .trend.down { color: var(--bad); }
+
+::deep .kpi-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px 16px;
+    margin: 12px 2px 0;
+    font-size: 13px;
+    color: var(--muted);
+}
+::deep .kpi-age { font-weight: 600; }
+::deep .kpi-age::before { content: "●"; margin-right: 6px; font-size: 10px; }
+::deep .kpi-age.miss { color: var(--warn); }
+::deep .kpi-age.hit { color: var(--ok); }
+
+/* Live feed beside the static panels */
+
+.dash-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+    margin-bottom: 32px;
+}
+
+/* The feed stays in view while you read the panels beside it. */
+.dash-grid ::deep .feed-zone { position: sticky; top: 82px; }
+
+.panels { display: grid; gap: 16px; }
+
+.panels table.quickgrid td { padding: 9px 18px; }
+.panels table.quickgrid td b { display: block; font-weight: 600; }
+.panels table.quickgrid td small { display: block; font-size: 12px; color: var(--muted); }
+.panels table.quickgrid .num { text-align: right; font-variant-numeric: tabular-nums; }
+.panels table.quickgrid tr.out td.num:nth-child(2) { color: var(--bad); font-weight: 700; }
+
+@media (max-width: 960px) {
+    ::deep .kpis { grid-template-columns: repeat(2, 1fr); }
+    .dash-grid { grid-template-columns: 1fr; }
+    .dash-grid ::deep .feed-zone { position: static; }
+}

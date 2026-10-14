@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Markdig" Version="1.4.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.QuickGrid.EntityFrameworkAdapter" Version="11.0.0-rc.2.26504.105" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Server.AutoPause" Version="11.0.0-rc.2.26504.105" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="11.0.0-rc.2.26504.105" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="11.0.0-rc.2.26504.105" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../NorthwindOps.Client/NorthwindOps.Client.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Data/Seed/northwind.json" />
+    <!-- X-ray content: feature write-ups, plus the app's own source so the drawer can show the real code. -->
+    <EmbeddedResource Include="Showcase/Features/*.md" LogicalName="features/%(Filename)%(Extension)" WithCulture="false" />
+    <EmbeddedResource Include="Showcase/Guide/*.md" LogicalName="guide/%(Filename)%(Extension)" WithCulture="false" />
+    <EmbeddedResource Include="**/*.razor;**/*.cs;wwwroot/js/*.js" Exclude="bin/**;obj/**" LogicalName="source/%(RelativeDir)%(Filename)%(Extension)" WithCulture="false" />
+    <!-- The WebAssembly client's source too, as Client/... (for example Client/RuntimeBadge.razor). -->
+    <EmbeddedResource Include="../NorthwindOps.Client/**/*.razor;../NorthwindOps.Client/**/*.cs;../NorthwindOps.Client/wwwroot/**/*.js" Exclude="../NorthwindOps.Client/bin/**;../NorthwindOps.Client/obj/**" LogicalName="source/Client/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />
+    <!-- The Web Worker library's source too, as Worker/... (for example Worker/WorkerMethods.cs). -->
+    <EmbeddedResource Include="../NorthwindOps.Worker/**/*.cs" Exclude="../NorthwindOps.Worker/bin/**;../NorthwindOps.Worker/obj/**" LogicalName="source/Worker/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />
+  </ItemGroup>
+
+</Project>

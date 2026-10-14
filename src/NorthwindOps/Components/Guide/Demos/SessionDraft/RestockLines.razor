@@ -1,0 +1,47 @@
+@page "/demo/session/restock"
+@layout DemoLayout
+@inject IDbContextFactory<NorthwindDb> DbFactory
+@inject NavigationManager Navigation
+
+<h1>Restock · 1. Quantities</h1>
+
+<form method="post" @formname="restock-lines" @onsubmit="Review" data-enhance>
+    <AntiforgeryToken />
+    @foreach (var p in products)
+    {
+        <label for="p@(p.Id)">@p.Name · @p.UnitsInStock in stock</label>
+        <input id="p@(p.Id)" name="Packs[@p.Id]" value="@Saved(p)" type="number" />
+    }
+    <button type="submit">Review order →</button>
+</form>
+
+@code {
+    List<Product> products = [];
+
+    // xray:supply-parameter-from-session
+    // Read from session as the page renders, and saved back when the request ends.
+    [SupplyParameterFromSession(Name = "restock-draft")]
+    public Dictionary<string, int>? Draft { get; set; } // product id → packs
+    // /xray:supply-parameter-from-session
+
+    [SupplyParameterFromForm] public Dictionary<int, int?>? Packs { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        products = await db.Products.Where(p => !p.Discontinued)
+            .OrderBy(p => p.UnitsInStock).ThenBy(p => p.Id).Take(4).ToListAsync();
+    }
+
+    void Review()
+    {
+        // xray:supply-parameter-from-session
+        Draft = products.Where(p => Packs?.GetValueOrDefault(p.Id) > 0)
+            .ToDictionary(p => $"{p.Id}", p => Math.Min(Packs![p.Id]!.Value, 99));
+        // /xray:supply-parameter-from-session
+        Navigation.NavigateTo("demo/session/restock/review");
+    }
+
+    // Fills each box in again from the draft.
+    int? Saved(Product p) => Draft?.TryGetValue($"{p.Id}", out var n) == true ? n : null;
+}

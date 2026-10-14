@@ -1,0 +1,205 @@
+@*
+    The warehouse's live event stream: an Interactive Server island on the otherwise static dashboard.
+    New events arrive at the bottom, and the list follows them until you scroll up to read something.
+*@
+@implements IAsyncDisposable
+@inject OrderFeed Feed
+@inject IJSRuntime JS
+
+<section class="card feed-card" aria-labelledby="feed-title">
+    <header class="feed-head">
+        <div>
+            <h2 id="feed-title">Live order feed</h2>
+            <p>Warehouse events as they happen, newest at the bottom. Simulated, and shared by everyone on the site.</p>
+        </div>
+        <div class="follow-state" role="status">
+            @if (!RendererInfo.IsInteractive)
+            {
+                <span class="follow connecting">Connecting…</span>
+            }
+            else if (following)
+            {
+                <span class="follow following">Following</span>
+            }
+            else
+            {
+                <span class="follow paused">Paused@(missed > 0 ? $" · {missed} new" : "")</span>
+                <button type="button" class="jump" @onclick="JumpToLatestAsync">Jump to latest ↓</button>
+            }
+        </div>
+    </header>
+
+    <div class="feed" @ref="scroller" tabindex="-1">
+        @* xray:virtualize-anchor-mode *@
+        <Virtualize @ref="virtualize" ItemsProvider="LoadRowsAsync" ItemComparer="SameEvent"
+                    AnchorMode="VirtualizeAnchorMode.End" ItemSize="58" Context="row">
+            <ItemContent>
+                <div class="feed-row @row.Kind" @key="row.Id">
+                    <time datetime="@row.At.ToString("O")">@row.At.ToString("HH:mm:ss")</time>
+                    <span class="kind">@row.Label</span>
+                    <span class="what"><b>@row.Subject</b><small>@row.Detail</small></span>
+                    <span class="amount">@row.Amount?.ToString("C0")</span>
+                </div>
+            </ItemContent>
+            <Placeholder>
+                <div class="feed-row placeholder"><span></span></div>
+            </Placeholder>
+        </Virtualize>
+        @* /xray:virtualize-anchor-mode *@
+    </div>
+</section>
+
+@code {
+    // xray:virtualize-anchor-mode
+    // Rows are built fresh on every call, as they would be from a database query, so Virtualize can't
+    // compare them by reference. Matching on the event id tells it that a row it loaded before is still
+    // in the same place, which means new rows were appended at the end and it should follow them.
+    static readonly IEqualityComparer<FeedRow> SameEvent =
+        EqualityComparer<FeedRow>.Create((a, b) => a?.Id == b?.Id, row => row.Id.GetHashCode());
+
+    ValueTask<ItemsProviderResult<FeedRow>> LoadRowsAsync(ItemsProviderRequest request)
+    {
+        var rows = Feed.Read(request.StartIndex, request.Count).Select(FeedRow.From).ToList();
+        return ValueTask.FromResult(new ItemsProviderResult<FeedRow>(rows, Feed.Count));
+    }
+
+    async void OnEventAdded(OrderEvent orderEvent)
+    {
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                if (!following)
+                {
+                    missed++;
+                }
+                // Ask the provider again: Virtualize sees the count grow and, if we're at the bottom, scrolls to the new row.
+                await virtualize!.RefreshDataAsync();
+                StateHasChanged();
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+            // The circuit went away between the event and the render.
+        }
+        catch (Exception ex)
+        {
+            // This runs on the simulator's thread, so hand failures to the renderer rather than losing them.
+            await DispatchExceptionAsync(ex);
+        }
+    }
+    // /xray:virtualize-anchor-mode
+
+    Virtualize<FeedRow>? virtualize;
+    ElementReference scroller;
+    IJSObjectReference? module;
+    IJSObjectReference? watcher;
+    DotNetObjectReference<LiveOrderFeed>? self;
+    bool following = true;
+    int missed;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !RendererInfo.IsInteractive)
+        {
+            return;
+        }
+
+        // Subscribe first: the feed is the point of the panel, the indicator is a nicety.
+        Feed.EventAdded += OnEventAdded;
+        self = DotNetObjectReference.Create(this);
+        try
+        {
+            module = await JS.InvokeAsync<IJSObjectReference>("import", "./Components/Pages/Dashboard/LiveOrderFeed.razor.js");
+            watcher = await module.InvokeAsync<IJSObjectReference>("watchFollowing", scroller, self);
+        }
+        catch (JSException)
+        {
+            // Without the module there's no Following/Paused indicator, but Virtualize still follows new rows.
+        }
+    }
+
+    /// <summary>Called from JS when the list reaches, or leaves, the bottom.</summary>
+    [JSInvokable]
+    public void SetFollowing(bool atBottom)
+    {
+        following = atBottom;
+        if (following)
+        {
+            missed = 0;
+        }
+        StateHasChanged();
+    }
+
+    async Task JumpToLatestAsync()
+    {
+        try
+        {
+            if (module is not null)
+            {
+                await module.InvokeVoidAsync("jumpToLatest", scroller);
+            }
+        }
+        catch (JSException)
+        {
+            // Scrolling to the bottom by hand does the same.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Feed.EventAdded -= OnEventAdded;
+        try
+        {
+            if (watcher is not null)
+            {
+                await watcher.InvokeVoidAsync("dispose");
+                await watcher.DisposeAsync();
+            }
+            if (module is not null)
+            {
+                await module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // The browser has gone; nothing to clean up on its side.
+        }
+        self?.Dispose();
+    }
+
+    /// <summary>One line in the feed, shaped for display.</summary>
+    public sealed class FeedRow
+    {
+        public long Id { get; init; }
+        public DateTimeOffset At { get; init; }
+        public string Kind { get; init; } = "";
+        public string Label { get; init; } = "";
+        public string Subject { get; init; } = "";
+        public string Detail { get; init; } = "";
+        public decimal? Amount { get; init; }
+
+        public static FeedRow From(OrderEvent e) => new()
+        {
+            Id = e.Id,
+            At = e.At,
+            Kind = e.Kind switch
+            {
+                OrderEventKind.NewOrder => "new-order",
+                OrderEventKind.Packed => "packed",
+                OrderEventKind.Shipped => "shipped",
+                _ => "stock-alert",
+            },
+            Label = e.Kind switch
+            {
+                OrderEventKind.NewOrder => "New order",
+                OrderEventKind.Packed => "Packed",
+                OrderEventKind.Shipped => "Shipped",
+                _ => "Stock alert",
+            },
+            Subject = e.Subject,
+            Detail = e.Detail,
+            Amount = e.Amount,
+        };
+    }
+}

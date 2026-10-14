@@ -1,0 +1,47 @@
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+<CircuitPanel />
+
+<table class="sheet">
+    <thead><tr><th>Product</th><th>On system</th><th>Counted</th></tr></thead>
+    @foreach (var product in products)
+    {
+        <tr>
+            <td>@product.Name</td>
+            <td>@product.UnitsInStock</td>
+            <td class="count">
+                <button @onclick="() => Count(product.Id, -1)">−</button>
+                <b>@(Counted?.GetValueOrDefault(product.Id) ?? 0)</b>
+                <button @onclick="() => Count(product.Id, +1)">+</button>
+            </td>
+        </tr>
+    }
+</table>
+
+<label for="note">Note for the next shift</label>
+<input id="note" @bind="Note" placeholder="Shelf 4 is half empty" maxlength="200" />
+
+@code {
+    // xray:circuit-auto-pause
+    // Saved when the circuit pauses, and put back when it resumes.
+    [PersistentState] public Dictionary<int, int>? Counted { get; set; }
+    [PersistentState] public string? Note { get; set; }
+    // /xray:circuit-auto-pause
+
+    List<Product> products = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Runs again on resume, on the new circuit, so stock levels are fresh.
+        await using var db = await DbFactory.CreateDbContextAsync();
+        products = await db.Products.AsNoTracking()
+            .Where(p => p.Category.Name == "Beverages" && !p.Discontinued)
+            .OrderBy(p => p.Name).Take(5).ToListAsync();
+    }
+
+    void Count(int productId, int by)
+    {
+        Counted ??= [];
+        Counted[productId] = Math.Max(0, Counted.GetValueOrDefault(productId) + by);
+    }
+}

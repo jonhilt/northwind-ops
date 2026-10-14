@@ -1,0 +1,10 @@
+/* Hidden until blazor.web.js fills in the numbers, the first time the connection drops. */
+.rejoin {
+    margin: 14px 0 0;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: var(--warn-soft);
+    color: var(--warn);
+    font-size: 13px;
+}
+.rejoin:has(b:empty) { display: none; }

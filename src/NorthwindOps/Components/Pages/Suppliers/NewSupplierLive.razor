@@ -1,0 +1,20 @@
+@page "/suppliers/new/live"
+
+<PageTitle>New supplier (live checks) · Northwind Ops</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>New supplier, checked live</h1>
+        <p>The same form, but this time only the form runs on an interactive circuit, so each async check starts the moment you leave its field. Watch the supplier code say "Checking…" while the slow lookup runs, and Save wait for it.</p>
+    </div>
+    <span class="mode-chip server">Interactive Server · form only</span>
+</div>
+
+<div class="supplier-toolbar">
+    <span class="note">The live form is English only: the language switch lives on the <a href="suppliers/new">static form</a>.</span>
+</div>
+
+@* An island: the page is static, the form is interactive. *@
+<SupplierEditor @rendermode="InteractiveServer" />
+
+<p class="back"><a href="suppliers">← Back to suppliers</a></p>

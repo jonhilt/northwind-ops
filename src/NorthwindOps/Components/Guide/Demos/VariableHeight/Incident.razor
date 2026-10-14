@@ -1,0 +1,7 @@
+@page "/demo/variable-height/incident"
+@layout DemoLayout
+
+<h1>Order sync incident</h1>
+
+@* The page is static. Only the thread, which scrolls and expands, runs interactively. *@
+<IncidentThread @rendermode="InteractiveServer" />

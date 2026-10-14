@@ -1,0 +1,24 @@
+@page "/xray/{Id}"
+@inject FeatureRegistry Registry
+@inject NavigationManager Navigation
+
+<PageTitle>@(feature?.Title ?? "X-ray") · Northwind Ops</PageTitle>
+
+<div class="xr-page">
+    <XRayPanel Id="@Id" />
+</div>
+
+@code {
+    Feature? feature;
+
+    [Parameter] public string Id { get; set; } = "";
+
+    protected override void OnParametersSet()
+    {
+        feature = Registry.Find(Id);
+        if (feature is null)
+        {
+            Navigation.NotFound();
+        }
+    }
+}

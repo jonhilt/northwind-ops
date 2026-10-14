@@ -1,0 +1,81 @@
+@page "/orders"
+@using NorthwindOps.Components.Pages.OrdersEdit
+@using NorthwindOps.Features.OrdersEdit
+@inject IDbContextFactory<NorthwindDb> DbFactory
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
+
+<PageTitle>Orders · Northwind Ops</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>Orders</h1>
+        <p>Every order from the past year. Sort a column, page through, filter by status: it's all in the URL, so whatever you're looking at is a link you can share.</p>
+    </div>
+    <span class="mode-chip">Static SSR · no circuit</span>
+</div>
+
+@* xray:tempdata-ssr *@
+<FlashMessage />
+@* /xray:tempdata-ssr *@
+
+<XRay For="quickgrid-url-paging">
+    <div class="card grid-card">
+        <nav class="filters" aria-label="Filter by status">
+            <a href="@StatusLink(null)" class="@(selectedStatus is null ? "active" : null)">All</a>
+            @foreach (var status in Enum.GetValues<OrderStatus>())
+            {
+                <a href="@StatusLink(status)" class="@(status == selectedStatus ? "active" : null)">@status</a>
+            }
+        </nav>
+
+        @* xray:quickgrid-url-paging *@
+        <QuickGrid Items="orders" Pagination="pagination">
+            <TemplateColumn Title="Order" SortBy="byId">
+                <a href="@OrderLinks.Detail(context.Id, listUrl)">@context.Id</a>
+            </TemplateColumn>
+            <PropertyColumn Title="Customer" Property="o => o.Customer.Company" Sortable="true" />
+            <PropertyColumn Title="Placed" Property="o => o.PlacedOn" Format="d MMM yyyy, HH:mm" Sortable="true"
+                            IsDefaultSortColumn="true" InitialSortDirection="SortDirection.Descending" />
+            <TemplateColumn Title="Status" SortBy="byStatus">
+                <span class="pill @context.Status.ToString().ToLowerInvariant()">@context.Status</span>
+            </TemplateColumn>
+            <PropertyColumn Title="Total" Property="o => o.Total" Format="C" Align="Align.End" Sortable="true" Class="num" />
+        </QuickGrid>
+        <Paginator State="pagination" />
+        @* /xray:quickgrid-url-paging *@
+    </div>
+</XRay>
+
+<p class="url-readout">You're looking at <b>/@Navigation.ToBaseRelativePath(Navigation.Uri)</b></p>
+
+@code {
+    NorthwindDb? db;
+    IQueryable<Order> orders = default!;
+    OrderStatus? selectedStatus;
+    readonly PaginationState pagination = new() { ItemsPerPage = 15 };
+    readonly GridSort<Order> byStatus = GridSort<Order>.ByAscending(o => o.Status);
+    readonly GridSort<Order> byId = GridSort<Order>.ByAscending(o => o.Id);
+    string listUrl = OrderLinks.List; // this view, so an order's page can bring you back to it
+
+    // Our own filter sits in the same query string as the grid's page and sort parameters.
+    [SupplyParameterFromQuery(Name = "status")] public string? StatusFilter { get; set; }
+
+    protected override void OnInitialized() => db = DbFactory.CreateDbContext();
+
+    protected override void OnParametersSet()
+    {
+        selectedStatus = Enum.TryParse<OrderStatus>(StatusFilter, ignoreCase: true, out var parsed) ? parsed : null;
+        var query = db!.Orders.Include(o => o.Customer).AsNoTracking();
+        orders = selectedStatus is { } status ? query.Where(o => o.Status == status) : query;
+        listUrl = Navigation.ToBaseRelativePath(Navigation.Uri);
+    }
+
+    string StatusLink(OrderStatus? status) => Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
+    {
+        ["status"] = status?.ToString(),
+        ["page"] = null, // a new filter starts back on page one
+    });
+
+    public ValueTask DisposeAsync() => db?.DisposeAsync() ?? ValueTask.CompletedTask;
+}

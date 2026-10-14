@@ -1,0 +1,352 @@
+@*
+    The "New supplier" form. /suppliers/new renders it as static SSR (client-side validation, checks on Save);
+    /suppliers/new/live renders the same component with InteractiveServer, so the async checks run as you go.
+*@
+@using Microsoft.Extensions.Localization
+@using NorthwindOps.Features.Suppliers
+@inject SupplierDirectory Directory
+@inject NavigationManager Navigation
+@inject IStringLocalizer<SupplierText> T
+@implements IDisposable
+
+@*
+    novalidate keeps the browser's own type="email"/"url" checks out of the way: Blazor's rules decide, with or
+    without JavaScript. (blazor.web.js adds it anyway on static forms with client-side validation.)
+
+    X-ray outlines sit beside the fields (an empty <XRay> stretched over its section) rather than around them.
+    In .NET 11 (still so in RC2) an input rendered inside another component, like <XRay>, renders after the
+    form has written its client-side rules, so it would get no browser validation. See ssr-client-validation.md.
+*@
+<div class="supplier-editor">
+    @* xray:ssr-client-validation *@
+    <EditForm EditContext="editContext" FormName="@FormName" Enhance OnSubmit="SubmitAsync" class="card form-card" novalidate>
+        <DataAnnotationsValidator />
+        @* /xray:ssr-client-validation *@
+
+        @* xray:async-form-validation *@
+        @if (editContext.IsValidationFaulted())
+        {
+            <p class="alert faulted" role="alert">@T["Ui_CheckFaulted"]</p>
+        }
+        @* /xray:async-form-validation *@
+
+        <fieldset>
+            <legend>@T["Ui_CompanySection"]</legend>
+            <div class="fields">
+                <div class="field span-2">
+                    <Label For="() => Supplier!.Company" />
+                    <InputText @bind-Value="Supplier!.Company" autocomplete="organization" />
+                    <ValidationMessage For="() => Supplier!.Company" />
+                </div>
+                <div class="field span-2">
+                    <Label For="() => Supplier!.Website" />
+                    <InputText @bind-Value="Supplier!.Website" type="url" placeholder="https://" />
+                    <ValidationMessage For="() => Supplier!.Website" />
+                </div>
+            </div>
+
+            <div class="zone">
+                <XRay For="async-form-validation" Class="zone-outline" />
+                <div class="fields">
+                    @* xray:async-form-validation *@
+                    <div class="field span-2">
+                        <Label For="() => Supplier!.Code" />
+                        <div class="with-status">
+                            <InputText @bind-Value="Supplier!.Code" class="code-input" placeholder="ABCD-01" autocomplete="off" />
+                            @if (editContext.IsValidationPending(() => Supplier!.Code))
+                            {
+                                <span class="status checking" role="status">@T["Ui_Checking"]</span>
+                            }
+                        </div>
+                        <small class="hint">@T["Ui_CodeHint"]</small>
+                        <ValidationMessage For="() => Supplier!.Code" />
+                    </div>
+                    <div class="field span-2">
+                        <Label For="() => Supplier!.VatNumber" />
+                        <div class="with-status">
+                            <InputText @bind-Value="Supplier!.VatNumber" class="code-input" placeholder="DE123456789" autocomplete="off" />
+                            @if (editContext.IsValidationPending(() => Supplier!.VatNumber))
+                            {
+                                <span class="status checking" role="status">@T["Ui_Checking"]</span>
+                            }
+                        </div>
+                        @if (editContext.IsValidationFaulted(() => Supplier!.VatNumber))
+                        {
+                            <small class="hint faulted">@T["Ui_FieldFaulted"]</small>
+                        }
+                        else
+                        {
+                            <small class="hint">@T["Ui_VatHint"]</small>
+                        }
+                        <ValidationMessage For="() => Supplier!.VatNumber" />
+                    </div>
+                    @* /xray:async-form-validation *@
+                </div>
+            </div>
+        </fieldset>
+
+        <div class="zone">
+            <XRay For="label-and-input-ids" Class="zone-outline" />
+            <fieldset>
+                <legend>@T["Contact"]</legend>
+                <div class="fields">
+                    @* xray:label-and-input-ids *@
+                    <div class="field span-2">
+                        <Label For="() => Supplier!.Contact" />
+                        <InputText @bind-Value="Supplier!.Contact" autocomplete="name" />
+                        <ValidationMessage For="() => Supplier!.Contact" />
+                    </div>
+                    <div class="field">
+                        <Label For="() => Supplier!.Email" />
+                        <InputText @bind-Value="Supplier!.Email" type="email" autocomplete="email" />
+                        <ValidationMessage For="() => Supplier!.Email" />
+                    </div>
+                    <div class="field">
+                        <Label For="() => Supplier!.Phone" />
+                        <InputText @bind-Value="Supplier!.Phone" type="tel" autocomplete="tel" />
+                        <ValidationMessage For="() => Supplier!.Phone" />
+                    </div>
+                    @* /xray:label-and-input-ids *@
+                </div>
+            </fieldset>
+        </div>
+
+        <div class="zone">
+            <XRay For="validatable-type-stable" Class="zone-outline" />
+            <fieldset>
+                <legend>@T["Ui_AddressSection"]</legend>
+                <div class="fields">
+                    @* xray:validatable-type-stable *@
+                    <div class="field span-4">
+                        <Label For="() => Supplier!.Address.Street" />
+                        <InputText @bind-Value="Supplier!.Address.Street" autocomplete="street-address" />
+                        <ValidationMessage For="() => Supplier!.Address.Street" />
+                    </div>
+                    @* /xray:validatable-type-stable *@
+                    <div class="field">
+                        <Label For="() => Supplier!.Address.PostalCode" />
+                        <InputText @bind-Value="Supplier!.Address.PostalCode" autocomplete="postal-code" />
+                        <ValidationMessage For="() => Supplier!.Address.PostalCode" />
+                    </div>
+                    <div class="field">
+                        <Label For="() => Supplier!.Address.City" />
+                        <InputText @bind-Value="Supplier!.Address.City" autocomplete="address-level2" />
+                        <ValidationMessage For="() => Supplier!.Address.City" />
+                    </div>
+                    <div class="field span-2">
+                        <Label For="() => Supplier!.Address.Country" />
+                        <InputSelect @bind-Value="Supplier!.Address.Country" autocomplete="country-name">
+                            <option value="">@T["Ui_ChooseCountry"]</option>
+                            @foreach (var country in Countries)
+                            {
+                                <option value="@country">@country</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="() => Supplier!.Address.Country" />
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>@T["Ui_ContactsSection"]</legend>
+                <p class="section-hint">@T["Ui_ContactsHint"]</p>
+                <ValidationMessage For="() => Supplier!.Contacts" />
+                @if (Supplier!.Contacts.Count == 0)
+                {
+                    <p class="empty">@T["Ui_NoContacts"]</p>
+                }
+                @for (var i = 0; i < Supplier.Contacts.Count; i++)
+                {
+                    var index = i;
+                    <div class="contact-row">
+                        @* xray:validatable-type-stable *@
+                        <div class="field">
+                            <Label For="() => Supplier.Contacts[index].Name" />
+                            <InputText @bind-Value="Supplier.Contacts[index].Name" />
+                            <ValidationMessage For="() => Supplier.Contacts[index].Name" />
+                        </div>
+                        @* /xray:validatable-type-stable *@
+                        <div class="field">
+                            <Label For="() => Supplier.Contacts[index].Role" />
+                            <InputText @bind-Value="Supplier.Contacts[index].Role" />
+                            <ValidationMessage For="() => Supplier.Contacts[index].Role" />
+                        </div>
+                        <div class="field">
+                            <Label For="() => Supplier.Contacts[index].Email" />
+                            <InputText @bind-Value="Supplier.Contacts[index].Email" type="email" />
+                            <ValidationMessage For="() => Supplier.Contacts[index].Email" />
+                        </div>
+                        @if (Live)
+                        {
+                            <button type="button" class="btn ghost" @onclick="() => RemoveContact(index)" disabled="@Busy">@T["Ui_Remove"]</button>
+                        }
+                        else
+                        {
+                            <button type="submit" name="Intent" value="@($"remove:{index}")" formnovalidate class="btn ghost">@T["Ui_Remove"]</button>
+                        }
+                    </div>
+                }
+                @if (Supplier.Contacts.Count < SupplierForm.MaxContacts)
+                {
+                    if (Live)
+                    {
+                        <button type="button" class="btn" @onclick="AddContact" disabled="@Busy">+ @T["Ui_AddContact"]</button>
+                    }
+                    else
+                    {
+                        <button type="submit" name="Intent" value="add-contact" formnovalidate class="btn">+ @T["Ui_AddContact"]</button>
+                    }
+                }
+            </fieldset>
+        </div>
+
+        <div class="actions">
+            @* xray:async-form-validation *@
+            <button type="submit" class="btn primary" disabled="@Busy">
+                @(editContext.IsValidationPending() ? T["Ui_Checking"] : T["Ui_Save"])
+            </button>
+            @* /xray:async-form-validation *@
+            @* xray:ssr-client-validation *@
+            @if (Live)
+            {
+                <button type="button" class="btn" @onclick="SaveDraftAsync" disabled="@Busy">@T["Ui_SaveDraft"]</button>
+            }
+            else
+            {
+                @* formnovalidate: the browser skips client-side validation for this button *@
+                <button type="submit" name="Intent" value="draft" formnovalidate class="btn">@T["Ui_SaveDraft"]</button>
+            }
+            @* /xray:ssr-client-validation *@
+            <small class="hint">@T["Ui_SaveDraftHint"]</small>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    const string FormName = "new-supplier";
+
+    static readonly string[] Countries =
+    [
+        "Australia", "Austria", "Belgium", "Brazil", "Canada", "Denmark", "Finland", "France", "Germany", "Greece", "Ireland",
+        "Italy", "Japan", "Netherlands", "Norway", "Poland", "Portugal", "Singapore", "Spain", "Sweden", "UK", "USA",
+    ];
+
+    EditContext editContext = default!;
+    ValidationMessageStore draftMessages = default!;
+
+    [SupplyParameterFromForm(FormName = FormName)] public SupplierForm? Supplier { get; set; }
+
+    // Which submit button was pressed: "add-contact", "remove:{index}" or "draft". Empty for Save.
+    [SupplyParameterFromForm(FormName = FormName)] public string? Intent { get; set; }
+
+    // Rendered with InteractiveServer (on /suppliers/new/live)? Then buttons use @onclick rather than posting the form.
+    bool Live => AssignedRenderMode is not null;
+
+    // xray:async-form-validation
+    bool IsChecking => editContext.IsValidationPending()
+        || editContext.IsValidationPending(() => Supplier!.Code)
+        || editContext.IsValidationPending(() => Supplier!.VatNumber);
+    // /xray:async-form-validation
+
+    // While prerendering the live form, the buttons wait for the circuit.
+    bool Busy => IsChecking || (Live && !RendererInfo.IsInteractive);
+
+    protected override void OnInitialized()
+    {
+        Supplier ??= new();
+
+        // xray:ssr-client-validation
+        // A static form renders once before OnSubmit runs, and that first render writes the browser rules.
+        // So add or remove contact rows now, while the posted Intent is already bound, and new rows get rules too.
+        switch (Intent)
+        {
+            case "add-contact":
+                AddContact();
+                break;
+            case { } intent when intent.StartsWith("remove:", StringComparison.Ordinal) && int.TryParse(intent[7..], out var index):
+                RemoveContact(index);
+                break;
+        }
+        // /xray:ssr-client-validation
+
+        editContext = new EditContext(Supplier);
+        draftMessages = new ValidationMessageStore(editContext);
+
+        if (RendererInfo.IsInteractive)
+        {
+            // Async checks finish after the event that started them, so redraw the "Checking…" state when they do.
+            editContext.OnValidationStateChanged += OnValidationStateChanged;
+        }
+    }
+
+    async Task SubmitAsync(EditContext form)
+    {
+        draftMessages.Clear();
+
+        if (Intent is "draft")
+        {
+            await SaveDraftAsync();
+            return;
+        }
+        if (Intent is not null)
+        {
+            return; // a contact row was added or removed in OnInitialized
+        }
+
+        // xray:async-form-validation
+        // Runs every rule, nested ones included, and awaits the database and VAT register checks.
+        if (await form.ValidateAsync())
+        {
+            var saved = await Directory.AddAsync(Supplier!, SupplierStatus.Active);
+            Navigation.NavigateTo(SupplierCultures.Link($"suppliers?added={saved.Id}"));
+        }
+        // /xray:async-form-validation
+    }
+
+    async Task SaveDraftAsync()
+    {
+        draftMessages.Clear();
+        if (string.IsNullOrWhiteSpace(Supplier!.Company))
+        {
+            draftMessages.Add(editContext.Field(nameof(SupplierForm.Company)), T["Ui_DraftNeedsCompany"]);
+            editContext.NotifyValidationStateChanged();
+            return;
+        }
+
+        var tooBig = DraftLimits.Check(Supplier).ToList();
+        foreach (var broken in tooBig)
+        {
+            var rule = broken.IsList ? "MaxLengthAttribute_Error" : "StringLengthAttribute_Error";
+            draftMessages.Add(broken.Field, T[rule, broken.Name, broken.Max]);
+        }
+        if (tooBig.Count > 0)
+        {
+            editContext.NotifyValidationStateChanged();
+            return;
+        }
+
+        var saved = await Directory.AddAsync(Supplier, SupplierStatus.Draft);
+        var url = $"suppliers?added={saved.Id}" + (saved.CodeDropped ? "&codeDropped=true" : "");
+        Navigation.NavigateTo(SupplierCultures.Link(url));
+    }
+
+    void AddContact()
+    {
+        if (Supplier!.Contacts.Count < SupplierForm.MaxContacts)
+        {
+            Supplier.Contacts.Add(new());
+        }
+    }
+
+    void RemoveContact(int index)
+    {
+        if (index >= 0 && index < Supplier!.Contacts.Count)
+        {
+            Supplier.Contacts.RemoveAt(index);
+        }
+    }
+
+    void OnValidationStateChanged(object? sender, ValidationStateChangedEventArgs e) => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => editContext.OnValidationStateChanged -= OnValidationStateChanged;
+}

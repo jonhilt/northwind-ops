@@ -1,0 +1,141 @@
+@page "/"
+@using NorthwindOps.Components.Pages.Dashboard
+@using NorthwindOps.Features.Dashboard
+@inject DashboardQueries Queries
+@inject TimeProvider Clock
+
+<PageTitle>Dashboard · Northwind Ops</PageTitle>
+
+<section class="hero">
+    <div>
+        <h1>Northwind Ops</h1>
+        <p>A working back office for a food wholesaler, built with Blazor on .NET 11 RC2.</p>
+        <p>Every screen uses something new in .NET 11 the way a real app would. Nothing is mocked up: it's all running live.</p>
+    </div>
+    <div class="hint">
+        New to .NET 11? Start with the <a href="guide">Field Guide</a>: each feature's problem, a demo and its code, a step at a time.
+        Or press <kbd>X</kbd> on any screen to light up the .NET 11 features it uses.
+    </div>
+</section>
+
+<div class="page-head">
+    <div>
+        <h2>Today at Northwind</h2>
+        <p>The numbers the warehouse team checks first thing, what's happening on the floor right now, and who's buying.</p>
+    </div>
+    <span class="mode-chip">Static SSR · Interactive Server islands</span>
+</div>
+
+<XRay For="cacheview">
+    <section class="card kpi-panel" aria-labelledby="kpi-title">
+        <header class="kpi-head">
+            <h2 id="kpi-title">Key figures</h2>
+            <span class="muted">Page rendered at <time datetime="@renderedAt.ToString("O")" data-page-rendered-at>@renderedAt.ToString("HH:mm:ss")</time></span>
+        </header>
+        @* xray:cacheview *@
+        <CacheView CacheKey="dashboard-kpis" ExpiresAfter="KpiCacheDuration">
+            <KpiTiles CachedFor="KpiCacheDuration" />
+        </CacheView>
+        @* /xray:cacheview *@
+    </section>
+</XRay>
+
+<div class="dash-grid">
+    <XRay For="virtualize-anchor-mode" Class="feed-zone">
+        @* xray:virtualize-anchor-mode *@
+        <LiveOrderFeed @rendermode="InteractiveServer" />
+        @* /xray:virtualize-anchor-mode *@
+    </XRay>
+
+    <XRay For="renderfragment-across-render-modes">
+        <div class="panels">
+            @* xray:renderfragment-across-render-modes *@
+            <CollapsibleCard @rendermode="InteractiveServer" Id="top-customers" Title="Top customers"
+                             Subtitle="Last 30 days, by revenue" Count="@topCustomers.Sum(c => c.Revenue).ToString("C0")">
+                <table class="quickgrid">
+                    <thead><tr><th>Customer</th><th class="num">Orders</th><th class="num">Revenue</th></tr></thead>
+                    <tbody>
+                        @foreach (var customer in topCustomers)
+                        {
+                            <tr>
+                                <td><b>@customer.Company</b><small>@string.Join(", ", new[] { customer.City, customer.Country }.OfType<string>())</small></td>
+                                <td class="num">@customer.Orders</td>
+                                <td class="num">@customer.Revenue.ToString("C0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </CollapsibleCard>
+            @* /xray:renderfragment-across-render-modes *@
+
+            <CollapsibleCard @rendermode="InteractiveServer" Id="low-stock" Title="Low stock"
+                             Subtitle="At or below the reorder level" Count="@($"{lowStock.Count} products")">
+                <table class="quickgrid">
+                    <thead><tr><th>Product</th><th class="num">In stock</th><th class="num">Reorder at</th></tr></thead>
+                    <tbody>
+                        @foreach (var product in lowStock)
+                        {
+                            <tr class="@(product.UnitsInStock == 0 ? "out" : null)">
+                                <td><b>@product.Name</b><small>@product.Supplier</small></td>
+                                <td class="num">@(product.UnitsInStock == 0 ? "Out" : product.UnitsInStock)</td>
+                                <td class="num">@product.ReorderLevel</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </CollapsibleCard>
+        </div>
+    </XRay>
+</div>
+
+<h2 class="section-title">Explore</h2>
+<div class="tour">
+    <a class="card tour-item" href="orders">
+        <h3>Orders</h3>
+        <p>Sort and page a year of orders on a static page, open one, edit it, and land back on the exact view you came from with a one-time "Order saved" message.</p>
+        <div class="tags"><span>QuickGrid URL paging</span><span>TempData</span></div>
+    </a>
+    <a class="card tour-item" href="suppliers/new">
+        <h3>New supplier</h3>
+        <p>A static form that still validates as you type, checks the supplier code is unique against the database, and switches between English and German.</p>
+        <div class="tags"><span>SSR client validation</span><span>Async validation</span><span>Label</span></div>
+    </a>
+    <a class="card tour-item" href="purchasing">
+        <h3>Purchasing</h3>
+        <p>Raise a purchase order in a three-step wizard whose draft lives in session, so refresh, Back and coming back later all keep it.</p>
+        <div class="tags"><span>SupplyParameterFromSession</span><span>RelativeToCurrentUri</span></div>
+    </a>
+    <a class="card tour-item" href="support">
+        <h3>Support tickets</h3>
+        <p>Click a ticket to open its thread: hundreds of messages of every size that stay put as you expand them, under a strict Content-Security-Policy.</p>
+        <div class="tags"><span>QuickGrid OnRowClick</span><span>Virtualize</span><span>ScrollToItemAsync</span></div>
+    </a>
+    <div class="card tour-item soon">
+        <h3>Ops console</h3>
+        <p>Pause idle circuits, drain a server before a deploy, and grant roles that apply instantly.</p>
+        <div class="tags"><span>Circuit pause</span><span>Auth refresh</span></div>
+    </div>
+    <div class="card tour-item soon">
+        <h3>Warehouse app</h3>
+        <p>A WebAssembly app that imports stock files on a Web Worker, hosted by the new Blazor Gateway.</p>
+        <div class="tags"><span>Web Workers</span><span>Blazor Gateway</span></div>
+    </div>
+</div>
+
+@code {
+    // xray:cacheview
+    // A minute-old KPI is fine for a dashboard, and it saves the slow query on every page view.
+    static readonly TimeSpan KpiCacheDuration = TimeSpan.FromMinutes(1);
+    // /xray:cacheview
+
+    DateTimeOffset renderedAt;
+    List<TopCustomer> topCustomers = [];
+    List<LowStockProduct> lowStock = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        renderedAt = Clock.GetLocalNow();
+        topCustomers = await Queries.GetTopCustomersAsync(8);
+        lowStock = await Queries.GetLowStockAsync(8);
+    }
+}

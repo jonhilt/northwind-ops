@@ -1,0 +1,28 @@
+.flash {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 11px 16px;
+    border-radius: 12px;
+    background: var(--ok-soft);
+    border: 1px solid #a7f3d0;
+    color: var(--ok);
+    font-weight: 600;
+    animation: flash-in 0.4s ease-out;
+}
+
+.tick {
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--ok);
+    color: #fff;
+    font-size: 12px;
+}
+
+@keyframes flash-in {
+    from { opacity: 0; transform: translateY(-4px); }
+}

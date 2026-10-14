@@ -1,0 +1,13 @@
+p ::deep .runtime-badge {
+    display: inline-block;
+    margin-right: 8px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--brand-soft, #eef2ff);
+    color: var(--brand);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+tfoot th { text-align: left; }
+td:nth-child(n+2), th:nth-child(n+2) { text-align: right; }

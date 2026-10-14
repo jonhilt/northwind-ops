@@ -1,0 +1,37 @@
+@page "/demo/grid-url/products"
+@layout DemoLayout
+@inject IDbContextFactory<NorthwindDb> DbFactory
+@implements IAsyncDisposable
+
+<h1>Products</h1>
+
+@* xray:quickgrid-url-paging *@
+@* Headers and pager render as links, like ?sort=Price&direction=desc&page=3 *@
+<QuickGrid Items="products" Pagination="pagination">
+    <PropertyColumn Title="Product" Property="p => p.Name" Sortable="true"
+                    IsDefaultSortColumn="true" />
+    <PropertyColumn Title="Category" Property="p => p.Category.Name" Sortable="true" />
+    <PropertyColumn Title="Price" Property="p => p.UnitPrice" Format="C"
+                    Align="Align.End" Sortable="true" />
+</QuickGrid>
+<Paginator State="pagination" />
+@* /xray:quickgrid-url-paging *@
+
+@code {
+    NorthwindDb? db;
+    IQueryable<Product> products = default!;
+
+    // xray:quickgrid-url-paging
+    // No paging or sorting code of our own: the grid reads both from the URL.
+    readonly PaginationState pagination = new() { ItemsPerPage = 10 };
+    // /xray:quickgrid-url-paging
+
+    protected override void OnInitialized()
+    {
+        // An IQueryable, so the grid's OrderBy, Skip and Take run in the database.
+        db = DbFactory.CreateDbContext();
+        products = db.Products.Include(p => p.Category).AsNoTracking();
+    }
+
+    public ValueTask DisposeAsync() => db?.DisposeAsync() ?? ValueTask.CompletedTask;
+}

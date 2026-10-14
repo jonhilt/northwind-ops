@@ -1,0 +1,12 @@
+@*
+    The bare layout for Field Guide demos. Each demo is a small page of its own, shown in a frame on
+    its guide page, so it has a real URL to redirect to and refresh.
+*@
+@inherits LayoutComponentBase
+
+<main class="demo">
+    @* The guide sizes its frame to this element, so the demo never hides behind a scrollbar. *@
+    <div class="demo-body" data-demo-body>
+        @Body
+    </div>
+</main>

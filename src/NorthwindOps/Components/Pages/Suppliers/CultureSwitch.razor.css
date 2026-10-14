@@ -1,0 +1,32 @@
+.culture-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 999px;
+    background: #efedf5;
+    font-size: 13px;
+}
+
+.culture-switch span {
+    padding: 0 8px 0 10px;
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.culture-switch a {
+    padding: 4px 12px;
+    border-radius: 999px;
+    color: var(--ink-soft);
+    text-decoration: none;
+}
+
+.culture-switch a:hover { background: #e4e1ee; }
+
+.culture-switch a[aria-current="true"] {
+    background: var(--ink);
+    color: #fff;
+}

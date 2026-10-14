@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Company" xml:space="preserve">
+    <value>Firmenname</value>
+  </data>
+  <data name="Code" xml:space="preserve">
+    <value>Lieferantencode</value>
+  </data>
+  <data name="Contact" xml:space="preserve">
+    <value>Hauptansprechpartner</value>
+  </data>
+  <data name="Email" xml:space="preserve">
+    <value>E-Mail</value>
+  </data>
+  <data name="Phone" xml:space="preserve">
+    <value>Telefon</value>
+  </data>
+  <data name="Website" xml:space="preserve">
+    <value>Website</value>
+  </data>
+  <data name="VatNumber" xml:space="preserve">
+    <value>USt-IdNr.</value>
+  </data>
+  <data name="Street" xml:space="preserve">
+    <value>Straße</value>
+  </data>
+  <data name="City" xml:space="preserve">
+    <value>Ort</value>
+  </data>
+  <data name="PostalCode" xml:space="preserve">
+    <value>Postleitzahl</value>
+  </data>
+  <data name="Country" xml:space="preserve">
+    <value>Land</value>
+  </data>
+  <data name="ContactName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="ContactRole" xml:space="preserve">
+    <value>Funktion</value>
+  </data>
+  <data name="ContactEmail" xml:space="preserve">
+    <value>E-Mail</value>
+  </data>
+  <data name="RequiredAttribute_Error" xml:space="preserve">
+    <value>{0} ist ein Pflichtfeld.</value>
+  </data>
+  <data name="StringLengthAttribute_Error" xml:space="preserve">
+    <value>{0} darf höchstens {1} Zeichen lang sein.</value>
+  </data>
+  <data name="MaxLengthAttribute_Error" xml:space="preserve">
+    <value>Ein Lieferant kann höchstens {1} weitere Ansprechpartner haben.</value>
+  </data>
+  <data name="EmailAddressAttribute_Error" xml:space="preserve">
+    <value>{0} ist keine gültige E-Mail-Adresse.</value>
+  </data>
+  <data name="PhoneAttribute_Error" xml:space="preserve">
+    <value>{0} ist keine gültige Telefonnummer.</value>
+  </data>
+  <data name="UrlAttribute_Error" xml:space="preserve">
+    <value>{0} muss mit http:// oder https:// beginnen.</value>
+  </data>
+  <data name="SupplierForm_VatNumber_RegularExpressionAttribute_Error" xml:space="preserve">
+    <value>Die {0} beginnt mit einem Ländercode aus zwei Buchstaben, z. B. DE123456789.</value>
+  </data>
+  <data name="SupplierCodeAttribute_Error" xml:space="preserve">
+    <value>Der {0} muss wie {3} aussehen: {1} Großbuchstaben, ein Bindestrich und {2} Ziffern.</value>
+  </data>
+  <data name="UniqueSupplierCodeAttribute_Error" xml:space="preserve">
+    <value>{0} wird bereits von einem anderen Lieferanten verwendet.</value>
+  </data>
+  <data name="RegisteredVatNumberAttribute_Error" xml:space="preserve">
+    <value>Das EU-Mehrwertsteuerregister kennt diese {0} nicht.</value>
+  </data>
+  <data name="Ui_CompanySection" xml:space="preserve">
+    <value>Unternehmen</value>
+  </data>
+  <data name="Ui_AddressSection" xml:space="preserve">
+    <value>Anschrift</value>
+  </data>
+  <data name="Ui_ContactsSection" xml:space="preserve">
+    <value>Weitere Ansprechpartner</value>
+  </data>
+  <data name="Ui_ContactsHint" xml:space="preserve">
+    <value>Optional: Buchhaltung, Versand, Qualität und alle anderen, mit denen Sie zu tun haben.</value>
+  </data>
+  <data name="Ui_NoContacts" xml:space="preserve">
+    <value>Noch keine weiteren Ansprechpartner.</value>
+  </data>
+  <data name="Ui_AddContact" xml:space="preserve">
+    <value>Ansprechpartner hinzufügen</value>
+  </data>
+  <data name="Ui_Remove" xml:space="preserve">
+    <value>Entfernen</value>
+  </data>
+  <data name="Ui_Save" xml:space="preserve">
+    <value>Lieferant speichern</value>
+  </data>
+  <data name="Ui_SaveDraft" xml:space="preserve">
+    <value>Als Entwurf speichern</value>
+  </data>
+  <data name="Ui_SaveDraftHint" xml:space="preserve">
+    <value>Entwürfe werden nicht geprüft und brauchen nur einen Firmennamen.</value>
+  </data>
+  <data name="Ui_Checking" xml:space="preserve">
+    <value>Wird geprüft …</value>
+  </data>
+  <data name="Ui_CodeHint" xml:space="preserve">
+    <value>Vier Buchstaben, ein Bindestrich und zwei Ziffern. Wird mit bestehenden Lieferanten abgeglichen.</value>
+  </data>
+  <data name="Ui_VatHint" xml:space="preserve">
+    <value>Optional bei Lieferanten außerhalb der EU. Wird mit dem EU-Mehrwertsteuerregister abgeglichen.</value>
+  </data>
+  <data name="Ui_ChooseCountry" xml:space="preserve">
+    <value>Land auswählen</value>
+  </data>
+  <data name="Ui_DraftNeedsCompany" xml:space="preserve">
+    <value>Ein Entwurf braucht mindestens einen Firmennamen.</value>
+  </data>
+  <data name="Ui_CheckFaulted" xml:space="preserve">
+    <value>Die Prüfung konnte nicht abgeschlossen werden, weil das Mehrwertsteuerregister nicht geantwortet hat. Es wurde nichts gespeichert: Bitte versuchen Sie es gleich noch einmal.</value>
+  </data>
+  <data name="Ui_FieldFaulted" xml:space="preserve">
+    <value>Das Mehrwertsteuerregister ist nicht erreichbar. Beim Speichern wird erneut geprüft.</value>
+  </data>
+  <data name="Ui_Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Ui_Active" xml:space="preserve">
+    <value>Aktiv</value>
+  </data>
+  <data name="Ui_Draft" xml:space="preserve">
+    <value>Entwurf</value>
+  </data>
+  <data name="Ui_NewSupplier" xml:space="preserve">
+    <value>Neuer Lieferant</value>
+  </data>
+  <data name="Ui_Saved" xml:space="preserve">
+    <value>{0} gespeichert.</value>
+  </data>
+  <data name="Ui_SavedDraft" xml:space="preserve">
+    <value>{0} als Entwurf gespeichert.</value>
+  </data>
+  <data name="Ui_DraftCodeDropped" xml:space="preserve">
+    <value>Der Code war bereits vergeben, deshalb hat der Entwurf noch keinen.</value>
+  </data>
+  <data name="Ui_Language" xml:space="preserve">
+    <value>Sprache</value>
+  </data>
+</root>

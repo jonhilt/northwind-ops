@@ -1,0 +1,43 @@
+@*
+    A live hole in the cached KPI tiles. Everything around it is replayed from the cache, but this
+    component runs again on every request, so it can say how old the cached figures are.
+*@
+@* xray:cacheview *@
+@attribute [CacheBehavior(CacheBehavior.Rerender)]
+@* /xray:cacheview *@
+@inject TimeProvider Clock
+
+@if (calculatedThisRequest)
+{
+    <span class="kpi-age miss" data-cache-state="miss">Calculated for this request · cached for @Seconds(CachedFor)</span>
+}
+else
+{
+    <span class="kpi-age hit" data-cache-state="hit">Served from the cache · @Seconds(age) old · recalculated after @Seconds(CachedFor)</span>
+}
+
+@code {
+    /// <summary>
+    /// Set in HttpContext.Items by KpiTiles, which is only created when the cache misses. On a hit, KpiTiles
+    /// doesn't exist for this request, but this component still runs, so it can tell which happened.
+    /// </summary>
+    public static readonly object CalculatedThisRequest = new();
+
+    TimeSpan age;
+    bool calculatedThisRequest;
+
+    [CascadingParameter] HttpContext? HttpContext { get; set; }
+
+    // On a cache hit these are the values captured when the entry was created, replayed unchanged.
+    [Parameter] public DateTimeOffset AsOf { get; set; }
+
+    [Parameter] public TimeSpan CachedFor { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        age = Clock.GetLocalNow() - AsOf;
+        calculatedThisRequest = HttpContext?.Items.ContainsKey(CalculatedThisRequest) == true;
+    }
+
+    static string Seconds(TimeSpan span) => $"{Math.Max(0, (int)span.TotalSeconds)}s";
+}

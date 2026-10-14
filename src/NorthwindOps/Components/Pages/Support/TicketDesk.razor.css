@@ -1,0 +1,144 @@
+.desk {
+    display: grid;
+    grid-template-columns: minmax(340px, 440px) minmax(0, 1fr);
+    gap: 20px;
+    height: clamp(560px, calc(100vh - 240px), 980px);
+    margin-bottom: 24px;
+}
+
+/* The X-ray wrapper is the grid cell; let the card inside fill it. */
+.desk ::deep .desk-list-zone {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.ticket-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.list-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+}
+
+.list-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.list-scroll ::deep thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.list-scroll ::deep td {
+    padding: 10px 14px;
+    vertical-align: top;
+}
+
+.list-scroll ::deep th {
+    padding: 9px 14px;
+}
+
+.list-scroll ::deep tr.row-clickable:hover td {
+    background: #f6f3ff;
+}
+
+.list-scroll ::deep tr.selected td,
+.list-scroll ::deep tr.selected:hover td {
+    background: var(--brand-soft);
+}
+
+.list-scroll ::deep tr.selected td:first-child {
+    box-shadow: inset 3px 0 0 var(--brand);
+}
+
+/* Status shrinks to fit; the subject gets the rest. */
+.list-scroll ::deep .status-col {
+    width: 1%;
+    white-space: nowrap;
+}
+
+.subject {
+    display: block;
+    color: var(--ink);
+    text-decoration: none;
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+.subject:hover,
+.subject:focus-visible {
+    color: var(--brand);
+    text-decoration: underline;
+}
+
+.list-scroll ::deep tr.has-unread .subject {
+    font-weight: 700;
+}
+
+.meta {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.pill.ticket-open { background: var(--warn-soft); color: var(--warn); }
+.pill.ticket-waiting { background: var(--info-soft); color: var(--info); }
+.pill.ticket-resolved { background: var(--ok-soft); color: var(--ok); }
+
+.unread {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--brand);
+}
+
+.thread-pane {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.empty {
+    margin: auto;
+    max-width: 440px;
+    padding: 32px;
+    text-align: center;
+}
+
+.empty h2 {
+    margin: 0 0 6px;
+    font-size: 20px;
+}
+
+@media (max-width: 900px) {
+    .desk {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+
+    .list-scroll {
+        max-height: 50vh;
+    }
+
+    .thread-pane {
+        height: 80vh;
+    }
+}

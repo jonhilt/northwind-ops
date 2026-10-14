@@ -1,0 +1,25 @@
+@page "/suppliers/new"
+@using NorthwindOps.Features.Suppliers
+
+<PageTitle>New supplier · Northwind Ops</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>New supplier</h1>
+        <p>This page is static server-rendered and starts no circuit, yet the form checks your typing as you leave each field. On Save, the server checks everything again, including whether the supplier code is already taken.</p>
+    </div>
+    <span class="mode-chip">Static SSR · validates in the browser</span>
+</div>
+
+<div class="supplier-toolbar">
+    <XRay For="validation-localization">
+        <CultureSwitch />
+    </XRay>
+    <a class="live-link" href="suppliers/new/live">Try the live-checking version (Interactive Server) →</a>
+</div>
+
+<XRay For="ssr-client-validation">
+    <SupplierEditor />
+</XRay>
+
+<p class="back"><a href="@SupplierCultures.Link("suppliers")">← Back to suppliers</a></p>

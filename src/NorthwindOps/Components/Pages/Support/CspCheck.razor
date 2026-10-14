@@ -1,0 +1,91 @@
+@*
+    Shows the Content-Security-Policy this page was served with, and checks it from inside the tab: the browser
+    should refuse an inline style, while Virtualize's spacers still get their heights.
+*@
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<section class="card csp" aria-label="Content Security Policy">
+    <div class="csp-policy">
+        <h2>Content-Security-Policy</h2>
+        <p class="muted">Every Support page is served with this header (and the same policy in a <code>&lt;meta&gt;</code> tag, for enhanced navigation). There's no <code>'unsafe-inline'</code> for styles, so a <code>style="…"</code> attribute anywhere on the page is refused.</p>
+        <code class="policy">@Policy</code>
+    </div>
+    <div class="csp-test">
+        <button type="button" class="btn" disabled="@(!RendererInfo.IsInteractive)" @onclick="CheckAsync">Test it in this tab</button>
+        @if (result is not null)
+        {
+            <ul>
+                @if (result.InlineStyleBlocked)
+                {
+                    <li class="ok">An inline style was refused, so the policy is in force. DevTools → Console shows the test violation.</li>
+                }
+                else
+                {
+                    <li class="bad">An inline style was applied, so this tab isn't enforcing the policy.</li>
+                }
+                @if (result.Spacers > 0)
+                {
+                    <li class="ok">Virtualize's @result.Spacers spacers hold @result.ReservedPixels.ToString("N0") px for messages that aren't in the DOM, and @result.SpacersSized of @result.Spacers have exactly the height they asked for.</li>
+                }
+                else
+                {
+                    <li>Open a ticket to see Virtualize at work.</li>
+                }
+            </ul>
+        }
+    </div>
+</section>
+
+@code {
+    IJSObjectReference? module;
+    CheckResult? result;
+
+    [Parameter, EditorRequired] public string Policy { get; set; } = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                module = await JS.InvokeAsync<IJSObjectReference>("import", "./Components/Pages/Support/CspCheck.razor.js");
+                await module.InvokeVoidAsync("keepPolicyToSupport");
+            }
+            catch (JSException)
+            {
+                // If the module couldn't load, the console says why; the policy itself still applies.
+            }
+        }
+    }
+
+    async Task CheckAsync()
+    {
+        try
+        {
+            module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./Components/Pages/Support/CspCheck.razor.js");
+            result = await module.InvokeAsync<CheckResult>("check");
+        }
+        catch (JSException)
+        {
+            result = null;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (module is not null)
+            {
+                await module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit has gone, and the module with it.
+        }
+    }
+
+    sealed record CheckResult(bool InlineStyleBlocked, int Spacers, int SpacersSized, double ReservedPixels);
+}

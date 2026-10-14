@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <!-- Components that run in the browser on WebAssembly. The server project references this one and hosts its
+       components with @rendermode InteractiveWebAssembly, so the WebAssembly demos share the app's pages and URL. -->
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
+    <StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="11.0.0-rc.2.26504.105" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../NorthwindOps.Worker/NorthwindOps.Worker.csproj" />
+  </ItemGroup>
+
+</Project>

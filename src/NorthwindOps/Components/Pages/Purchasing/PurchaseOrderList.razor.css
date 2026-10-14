@@ -1,0 +1,23 @@
+.flash {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    padding: 12px 18px;
+    border-radius: 12px;
+    background: var(--ok-soft);
+    border: 1px solid #a7f3d0;
+    color: var(--ok);
+    font-size: 14px;
+}
+.flash b::before { content: "✓ "; }
+.flash span { color: #065f46; }
+
+th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+tr.just-sent td { background: #f0fdf4; }
+
+.pill.sent { background: var(--info-soft); color: var(--info); }
+.pill.confirmed { background: var(--warn-soft); color: var(--warn); }
+.pill.received { background: var(--ok-soft); color: var(--ok); }

@@ -1,0 +1,33 @@
+@*
+    A card you can fold away. It runs interactively, but what's inside it doesn't:
+    the static page renders that and passes it in as ChildContent.
+*@
+<section class="card">
+    <header>
+        <button type="button" @onclick="Toggle" disabled="@(!RendererInfo.IsInteractive)">
+            @(open ? "▾" : "▸") @Title
+        </button>
+        <span>@(RendererInfo.IsInteractive ? "Interactive" : "Connecting…")</span>
+    </header>
+
+    @* xray:renderfragment-across-render-modes *@
+    @* Render it on the first pass: the static page captures it while prerendering. *@
+    @if (open)
+    {
+        @ChildContent
+    }
+    @* /xray:renderfragment-across-render-modes *@
+</section>
+
+@code {
+    bool open = true;
+
+    [Parameter] public string Title { get; set; } = "";
+
+    // xray:renderfragment-across-render-modes
+    // Markup from the static page. In .NET 10 this threw: it couldn't be serialized.
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    // /xray:renderfragment-across-render-modes
+
+    void Toggle() => open = !open;
+}

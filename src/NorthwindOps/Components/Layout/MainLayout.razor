@@ -1,0 +1,41 @@
+@inherits LayoutComponentBase
+@inject IHostEnvironment Environment
+
+@* xray:environment-view *@
+<EnvironmentView Exclude="Production">
+    <XRay For="environment-view" Class="env-banner-zone">
+        <div class="env-banner">
+            <strong>@Environment.EnvironmentName.ToUpperInvariant()</strong> environment · demo data, reset every hour
+        </div>
+    </XRay>
+</EnvironmentView>
+@* /xray:environment-view *@
+
+<header class="topbar">
+    <a class="brand" href="">Northwind <span>Ops</span></a>
+    <nav class="nav">
+        <NavLink href="" Match="NavLinkMatch.All">Dashboard</NavLink>
+        <NavLink href="orders">Orders</NavLink>
+        <NavLink href="suppliers">Suppliers</NavLink>
+        <NavLink href="purchasing">Purchasing</NavLink>
+        <NavLink href="support">Support</NavLink>
+        <span class="nav-soon" title="Coming soon">Ops console</span>
+        <span class="nav-soon" title="Coming soon">Warehouse</span>
+    </nav>
+    <a class="guide-link" href="guide">Field Guide</a>
+    <button type="button" class="xray-toggle" data-xray-toggle aria-pressed="false" title="Show every .NET 11 feature on this page">
+        X-ray <kbd>X</kbd>
+    </button>
+</header>
+
+<main class="page">
+    @Body
+</main>
+
+<aside id="xray-drawer" class="xray-drawer" data-permanent aria-hidden="true" aria-label=".NET 11 feature details"></aside>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>

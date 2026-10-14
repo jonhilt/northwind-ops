@@ -1,0 +1,114 @@
+@*
+    Everything X-ray knows about one feature: the app's own code with the relevant lines highlighted,
+    how you'd have done it in .NET 10, and how it works. Rendered into the drawer by the
+    /xray/{id}/panel endpoint (Tabbed) and as a full page at /xray/{id} (stacked).
+*@
+@inject FeatureRegistry Registry
+@inject SourceCatalog Sources
+
+@if (feature is null)
+{
+    <p class="xr-missing">There's no X-ray entry called "@Id".</p>
+    return;
+}
+
+<article class="xr-panel @(Tabbed ? "is-tabbed" : "is-stacked")" data-xray-panel="@feature.Id">
+    <header class="xr-head">
+        <div class="xr-kicker">X-ray · .NET 11</div>
+        <h2>@feature.Title</h2>
+        <div class="xr-chips">
+            <span class="xr-chip xr-chip-release">@feature.Release</span>
+            <span class="xr-chip xr-chip-mode">@feature.Mode</span>
+        </div>
+        <p class="xr-summary">@feature.Summary</p>
+        @if (Tabbed)
+        {
+            <button type="button" class="xr-close" data-xray-close aria-label="Close X-ray panel">✕</button>
+        }
+    </header>
+
+    @if (!string.IsNullOrEmpty(feature.TryItHtml))
+    {
+        <aside class="xr-try">
+            <strong>Try it</strong>
+            @((MarkupString)feature.TryItHtml)
+        </aside>
+    }
+
+    @if (Tabbed)
+    {
+        <nav class="xr-tabs" role="tablist">
+            @for (var i = 0; i < views.Count; i++)
+            {
+                <button type="button" role="tab" data-xr-tab="src-@i" aria-selected="@(i == 0 ? "true" : "false")">@FileName(views[i].Path)</button>
+            }
+            <button type="button" role="tab" data-xr-tab="before" aria-selected="false">The .NET 10 way</button>
+            <button type="button" role="tab" data-xr-tab="how" aria-selected="false">How it works</button>
+        </nav>
+    }
+
+    @for (var i = 0; i < views.Count; i++)
+    {
+        var view = views[i];
+        <section class="xr-pane" data-xr-pane="src-@i" hidden="@(Tabbed && i > 0)">
+            @if (!Tabbed)
+            {
+                <h3>In this app: @view.Path</h3>
+            }
+            <div class="xr-file">
+                <span>@view.Path</span>
+                <a href="@GitHubUrl(view.Path)" target="_blank" rel="noopener">View on GitHub ↗</a>
+            </div>
+            <pre class="line-numbers" data-line="@view.HighlightedLines"><code class="language-@view.Language">@view.Code</code></pre>
+        </section>
+    }
+
+    <section class="xr-pane xr-prose" data-xr-pane="before" hidden="@Tabbed">
+        @if (!Tabbed)
+        {
+            <h3>The .NET 10 way</h3>
+        }
+        @((MarkupString)feature.BeforeHtml)
+    </section>
+
+    <section class="xr-pane xr-prose" data-xr-pane="how" hidden="@Tabbed">
+        @if (!Tabbed)
+        {
+            <h3>How it works</h3>
+        }
+        @((MarkupString)feature.HowItWorksHtml)
+        @if (feature.Docs is not null)
+        {
+            <p><a href="@feature.Docs" target="_blank" rel="noopener">Read the docs ↗</a></p>
+        }
+    </section>
+</article>
+
+@code {
+    // The public copy of this repo (tools/publish-public.sh). Sources are embedded under Client/ and Worker/ for the
+    // WebAssembly and Web Worker projects, and with no prefix for this one.
+    const string Repository = "https://github.com/jonhilt/northwind-ops/blob/main/src/";
+
+    Feature? feature;
+    List<SourceView> views = [];
+
+    [Parameter, EditorRequired] public string Id { get; set; } = "";
+
+    /// <summary>Tabs for the drawer; stacked sections for the standalone page.</summary>
+    [Parameter] public bool Tabbed { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        feature = Registry.Find(Id);
+        views = feature?.Sources.Select(path => Sources.View(path, feature.Id)).OfType<SourceView>().ToList() ?? [];
+    }
+
+    static string FileName(string path) => path[(path.LastIndexOf('/') + 1)..];
+
+    public static string GitHubUrl(string path) => Repository + path switch
+    {
+        _ when path.StartsWith("Client/", StringComparison.Ordinal) => "NorthwindOps.Client/" + path["Client/".Length..],
+        _ when path.StartsWith("Worker/", StringComparison.Ordinal) => "NorthwindOps.Worker/" + path["Worker/".Length..],
+        _ => "NorthwindOps/" + path,
+    };
+}

@@ -1,0 +1,43 @@
+@page "/demo/env-config/orders"
+@layout DemoLayout
+@using NorthwindOps.Client.EnvConfig
+
+@if (!WithoutVariable)
+{
+    @* xray:wasm-env-vars-config *@
+    @* Written into the page, for the WebAssembly runtime to start with. *@
+    <ConfigureBrowser Options="ordersApi" />
+    @* /xray:wasm-env-vars-config *@
+}
+
+@* Full page loads, so WebAssembly starts again with (or without) the variable. *@
+<nav class="modes">
+    <a href="demo/env-config/orders" data-enhance-nav="false"
+       class="@(WithoutVariable ? null : "on")">Server sets the API</a>
+    <a href="demo/env-config/orders?variable=off" data-enhance-nav="false"
+       class="@(WithoutVariable ? "on" : null)">Build's own settings</a>
+</nav>
+
+<h1>Recent orders</h1>
+
+@* The page is static. The list runs in the browser, on WebAssembly. *@
+<RecentOrders @rendermode="new InteractiveWebAssemblyRenderMode(prerender: false)" />
+
+@code {
+    [SupplyParameterFromQuery(Name = "variable")]
+    public string? Variable { get; set; }
+
+    bool WithoutVariable => Variable == "off";
+
+    // xray:wasm-env-vars-config
+    // This server knows where its API is, so it tells the browser.
+    // "__" stands for ":", so the client reads it as Orders:ApiUrl.
+    static readonly BrowserOptions ordersApi = new()
+    {
+        InteractiveWebAssembly =
+        {
+            EnvironmentVariables = { ["Orders__ApiUrl"] = OrdersApi.Url }
+        }
+    };
+    // /xray:wasm-env-vars-config
+}

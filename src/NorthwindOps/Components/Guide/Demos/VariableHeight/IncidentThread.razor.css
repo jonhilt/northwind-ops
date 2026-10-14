@@ -1,0 +1,32 @@
+.tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 0 10px;
+    color: var(--muted);
+}
+p.tools button { margin: 0; padding: 6px 14px; }
+
+/* Virtualize scrolls inside the nearest box with overflow-y: auto, so give it a fixed height. */
+.thread {
+    height: 440px;
+    overflow-y: auto;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fcfcfe;
+}
+
+.msg { padding: 10px 14px; border-bottom: 1px solid #f0eef6; }
+.msg header { font-size: 13px; color: var(--muted); }
+.msg header b { color: var(--ink); font-weight: 600; margin-right: 6px; }
+.msg p { margin: 4px 0 0; white-space: pre-line; color: var(--ink-soft); }
+.msg.clamped p { max-height: 4.5em; overflow: hidden; }
+
+.thread .msg button.more {
+    margin: 4px 0 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--brand);
+    font-size: 13px;
+}

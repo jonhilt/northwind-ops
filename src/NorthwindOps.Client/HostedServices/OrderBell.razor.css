@@ -1,0 +1,30 @@
+.bell {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fcfcfe;
+}
+
+.count {
+    min-width: 28px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--brand);
+    color: #fff;
+    font-weight: 700;
+    text-align: center;
+}
+
+.latest { color: var(--ink-soft); }
+
+.checked {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+}

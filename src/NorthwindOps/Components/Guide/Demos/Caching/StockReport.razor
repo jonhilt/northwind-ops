@@ -1,0 +1,12 @@
+@page "/demo/cacheview/stock"
+@layout DemoLayout
+
+<h1>Stock by category</h1>
+<p class="stamp">Page rendered at <b>@DateTime.Now.ToString("HH:mm:ss")</b></p>
+
+@* xray:cacheview *@
+@* Keeps the summary's HTML for 20 seconds. On a hit, StockSummary isn't even created. *@
+<CacheView ExpiresAfter="TimeSpan.FromSeconds(20)">
+    <StockSummary />
+</CacheView>
+@* /xray:cacheview *@

@@ -1,0 +1,39 @@
+@* Runs on the server: what you've picked lives in this browser's circuit. *@
+<table class="quickgrid picks">
+    <thead><tr><th>Bin</th><th>Product</th><th>Qty</th><th></th></tr></thead>
+    <tbody>
+        @foreach (var line in lines)
+        {
+            <tr>
+                <td class="bin">@line.Bin</td>
+                <td>@line.Product</td>
+                <td>@line.Quantity</td>
+                <td>
+                    @if (picked.Contains(line.Bin))
+                    {
+                        <span class="done">✓ Picked</span>
+                    }
+                    else
+                    {
+                        <button type="button" @onclick="() => picked.Add(line.Bin)">Pick</button>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+<p class="count">Picked @picked.Count of @lines.Length</p>
+
+@code {
+    record Line(string Bin, string Product, int Quantity);
+
+    readonly Line[] lines =
+    [
+        new("A-03", "Chai", 12),
+        new("A-11", "Chang", 6),
+        new("C-07", "Aniseed Syrup", 4),
+        new("D-02", "Ikura", 10),
+    ];
+
+    readonly HashSet<string> picked = [];
+}

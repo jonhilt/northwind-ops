@@ -1,0 +1,51 @@
+@inject IDbContextFactory<NorthwindDb> DbFactory
+@inject CircuitTracker Tracker
+
+<CircuitPanel />
+
+<div class="draft">
+    <label for="customer">Customer</label>
+    <select id="customer" @bind="CustomerId">
+        <option value="">Choose…</option>
+        @foreach (var c in customers) { <option value="@c.Id">@c.Company</option> }
+    </select>
+    <label for="product">Product</label>
+    <select id="product" @bind="ProductId">
+        <option value="">Choose…</option>
+        @foreach (var p in products) { <option value="@p.Id">@p.Name</option> }
+    </select>
+    <label for="quantity">Quantity</label>
+    <input id="quantity" type="number" min="1" max="999" @bind="Quantity" />
+</div>
+
+<button @onclick="PauseAsync">Pause this tab from the server</button>
+<p class="note">@status</p>
+
+@code {
+    // xray:server-initiated-circuit-pause
+    // Saved when the circuit pauses, and put back when it resumes.
+    [PersistentState] public string? CustomerId { get; set; }
+    [PersistentState] public int? ProductId { get; set; }
+    [PersistentState] public int? Quantity { get; set; }
+    // /xray:server-initiated-circuit-pause
+
+    List<Customer> customers = [];
+    List<Product> products = [];
+    string? status;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        customers = await db.Customers.AsNoTracking()
+            .OrderBy(c => c.Company).Take(8).ToListAsync();
+        products = await db.Products.AsNoTracking()
+            .Where(p => !p.Discontinued).OrderBy(p => p.Name).Take(8).ToListAsync();
+    }
+
+    // xray:server-initiated-circuit-pause
+    // A deploy would ask every circuit. This button asks only this tab's.
+    async Task PauseAsync() => status = await Tracker.Circuit!.RequestCircuitPauseAsync()
+        ? "Asked this tab to pause…"
+        : "This tab isn't connected, so there's nothing to pause.";
+    // /xray:server-initiated-circuit-pause
+}

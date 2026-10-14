@@ -1,0 +1,16 @@
+@*
+    Details for whoever is testing. Hosted with InteractiveWebAssembly, it runs in your
+    browser, and asks the same question as the page's banner, with the same component.
+*@
+@using Microsoft.Extensions.Hosting
+@inject IHostEnvironment Env
+
+@* xray:environment-view *@
+<EnvironmentView Exclude="Production">
+    <aside class="debug">
+        <b>Debug</b>
+        <span>Environment: @Env.EnvironmentName</span>
+        <span>Renderer: @RendererInfo.Name</span>
+    </aside>
+</EnvironmentView>
+@* /xray:environment-view *@

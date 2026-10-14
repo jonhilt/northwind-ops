@@ -1,0 +1,9 @@
+.modes { display: flex; gap: 6px; margin-bottom: 12px; }
+.modes a {
+    padding: 4px 12px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-size: 13px;
+    text-decoration: none;
+}
+.modes a.on { background: var(--brand); border-color: var(--brand); color: #fff; }

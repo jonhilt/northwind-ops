@@ -1,0 +1,35 @@
+@page "/demo/static-content/low-stock"
+@layout DemoLayout
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+<h1>Warehouse</h1>
+
+@* xray:renderfragment-across-render-modes *@
+@* An interactive card, around a table that this static page renders. *@
+<Collapsible @rendermode="InteractiveServer" Title="Low stock">
+    <p class="stamp">Queried at <b>@queriedAt.ToString("HH:mm:ss")</b></p>
+    <table class="quickgrid">
+        <thead><tr><th>Product</th><th>In stock</th><th>Reorder at</th></tr></thead>
+        <tbody>
+            @foreach (var p in products)
+            {
+                <tr><td>@p.Name</td><td>@p.UnitsInStock</td><td>@p.ReorderLevel</td></tr>
+            }
+        </tbody>
+    </table>
+</Collapsible>
+@* /xray:renderfragment-across-render-modes *@
+
+@code {
+    List<Product> products = [];
+    DateTime queriedAt;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        products = await db.Products
+            .Where(p => !p.Discontinued && p.UnitsInStock <= p.ReorderLevel)
+            .OrderBy(p => p.UnitsInStock).Take(6).ToListAsync();
+        queriedAt = DateTime.Now;
+    }
+}

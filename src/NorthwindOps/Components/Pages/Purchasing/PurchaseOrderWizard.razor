@@ -1,0 +1,449 @@
+@page "/purchasing/new"
+@page "/purchasing/new/{Step}"
+@inject IDbContextFactory<NorthwindDb> DbFactory
+@inject NavigationManager Navigation
+@inject TimeProvider Clock
+@implements IAsyncDisposable
+
+<PageTitle>New purchase order · Northwind Ops</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>New purchase order</h1>
+        <p>Pick a supplier, choose what to restock, then check it and send it. The draft is kept in your session, so refresh, press Back, or leave and come back: it's still here.</p>
+    </div>
+    <span class="mode-chip">Static SSR · session state, no circuit</span>
+</div>
+
+@if (current is { } step)
+{
+    <XRay For="relative-navigation">
+        @* xray:relative-navigation *@
+        <nav class="steps" aria-label="Purchase order steps">
+            @foreach (var s in Enum.GetValues<WizardStep>())
+            {
+                @if (CanVisit(s))
+                {
+                    <NavLink href="@s.Slug()" RelativeToCurrentUri="true" class="step">
+                        <span class="step-no">@((int)s)</span> @Label(s)
+                    </NavLink>
+                }
+                else
+                {
+                    <span class="step locked"><span class="step-no">@((int)s)</span> @Label(s)</span>
+                }
+            }
+        </nav>
+        @* /xray:relative-navigation *@
+        <p class="href-readout">Step links are written as <code>href="@step.Slug()"</code> and resolve against <b>@CurrentDirectory</b>, wherever this wizard is mounted.</p>
+    </XRay>
+
+    <XRay For="supply-parameter-from-session">
+        <div class="card wizard">
+            @if (step == WizardStep.Supplier)
+            {
+                <form method="post" @formname="po-supplier" @onsubmit="ChooseSupplier" data-enhance>
+                    <AntiforgeryToken />
+                    <h2>Who are we ordering from?</h2>
+                    <p class="muted">Suppliers with products below their reorder level come first.</p>
+
+                    <div class="suppliers">
+                        @foreach (var s in suppliers)
+                        {
+                            <label class="supplier">
+                                <input type="radio" name="SupplierChoice" value="@s.Id" checked="@(s.Id == DraftSupplierId)" />
+                                <span class="supplier-body">
+                                    <span class="supplier-name">@s.Company</span>
+                                    <span class="muted">@s.City, @s.Country · @s.Products products</span>
+                                    @if (s.LowStock > 0)
+                                    {
+                                        <span class="pill low">@s.LowStock low on stock</span>
+                                    }
+                                </span>
+                            </label>
+                        }
+                    </div>
+
+                    @if (error is not null)
+                    {
+                        <p class="error" role="alert">@error</p>
+                    }
+                    <div class="actions">
+                        <button type="submit" class="btn primary">Choose products →</button>
+                        <a href="purchasing" class="btn ghost">Back to purchase orders</a>
+                    </div>
+                </form>
+            }
+            else if (step == WizardStep.Lines && supplier is not null)
+            {
+                <form method="post" @formname="po-lines" @onsubmit="SaveLines" data-enhance>
+                    <AntiforgeryToken />
+                    <h2>What do we need from @supplier.Company?</h2>
+                    <p class="muted">Quantities are in the supplier's packs. Low-stock lines show a suggested quantity.</p>
+
+                    <table class="quickgrid lines">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Pack</th>
+                                <th class="num">In stock</th>
+                                <th class="num">Reorder at</th>
+                                <th class="num">Unit price</th>
+                                <th class="num">Quantity</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in products)
+                            {
+                                var suggested = PurchaseOrders.SuggestedQuantity(p);
+                                <tr>
+                                    <td>
+                                        @p.Name
+                                        @if (suggested > 0)
+                                        {
+                                            <span class="pill low">Low stock</span>
+                                        }
+                                    </td>
+                                    <td class="muted">@p.QuantityPerUnit</td>
+                                    <td class="num">@p.UnitsInStock</td>
+                                    <td class="num">@p.ReorderLevel</td>
+                                    <td class="num">@p.UnitPrice.ToString("C")</td>
+                                    <td class="num">
+                                        <input class="qty" type="number" name="Quantities[@p.Id]" value="@QuantityOf(p)" min="0" max="@PurchaseOrders.MaxQuantity" step="1"
+                                               placeholder="@(suggested > 0 ? suggested : 0)" aria-label="Quantity of @p.Name" />
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+                    @if (error is not null)
+                    {
+                        <p class="error" role="alert">@error</p>
+                    }
+                    <div class="actions">
+                        <button type="submit" name="go" value="next" class="btn primary">Review order →</button>
+                        @if (products.Any(p => PurchaseOrders.SuggestedQuantity(p) > 0))
+                        {
+                            <button type="submit" name="go" value="suggest" class="btn">Fill in suggested quantities</button>
+                        }
+                        <button type="submit" name="go" value="back" class="btn ghost">← Change supplier</button>
+                    </div>
+                </form>
+            }
+            else if (step == WizardStep.Review && supplier is not null)
+            {
+                <h2>Check and send</h2>
+                <div class="review">
+                    <div class="supplier-card">
+                        <small>Supplier</small>
+                        <b>@supplier.Company</b>
+                        <span>@supplier.Contact</span>
+                        <span class="muted">@supplier.City, @supplier.Country · @supplier.Phone</span>
+                    </div>
+                    <div>
+                        <table class="quickgrid lines">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th class="num">Quantity</th>
+                                    <th class="num">Unit price</th>
+                                    <th class="num">Line total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var line in lines)
+                                {
+                                    <tr>
+                                        <td>@line.Product.Name <span class="muted">· @line.Product.QuantityPerUnit</span></td>
+                                        <td class="num">@line.Quantity</td>
+                                        <td class="num">@line.UnitPrice.ToString("C")</td>
+                                        <td class="num">@((line.UnitPrice * line.Quantity).ToString("C"))</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3">Total</td>
+                                    <td class="num total">@PurchaseOrders.TotalOf(lines).ToString("C")</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        @* xray:relative-navigation *@
+                        <NavLink href="lines" RelativeToCurrentUri="true" class="change-link">Change quantities</NavLink>
+                        @* /xray:relative-navigation *@
+                    </div>
+                </div>
+
+                <form method="post" @formname="po-send" @onsubmit="Send" data-enhance class="send">
+                    <AntiforgeryToken />
+                    <label>
+                        Deliver by
+                        <input type="date" name="DeliverBy" value="@DefaultDeliverBy.ToString("yyyy-MM-dd")" min="@Today.AddDays(1).ToString("yyyy-MM-dd")" required />
+                    </label>
+                    @if (error is not null)
+                    {
+                        <p class="error" role="alert">@error</p>
+                    }
+                    <button type="submit" class="btn primary">Send purchase order</button>
+                </form>
+            }
+        </div>
+
+        <div class="session-readout" aria-label="What's in session">
+            <span class="readout-title">In session on the server</span>
+            <code>@DraftKeys.Step = @(DraftStep?.ToString() ?? "null")</code>
+            <code>@DraftKeys.Supplier = @(DraftSupplierId?.ToString() ?? "null")</code>
+            <code>@DraftKeys.Lines = @(DraftLines is { Count: > 0 } ? "{ " + string.Join(", ", DraftLines.Select(l => $"\"{l.Key}\": {l.Value}")) + " }" : "null")</code>
+            <code>@DraftKeys.Started = @(DraftStarted?.ToString("d MMM, HH:mm") ?? "null")</code>
+            @if (DraftSupplierId is not null)
+            {
+                <form method="post" @formname="po-discard" @onsubmit="Discard" data-enhance>
+                    <AntiforgeryToken />
+                    <button type="submit" class="link-button">Discard draft</button>
+                </form>
+            }
+        </div>
+    </XRay>
+}
+
+@code {
+    NorthwindDb? db;
+    WizardStep? current;
+    bool redirecting;
+    string? error;
+    List<SupplierChoiceRow> suppliers = [];
+    Supplier? supplier;
+    List<Product> products = [];
+    List<PurchaseOrderLine> lines = [];
+
+    [Parameter] public string? Step { get; set; }
+
+    // xray:supply-parameter-from-session
+    // The draft lives in session, not in hidden fields or the query string. Each property is read from session
+    // when the page renders and written back at the end of the request, so the handlers below just assign to them.
+    [SupplyParameterFromSession(Name = DraftKeys.Step)] public WizardStep? DraftStep { get; set; }
+    [SupplyParameterFromSession(Name = DraftKeys.Supplier)] public int? DraftSupplierId { get; set; }
+    [SupplyParameterFromSession(Name = DraftKeys.Lines)] public Dictionary<string, int>? DraftLines { get; set; } // product id → quantity
+    [SupplyParameterFromSession(Name = DraftKeys.Started)] public DateTime? DraftStarted { get; set; }
+    // /xray:supply-parameter-from-session
+
+    [SupplyParameterFromForm(FormName = "po-supplier")] public int? SupplierChoice { get; set; }
+    [SupplyParameterFromForm(FormName = "po-lines")] public Dictionary<int, int?>? Quantities { get; set; }
+    [SupplyParameterFromForm(FormName = "po-lines", Name = "go")] public string? LinesCommand { get; set; }
+    [SupplyParameterFromForm(FormName = "po-send")] public DateTime? DeliverBy { get; set; }
+
+    // The list page shows a one-off "PO sent" message after the redirect.
+    [CascadingParameter] public ITempData? TempData { get; set; }
+
+    DateTime Today => Clock.GetLocalNow().Date;
+    DateTime DefaultDeliverBy => Today.AddDays(7);
+    string CurrentDirectory => new Uri(Navigation.Uri).AbsolutePath is var path ? path[..(path.LastIndexOf('/') + 1)] : "/";
+
+    protected override void OnInitialized() => db = DbFactory.CreateDbContext();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Step is null)
+        {
+            // /purchasing/new picks up where the draft left off.
+            var resumeAt = DraftSupplierId is null ? WizardStep.Supplier : DraftStep ?? WizardStep.Lines;
+            // xray:relative-navigation
+            // Relative to the current page's folder: from /purchasing/new that's /purchasing/, hence "new/".
+            GoTo($"new/{resumeAt.Slug()}");
+            // /xray:relative-navigation
+            return;
+        }
+
+        if (!Enum.TryParse<WizardStep>(Step, ignoreCase: true, out var step) || !Enum.IsDefined(step) || Step.Any(char.IsDigit))
+        {
+            Navigation.NotFound();
+            return;
+        }
+
+        if (!CanVisit(step))
+        {
+            // Can't review an order with no lines, or pick lines with no supplier.
+            GoToStep(DraftSupplierId is null ? WizardStep.Supplier : WizardStep.Lines);
+            return;
+        }
+
+        current = step;
+        if (DraftSupplierId is not null)
+        {
+            DraftStep = step;
+        }
+        await LoadAsync(step);
+    }
+
+    async Task LoadAsync(WizardStep step)
+    {
+        if (step == WizardStep.Supplier)
+        {
+            suppliers = (await db!.Suppliers
+                    .Select(s => new SupplierChoiceRow(
+                        s.Id, s.Company, s.City, s.Country,
+                        db.Products.Count(p => p.SupplierId == s.Id && !p.Discontinued),
+                        db.Products.Count(p => p.SupplierId == s.Id && !p.Discontinued && p.UnitsInStock < p.ReorderLevel)))
+                    .ToListAsync())
+                .OrderByDescending(s => s.LowStock).ThenBy(s => s.Company)
+                .ToList();
+            return;
+        }
+
+        supplier = await db!.Suppliers.FindAsync(DraftSupplierId);
+        if (supplier is null)
+        {
+            // The supplier went away (the demo data resets hourly): start again.
+            ClearDraft();
+            GoToStep(WizardStep.Supplier);
+            return;
+        }
+        products = await db.Products
+            .Where(p => p.SupplierId == supplier.Id && !p.Discontinued)
+            .OrderBy(p => p.Name)
+            .ToListAsync();
+        lines = PurchaseOrders.LinesFor(DraftLines, products);
+    }
+
+    bool CanVisit(WizardStep step) => step switch
+    {
+        WizardStep.Supplier => true,
+        WizardStep.Lines => DraftSupplierId is not null,
+        _ => DraftSupplierId is not null && DraftLines is { Count: > 0 },
+    };
+
+    void ChooseSupplier()
+    {
+        if (redirecting)
+        {
+            return;
+        }
+        if (SupplierChoice is not int id || suppliers.All(s => s.Id != id))
+        {
+            error = "Choose a supplier to order from.";
+            return;
+        }
+
+        // xray:supply-parameter-from-session
+        if (DraftSupplierId != id)
+        {
+            DraftLines = null; // lines belong to the supplier, so a new supplier starts a new list
+        }
+        DraftSupplierId = id;
+        DraftStarted ??= Clock.GetLocalNow().DateTime;
+        // /xray:supply-parameter-from-session
+        GoToStep(WizardStep.Lines);
+    }
+
+    void SaveLines()
+    {
+        if (redirecting)
+        {
+            return;
+        }
+
+        var quantities = products.ToDictionary(
+            p => p.Id.ToString(),
+            p => Math.Clamp(Quantities?.GetValueOrDefault(p.Id) ?? 0, 0, PurchaseOrders.MaxQuantity));
+        if (LinesCommand == "suggest")
+        {
+            foreach (var p in products.Where(p => quantities[p.Id.ToString()] == 0))
+            {
+                quantities[p.Id.ToString()] = PurchaseOrders.SuggestedQuantity(p);
+            }
+        }
+
+        // xray:supply-parameter-from-session
+        DraftLines = quantities.Where(q => q.Value > 0).ToDictionary();
+        // /xray:supply-parameter-from-session
+        lines = PurchaseOrders.LinesFor(DraftLines, products);
+
+        switch (LinesCommand)
+        {
+            case "back":
+                GoToStep(WizardStep.Supplier);
+                break;
+            case "suggest":
+                GoToStep(WizardStep.Lines);
+                break;
+            default:
+                if (DraftLines.Count == 0)
+                {
+                    error = "Add a quantity for at least one product.";
+                    return;
+                }
+                GoToStep(WizardStep.Review);
+                break;
+        }
+    }
+
+    // Deliberately synchronous. If a form handler is still awaiting when the framework checks, it starts streaming
+    // the response, and once the response has started, TempData's cookie can't be written: the "PO sent" message
+    // would be lost (the session draft is unaffected). SQLite's async methods run synchronously anyway.
+    void Send()
+    {
+        if (redirecting)
+        {
+            return;
+        }
+        if (DeliverBy is not { } deliverBy || deliverBy.Date <= Today)
+        {
+            error = "Choose a delivery date after today.";
+            return;
+        }
+
+        var order = new PurchaseOrder
+        {
+            SupplierId = supplier!.Id,
+            RaisedOn = Clock.GetLocalNow().DateTime,
+            DeliverBy = deliverBy.Date,
+            Status = PurchaseOrderStatus.Sent,
+            Lines = lines,
+            Total = PurchaseOrders.TotalOf(lines),
+        };
+        db!.Set<PurchaseOrder>().Add(order);
+        db.SaveChanges();
+
+        // xray:supply-parameter-from-session
+        ClearDraft();
+        // /xray:supply-parameter-from-session
+        TempData?["po-created"] = order.Id;
+        Navigation.NavigateTo("purchasing"); // leaving the wizard: an ordinary link from the app's base
+    }
+
+    void Discard()
+    {
+        ClearDraft();
+        Navigation.NavigateTo("purchasing");
+    }
+
+    // xray:supply-parameter-from-session
+    // Null removes the key from session.
+    void ClearDraft() => (DraftStep, DraftSupplierId, DraftLines, DraftStarted) = (null, null, null, null);
+    // /xray:supply-parameter-from-session
+
+    void GoToStep(WizardStep step) => GoTo(step.Slug());
+
+    // xray:relative-navigation
+    // Every step is a sibling of the current one, so the wizard never spells out /purchasing/new/.
+    void GoTo(string relativeUri)
+    {
+        redirecting = true; // NavigateTo doesn't throw in this app (BlazorDisableThrowNavigationException), so handlers check this
+        Navigation.NavigateTo(relativeUri, new NavigationOptions { RelativeToCurrentUri = true });
+    }
+    // /xray:relative-navigation
+
+    int? QuantityOf(Product p) => DraftLines?.GetValueOrDefault(p.Id.ToString()) is int quantity and > 0 ? quantity : null;
+
+    static string Label(WizardStep step) => step switch
+    {
+        WizardStep.Supplier => "Supplier",
+        WizardStep.Lines => "Products",
+        _ => "Review and send",
+    };
+
+    record SupplierChoiceRow(int Id, string Company, string? City, string? Country, int Products, int LowStock);
+
+    public ValueTask DisposeAsync() => db?.DisposeAsync() ?? ValueTask.CompletedTask;
+}

@@ -1,0 +1,90 @@
+@*
+    The purchase order list's call to action: "New purchase order", or the draft you haven't sent yet.
+    It reads the same session keys as the wizard, so it knows about the draft without the wizard telling it.
+*@
+@inject IDbContextFactory<NorthwindDb> DbFactory
+@inject NavigationManager Navigation
+@inject TimeProvider Clock
+
+<XRay For="supply-parameter-from-session">
+    @if (DraftSupplierId is null)
+    {
+        <div class="toolbar">
+            <span class="muted">@Summary</span>
+            <a href="purchasing/new" class="btn primary">New purchase order</a>
+        </div>
+    }
+    else
+    {
+        <div class="card draft">
+            <div>
+                <small>Draft in progress · @StepLabel</small>
+                <b>@(supplierName ?? "Unknown supplier")</b>
+                <span class="muted">@LineSummary · started @Started</span>
+            </div>
+            <div class="draft-actions">
+                <form method="post" @formname="po-discard-from-list" @onsubmit="Discard" data-enhance>
+                    <AntiforgeryToken />
+                    <button type="submit" class="btn ghost">Discard</button>
+                </form>
+                <a href="purchasing/new" class="btn primary">Resume draft →</a>
+            </div>
+        </div>
+    }
+</XRay>
+
+@code {
+    string? supplierName;
+
+    /// <summary>Shown beside the "New purchase order" button when there's no draft.</summary>
+    [Parameter] public string? Summary { get; set; }
+
+    // xray:supply-parameter-from-session
+    // Same keys as the wizard: session is per browser, not per page.
+    [SupplyParameterFromSession(Name = DraftKeys.Step)] public WizardStep? DraftStep { get; set; }
+    [SupplyParameterFromSession(Name = DraftKeys.Supplier)] public int? DraftSupplierId { get; set; }
+    [SupplyParameterFromSession(Name = DraftKeys.Lines)] public Dictionary<string, int>? DraftLines { get; set; }
+    [SupplyParameterFromSession(Name = DraftKeys.Started)] public DateTime? DraftStarted { get; set; }
+    // /xray:supply-parameter-from-session
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (DraftSupplierId is int id)
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            supplierName = await db.Suppliers.Where(s => s.Id == id).Select(s => s.Company).FirstOrDefaultAsync();
+        }
+    }
+
+    string StepLabel => DraftStep switch
+    {
+        WizardStep.Review => "ready to review",
+        WizardStep.Lines or null => "choosing products",
+        _ => "choosing a supplier",
+    };
+
+    string LineSummary => DraftLines is { Count: > 0 } draftLines
+        ? $"{draftLines.Count} {(draftLines.Count == 1 ? "product" : "products")}, {draftLines.Values.Sum()} packs"
+        : "no products yet";
+
+    string Started
+    {
+        get
+        {
+            var minutes = (int)(Clock.GetLocalNow().DateTime - (DraftStarted ?? Clock.GetLocalNow().DateTime)).TotalMinutes;
+            return minutes switch
+            {
+                < 1 => "just now",
+                1 => "a minute ago",
+                < 60 => $"{minutes} minutes ago",
+                _ => DraftStarted!.Value.ToString("d MMM, HH:mm"),
+            };
+        }
+    }
+
+    void Discard()
+    {
+        (DraftStep, DraftSupplierId, DraftLines, DraftStarted) = (null, null, null, null);
+        Navigation.NavigateTo("purchasing");
+    }
+}

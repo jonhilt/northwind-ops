@@ -1,0 +1,5 @@
+@*
+    Says where it's running. Hosted with @rendermode InteractiveWebAssembly, it proves the WebAssembly
+    runtime has started in the browser.
+*@
+<span class="runtime-badge">@(OperatingSystem.IsBrowser() ? "Running on WebAssembly" : "Prerendered on the server")</span>

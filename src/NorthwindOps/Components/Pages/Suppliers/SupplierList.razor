@@ -1,0 +1,84 @@
+@page "/suppliers"
+@using Microsoft.Extensions.Localization
+@using NorthwindOps.Features.Suppliers
+@inject SupplierDirectory Directory
+@inject IStringLocalizer<SupplierText> T
+
+<PageTitle>Suppliers · Northwind Ops</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>Suppliers</h1>
+        <p>Everyone we buy from. The column headers aren't typed into this page: they're the same names the "New supplier" form uses, so switch to Deutsch and both change together.</p>
+    </div>
+    <span class="mode-chip">Static SSR · no circuit</span>
+</div>
+
+<div class="supplier-toolbar">
+    <CultureSwitch />
+    <a class="btn primary" href="@SupplierCultures.Link("suppliers/new")">+ @T["Ui_NewSupplier"]</a>
+</div>
+
+@if (added is not null)
+{
+    <p class="saved" role="status">
+        @T[added.Status == SupplierStatus.Draft ? "Ui_SavedDraft" : "Ui_Saved", added.Company]
+        @if (CodeDropped)
+        {
+            @(" " + T["Ui_DraftCodeDropped"])
+        }
+    </p>
+}
+
+<XRay For="displayname-component">
+    <div class="card grid-card">
+        @* xray:displayname-component *@
+        <QuickGrid Items="rows" RowClass="RowClass">
+            <PropertyColumn Property="s => s.Code" Class="code">
+                <HeaderTemplate><DisplayName For="() => names.Code" /></HeaderTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="s => s.Company">
+                <HeaderTemplate><DisplayName For="() => names.Company" /></HeaderTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="s => s.Contact">
+                <HeaderTemplate><DisplayName For="() => names.Contact" /></HeaderTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="s => s.City">
+                <HeaderTemplate><DisplayName For="() => names.Address.City" /></HeaderTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="s => s.Country">
+                <HeaderTemplate><DisplayName For="() => names.Address.Country" /></HeaderTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="s => s.Phone">
+                <HeaderTemplate><DisplayName For="() => names.Phone" /></HeaderTemplate>
+            </PropertyColumn>
+            @* /xray:displayname-component *@
+            <TemplateColumn Title="@T["Ui_Status"]">
+                <span class="pill @context.Status.ToString().ToLowerInvariant()">@T[context.Status == SupplierStatus.Draft ? "Ui_Draft" : "Ui_Active"]</span>
+            </TemplateColumn>
+        </QuickGrid>
+    </div>
+</XRay>
+
+@code {
+    // xray:displayname-component
+    // Never shown: it's here so <DisplayName For> can point at the form's [Display] metadata.
+    static readonly SupplierForm names = new();
+    // /xray:displayname-component
+
+    IQueryable<SupplierRow> rows = Enumerable.Empty<SupplierRow>().AsQueryable();
+    SupplierRow? added;
+
+    [SupplyParameterFromQuery(Name = "added")] public int? AddedId { get; set; }
+
+    [SupplyParameterFromQuery] public bool CodeDropped { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var all = await Directory.ListAsync();
+        rows = all.AsQueryable();
+        added = all.FirstOrDefault(s => s.Id == AddedId);
+    }
+
+    string? RowClass(SupplierRow row) => row.Id == AddedId ? "just-added" : null;
+}

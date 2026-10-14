@@ -1,0 +1,29 @@
+@*
+    A one-time message left in TempData by the page that redirected here ("Order 11078 saved").
+    Reading it with Get marks it for deletion, so it shows once and is gone on the next request.
+*@
+
+@if (message is not null)
+{
+    <XRay For="tempdata-ssr">
+        <div class="flash" role="status">
+            <span class="tick" aria-hidden="true">✓</span>
+            <span>@message</span>
+        </div>
+    </XRay>
+}
+
+@code {
+    /// <summary>The TempData key that pages write their flash message to.</summary>
+    public const string Key = "flash";
+
+    string? message;
+
+    // xray:tempdata-ssr
+    // AddRazorComponents() cascades the request's TempData to every statically rendered component.
+    [CascadingParameter] public ITempData? TempData { get; set; }
+
+    // Get reads the value and schedules it for deletion: after this request, it's gone.
+    protected override void OnInitialized() => message = TempData?.Get(Key) as string;
+    // /xray:tempdata-ssr
+}

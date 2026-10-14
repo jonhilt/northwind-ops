@@ -1,0 +1,59 @@
+@using System.Diagnostics
+@using System.Text.Json
+@using NorthwindOps.Worker
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<Clock />
+<button disabled="@busy" @onclick="() => Total(false)">Total on the UI thread</button>
+<button disabled="@busy" @onclick="() => Total(true)">Total in a Web Worker</button>
+<p role="status">@status</p>
+<ol>
+    @foreach (var p in totals?.TopProducts ?? [])
+    {
+        <li>@p.Product <b>$@p.Revenue.ToString("N0")</b></li>
+    }
+</ol>
+
+@code {
+    bool busy = true;
+    string status = "Downloading the order lines…";
+    byte[] csv = [];
+    OrderLineTotals? totals;
+    WebWorkerClient? worker;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        using var http = new HttpClient { BaseAddress = new(Navigation.BaseUri) };
+        csv = await http.GetByteArrayAsync("demo/web-worker/order-lines.csv");
+        // xray:web-worker-template
+        worker = await WebWorkerClient.CreateAsync(JS); // starts .NET in a Web Worker
+        // /xray:web-worker-template
+        (busy, status) = (false, $"{csv.Length / 1e6:0.0} MB of order lines. Ready.");
+        StateHasChanged();
+    }
+
+    async Task Total(bool inWorker)
+    {
+        (busy, totals) = (true, null);
+        status = inWorker ? "Totalling in the worker…" : "Totalling on the UI thread…";
+        await Task.Delay(50); // let that show before the work starts
+        var timer = Stopwatch.StartNew();
+        // xray:web-worker-template
+        var json = inWorker
+            ? await worker!.InvokeAsync<string>(
+                "NorthwindOps.Worker.WorkerMethods.TotalOrderLines", [csv])
+            : WorkerMethods.TotalOrderLines(csv); // the same method, on this thread
+        // /xray:web-worker-template
+        totals = JsonSerializer.Deserialize<OrderLineTotals>(json)!;
+        var seconds = timer.Elapsed.TotalSeconds;
+        (busy, status) = (false, $"Totalled {totals.Lines:N0} lines in {seconds:0.0} s");
+    }
+
+    // xray:web-worker-template
+    // Ends the worker, and the runtime in it, when the visitor leaves
+    public ValueTask DisposeAsync() => worker?.DisposeAsync() ?? default;
+    // /xray:web-worker-template
+}

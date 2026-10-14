@@ -1,0 +1,52 @@
+@page "/guide"
+@layout GuideLayout
+@inject GuideRegistry Guide
+@inject FeatureRegistry Features
+
+<PageTitle>Field Guide · Northwind Ops</PageTitle>
+
+<header class="gi-head">
+    <h1>What's new in Blazor for .NET 11</h1>
+    <p>Pick a feature. See the problem it solves, try it for real, then read the code.</p>
+</header>
+
+@foreach (var group in Guide.All.GroupBy(e => e.Group))
+{
+    <section class="gi-group">
+        <h2>@group.Key</h2>
+        <div class="gi-cards">
+            @foreach (var entry in group)
+            {
+                <a class="gi-card" href="guide/@entry.Id">
+                    <span class="mode">@entry.Mode</span>
+                    <h3>@entry.Title</h3>
+                    <p>@entry.Hook</p>
+                </a>
+            }
+        </div>
+    </section>
+}
+
+@if (others.Count > 0)
+{
+    <section class="gi-group gi-more">
+        <h2>More in Northwind Ops</h2>
+        <p>Not in the guide yet. Each one has a full write-up, and X-ray shows you where it's used in the app.</p>
+        <ul>
+            @foreach (var feature in others)
+            {
+                <li><a href="xray/@feature.Id">@feature.Title</a></li>
+            }
+        </ul>
+    </section>
+}
+
+@code {
+    List<Feature> others = [];
+
+    protected override void OnInitialized()
+        => others = Features.All
+            .Where(f => Guide.Find(f.Id) is null)
+            .OrderBy(f => f.Title, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+}

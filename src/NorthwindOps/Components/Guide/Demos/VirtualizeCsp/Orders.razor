@@ -1,0 +1,26 @@
+@page "/demo/virtualize-csp/orders"
+@layout DemoLayout
+
+<h1>Order history</h1>
+
+@* A check you can see: an inline style asking for red text. The policy refuses it. *@
+<p class="probe" style="color: #c0262d">
+    This line stays grey: the browser refused its <code>style="…"</code> attribute.
+</p>
+
+@* The page is static. Only the list, which scrolls, runs interactively. *@
+<OrderList @rendermode="InteractiveServer" />
+
+@code {
+    [CascadingParameter] HttpContext HttpContext { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        // xray:virtualize-csp
+        // No 'unsafe-inline': style="…" attributes and <style> blocks are refused.
+        // It replaces Blazor's own policy, so it repeats frame-ancestors 'self'.
+        HttpContext.Response.Headers.ContentSecurityPolicy =
+            "style-src 'self'; frame-ancestors 'self'";
+        // /xray:virtualize-csp
+    }
+}

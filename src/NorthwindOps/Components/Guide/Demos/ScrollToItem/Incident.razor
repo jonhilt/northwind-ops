@@ -1,0 +1,7 @@
+@page "/demo/scroll-to-item/incident"
+@layout DemoLayout
+
+<h1>Order sync incident</h1>
+
+@* The page is static. Only the thread, which scrolls on request, runs interactively. *@
+<LinkedThread @rendermode="InteractiveServer" />

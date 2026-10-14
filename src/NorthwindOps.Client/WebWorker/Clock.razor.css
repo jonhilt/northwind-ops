@@ -1,0 +1,2 @@
+.clock { display: flex; align-items: baseline; gap: 12px; margin: 0 0 6px; color: var(--ink-soft); font-size: 13px; }
+.clock b { font: 600 26px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--ink); }

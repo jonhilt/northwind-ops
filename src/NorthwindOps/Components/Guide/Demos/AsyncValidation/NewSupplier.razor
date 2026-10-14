@@ -1,0 +1,58 @@
+@page "/demo/async-validation/suppliers/new"
+@layout DemoLayout
+@rendermode InteractiveServer
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+@if (added is not null)
+{
+    <div class="flash" role="status">✓ @added saved</div>
+}
+
+<h1>New supplier</h1>
+
+<EditForm EditContext="form" OnValidSubmit="SaveAsync">
+    <DataAnnotationsValidator />
+    <Label For="() => Input.Company" />
+    <InputText @bind-Value="Input.Company" />
+    <ValidationMessage For="() => Input.Company" />
+
+    <Label For="() => Input.Code" />
+    <InputText @bind-Value="Input.Code" placeholder="ABCD-01" />
+    @* xray:async-form-validation *@
+    @if (form.IsValidationPending(() => Input.Code))
+    {
+        <span class="checking">Checking…</span>
+    }
+    <ValidationMessage For="() => Input.Code" />
+
+    <button type="submit" disabled="@form.IsValidationPending()">
+        @(form.IsValidationPending() ? "Checking…" : "Save supplier")
+    </button>
+    @* /xray:async-form-validation *@
+</EditForm>
+
+@code {
+    readonly NewSupplierForm Input = new();
+    EditContext form = default!;
+    string? added;
+
+    protected override void OnInitialized()
+    {
+        form = new(Input);
+        // xray:async-form-validation
+        // A check ends after the event that began it, so redraw when it does.
+        form.OnValidationStateChanged += (_, _) => InvokeAsync(StateHasChanged);
+        // /xray:async-form-validation
+    }
+
+    // xray:async-form-validation
+    // EditForm awaits every check, the code lookup included, before it calls this.
+    async Task SaveAsync()
+    // /xray:async-form-validation
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        db.Add(new Supplier { Company = Input.Company!, Code = Input.Code });
+        await db.SaveChangesAsync();
+        added = $"{Input.Company} ({Input.Code})";
+    }
+}

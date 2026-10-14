@@ -1,0 +1,27 @@
+@*
+    A clock that ticks ten times a second on the browser's UI thread.
+    While that thread is busy, it stops.
+*@
+@implements IDisposable
+
+<p class="clock">
+    Clock on the UI thread <b>@(now?.ToString("HH:mm:ss.f") ?? "--:--:--.-")</b>
+</p>
+
+@code {
+    DateTime? now;
+    Timer? timer;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) timer = new(_ => InvokeAsync(Tick), null, 0, 100);
+    }
+
+    void Tick()
+    {
+        now = DateTime.Now;
+        StateHasChanged();
+    }
+
+    public void Dispose() => timer?.Dispose();
+}

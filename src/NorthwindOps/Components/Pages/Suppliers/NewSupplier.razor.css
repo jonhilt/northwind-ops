@@ -1,0 +1,14 @@
+.supplier-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+}
+
+.live-link { font-size: 14px; font-weight: 600; text-decoration: none; }
+.live-link:hover { text-decoration: underline; }
+
+.back { margin-top: 18px; font-size: 14px; }
+.back a { text-decoration: none; }

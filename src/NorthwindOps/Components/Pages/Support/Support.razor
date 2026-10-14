@@ -1,0 +1,54 @@
+@page "/support"
+@page "/support/{TicketId:int}"
+@inject SupportDesk Desk
+@inject NavigationManager Navigation
+
+<PageTitle>Support · Northwind Ops</PageTitle>
+
+@* xray:virtualize-csp *@
+@* The response header covers full page loads. Enhanced navigation into Support keeps the current document,
+   so the policy also comes as a <meta> tag, which Blazor adds to <head> and the browser enforces from then on. *@
+<HeadContent>
+    <meta http-equiv="Content-Security-Policy" content="@metaPolicy" />
+</HeadContent>
+@* /xray:virtualize-csp *@
+
+<div class="page-head">
+    <div>
+        <h1>Support</h1>
+        <p>Customer tickets, most recent activity first. Open one to read its thread: long threads start at your first unread message, and stay put while you expand messages above the one you're reading.</p>
+    </div>
+    <span class="mode-chip server">Static SSR page · Interactive Server ticket desk</span>
+</div>
+
+@* The page is static; only the ticket desk, which needs click handlers and scrolling, runs on a circuit. *@
+<TicketDesk @rendermode="InteractiveServer" TicketId="TicketId" Message="Message" />
+
+<XRay For="virtualize-csp">
+    @* xray:virtualize-csp *@
+    <CspCheck @rendermode="InteractiveServer" Policy="@policy" />
+    @* /xray:virtualize-csp *@
+</XRay>
+
+@code {
+    string policy = "";
+    string metaPolicy = "";
+
+    [Parameter] public int? TicketId { get; set; }
+
+    // A link straight to a message: /support/2417?message=120. The jump box submits this too before the circuit starts.
+    [SupplyParameterFromQuery(Name = "message")] public int? Message { get; set; }
+
+    [CascadingParameter] HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (TicketId is int id && !await Desk.ExistsAsync(id))
+        {
+            Navigation.NotFound();
+            return;
+        }
+        policy = SupportContentSecurityPolicy.For(HttpContext);
+        metaPolicy = SupportContentSecurityPolicy.ForMetaTag(HttpContext);
+    }
+}

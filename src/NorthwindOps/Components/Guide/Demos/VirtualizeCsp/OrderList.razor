@@ -1,0 +1,32 @@
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+<p class="count">@orders.Count orders, newest first</p>
+
+<div class="orders">
+    @* xray:virtualize-csp *@
+    @* Nothing CSP-specific here: Virtualize no longer writes inline styles. *@
+    <Virtualize Items="orders" Context="o" ItemSize="41">
+        <div class="order">
+            <b>#@o.Id</b>
+            <span>@o.Company</span>
+            <time>@o.PlacedOn.ToString("d MMM yyyy")</time>
+            <span class="total">@o.Total.ToString("C0")</span>
+        </div>
+    </Virtualize>
+    @* /xray:virtualize-csp *@
+</div>
+
+@code {
+    record OrderRow(int Id, string Company, DateTime PlacedOn, decimal Total);
+
+    List<OrderRow> orders = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        orders = await db.Orders
+            .OrderByDescending(o => o.PlacedOn).ThenByDescending(o => o.Id)
+            .Select(o => new OrderRow(o.Id, o.Customer.Company, o.PlacedOn, o.Total))
+            .ToListAsync();
+    }
+}

@@ -1,0 +1,29 @@
+@page "/demo/relative-nav/orders"
+@layout DemoLayout
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+<h1>Orders</h1>
+<table class="quickgrid">
+    <thead><tr><th>Order</th><th>Customer</th><th>Placed</th></tr></thead>
+    <tbody>
+        @foreach (var order in orders)
+        {
+            <tr>
+                <td><a href="demo/relative-nav/orders/@order.Id">@order.Id</a></td>
+                <td>@order.Customer.Company</td>
+                <td>@order.PlacedOn.ToString("d MMM")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    List<Order> orders = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        orders = await db.Orders.Include(o => o.Customer)
+            .OrderByDescending(o => o.Id).Take(5).ToListAsync();
+    }
+}

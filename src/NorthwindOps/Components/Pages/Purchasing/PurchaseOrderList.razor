@@ -1,0 +1,82 @@
+@page "/purchasing"
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+<PageTitle>Purchasing · Northwind Ops</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>Purchasing</h1>
+        <p>Purchase orders we've sent to suppliers to restock the warehouse. Raise a new one with the three-step wizard: your draft waits in session until you send it.</p>
+    </div>
+    <span class="mode-chip">Static SSR · no circuit</span>
+</div>
+
+@if (created is not null)
+{
+    <div class="flash" role="status">
+        <b>@created.Number sent to @created.Supplier.Company</b>
+        <span>@created.Lines.Count @(created.Lines.Count == 1 ? "line" : "lines") · @created.Total.ToString("C") · due @created.DeliverBy.ToString("d MMM")</span>
+    </div>
+}
+
+<DraftBanner Summary="@Summary" />
+
+<div class="card grid-card">
+    <table class="quickgrid">
+        <thead>
+            <tr>
+                <th>Purchase order</th>
+                <th>Supplier</th>
+                <th>Raised</th>
+                <th>Deliver by</th>
+                <th class="num">Lines</th>
+                <th>Status</th>
+                <th class="num">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var po in orders)
+            {
+                <tr class="@(po.Id == created?.Id ? "just-sent" : null)">
+                    <td><b>@po.Number</b></td>
+                    <td>@po.Supplier</td>
+                    <td>@po.RaisedOn.ToString("d MMM yyyy, HH:mm")</td>
+                    <td>@po.DeliverBy.ToString("d MMM yyyy")</td>
+                    <td class="num">@po.Lines</td>
+                    <td><span class="pill @po.Status.ToString().ToLowerInvariant()">@po.Status</span></td>
+                    <td class="num">@po.Total.ToString("C")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    List<PurchaseOrderRow> orders = [];
+    PurchaseOrder? created;
+
+    // Set by the wizard just before it redirects here. The property's value at the end of the request is written
+    // back to TempData, so take a copy and clear it: that's what makes the message show once.
+    [SupplyParameterFromTempData(Name = "po-created")] public int? CreatedId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var createdId = CreatedId;
+        CreatedId = null;
+
+        await using var db = await DbFactory.CreateDbContextAsync();
+        orders = await db.Set<PurchaseOrder>()
+            .OrderByDescending(po => po.RaisedOn)
+            .Select(po => new PurchaseOrderRow(po.Id, "PO-" + po.Id, po.Supplier.Company, po.RaisedOn, po.DeliverBy, po.Lines.Count, po.Status, po.Total))
+            .ToListAsync();
+
+        if (createdId is int id)
+        {
+            created = await db.Set<PurchaseOrder>().Include(po => po.Supplier).Include(po => po.Lines).AsNoTracking().FirstOrDefaultAsync(po => po.Id == id);
+        }
+    }
+
+    string Summary => $"{orders.Count} purchase orders, {orders.Count(o => o.Status is PurchaseOrderStatus.Sent or PurchaseOrderStatus.Confirmed)} awaiting delivery";
+
+    record PurchaseOrderRow(int Id, string Number, string Supplier, DateTime RaisedOn, DateTime DeliverBy, int Lines, PurchaseOrderStatus Status, decimal Total);
+}

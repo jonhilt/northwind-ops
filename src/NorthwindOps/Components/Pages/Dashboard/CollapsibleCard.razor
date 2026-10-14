@@ -1,0 +1,90 @@
+@*
+    A dashboard panel you can collapse, and that remembers being collapsed. It's interactive, but what's
+    inside it isn't: the dashboard renders that on the server and passes it in as ChildContent.
+*@
+@inject IJSRuntime JS
+
+<section class="card panel @(collapsed ? "is-collapsed" : null)">
+    <header>
+        <button type="button" aria-expanded="@(collapsed ? "false" : "true")" aria-controls="@BodyId"
+                disabled="@(!RendererInfo.IsInteractive)" @onclick="ToggleAsync">
+            <span class="chevron" aria-hidden="true"></span>
+            <span class="title">
+                <b>@Title</b>
+                @if (Subtitle is not null)
+                {
+                    <small>@Subtitle</small>
+                }
+            </span>
+        </button>
+        @if (Count is not null)
+        {
+            <span class="count">@Count</span>
+        }
+    </header>
+
+    @* xray:renderfragment-across-render-modes *@
+    @* The fragment has to run while the page prerenders, so it can be captured: render it on the first pass. *@
+    @if (!collapsed)
+    {
+        <div class="body" id="@BodyId">@ChildContent</div>
+    }
+    @* /xray:renderfragment-across-render-modes *@
+</section>
+
+@code {
+    bool collapsed;
+
+    /// <summary>Identifies the panel in the browser's storage, so it stays collapsed on your next visit.</summary>
+    [Parameter, EditorRequired] public string Id { get; set; } = "";
+
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    [Parameter] public string? Subtitle { get; set; }
+
+    /// <summary>A short figure shown in the header, so a collapsed panel still says something useful.</summary>
+    [Parameter] public string? Count { get; set; }
+
+    // xray:renderfragment-across-render-modes
+    /// <summary>Static markup from the page. In .NET 10 this parameter couldn't cross into an interactive component.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    // /xray:renderfragment-across-render-modes
+
+    string BodyId => $"panel-{Id}";
+
+    string StorageKey => $"northwind-ops:panel:{Id}:collapsed";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && RendererInfo.IsInteractive && await ReadCollapsedAsync())
+        {
+            collapsed = true;
+            StateHasChanged();
+        }
+    }
+
+    async Task ToggleAsync()
+    {
+        collapsed = !collapsed;
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", StorageKey, collapsed ? "true" : "false");
+        }
+        catch (JSException)
+        {
+            // Storage can be unavailable (private browsing, quotas). The panel still toggles; it just won't remember.
+        }
+    }
+
+    async Task<bool> ReadCollapsedAsync()
+    {
+        try
+        {
+            return await JS.InvokeAsync<string?>("localStorage.getItem", StorageKey) == "true";
+        }
+        catch (JSException)
+        {
+            return false;
+        }
+    }
+}

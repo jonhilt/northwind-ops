@@ -1,0 +1,76 @@
+@*
+    The dashboard's headline numbers. The query behind them is slow, so Home.razor wraps this
+    component in a CacheView: on a cache hit it isn't even instantiated.
+*@
+@inject DashboardQueries Queries
+
+@if (kpis is null)
+{
+    return;
+}
+
+<div class="kpis">
+    <div class="card stat">
+        <small>Orders today</small>
+        <b>@kpis.OrdersToday</b>
+        <span class="trend">@kpis.OrdersYesterday yesterday</span>
+    </div>
+    <div class="card stat">
+        <small>Open orders</small>
+        <b>@kpis.Open</b>
+        <span class="trend">@kpis.Pending pending · @kpis.Packing packing</span>
+    </div>
+    <div class="card stat">
+        <small>Shipped · last 7 days</small>
+        <b>@kpis.ShippedThisWeek</b>
+        <span class="trend">@kpis.ShippedLastWeek the week before</span>
+    </div>
+    <div class="card stat">
+        <small>Revenue · last 30 days</small>
+        <b>@kpis.Revenue.ToString("C0")</b>
+        <span class="trend @TrendClass(kpis.RevenueChange)">
+            @if (kpis.RevenueChange is { } change)
+            {
+                @(change >= 0 ? "▲ " : "▼ ")@Math.Abs(change).ToString("P1")<text> on the 30 days before</text>
+            }
+            else
+            {
+                <text>@kpis.RevenueOrders orders</text>
+            }
+        </span>
+    </div>
+</div>
+
+<p class="kpi-foot">
+    <span>Figures as of <time datetime="@kpis.AsOf.ToString("O")" data-kpis-as-of>@kpis.AsOf.ToString("HH:mm:ss")</time></span>
+    <KpiAge AsOf="kpis.AsOf" CachedFor="CachedFor" />
+</p>
+
+@code {
+    DashboardKpis? kpis;
+
+    /// <summary>How long the enclosing CacheView keeps these figures, so the footer can say so.</summary>
+    [Parameter] public TimeSpan CachedFor { get; set; }
+
+    [CascadingParameter] HttpContext? HttpContext { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        kpis = await Queries.GetKpisAsync();
+
+        // xray:cacheview
+        // This only runs on a cache miss: on a hit the component isn't created at all. KpiAge reads the flag.
+        if (HttpContext is not null)
+        {
+            HttpContext.Items[KpiAge.CalculatedThisRequest] = true;
+        }
+        // /xray:cacheview
+    }
+
+    static string? TrendClass(decimal? change) => change switch
+    {
+        > 0 => "up",
+        < 0 => "down",
+        _ => null,
+    };
+}

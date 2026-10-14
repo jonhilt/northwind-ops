@@ -1,0 +1,40 @@
+@page "/demo/wasm-culture/invoice"
+@layout DemoLayout
+@using System.Globalization
+@using NorthwindOps.Client.WasmCulture
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+<nav class="cultures">
+    @foreach (var name in Cultures)
+    {
+        @* A full page load, so WebAssembly starts again in the new culture. *@
+        <a href="demo/wasm-culture/invoice?culture=@name" data-enhance-nav="false"
+           class="@(name == CultureInfo.CurrentCulture.Name ? "on" : null)">@name</a>
+    }
+</nav>
+
+<h1>Invoice @orderId</h1>
+
+@* xray:wasm-culture-from-server *@
+@* Prerendered in the request's culture, then run on WebAssembly in that same culture. *@
+<InvoiceSummary Lines="lines" Due="due" @rendermode="InteractiveWebAssembly" />
+@* /xray:wasm-culture-from-server *@
+
+@code {
+    // Request localization sets the culture from ?culture=, as in any localized app.
+    static readonly string[] Cultures = ["en-US", "en-GB", "de-DE", "fr-FR"];
+
+    int orderId;
+    DateTime due;
+    InvoiceSummary.Line[] lines = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var order = await db.Orders.Include(o => o.Lines).ThenInclude(l => l.Product)
+            .Where(o => o.Lines.Count >= 3).OrderByDescending(o => o.Id).FirstAsync();
+        (orderId, due) = (order.Id, order.PlacedOn.AddDays(30));
+        lines = [.. order.Lines.Select(l => new InvoiceSummary.Line(
+            l.Product.Name, l.Quantity, l.UnitPrice))];
+    }
+}

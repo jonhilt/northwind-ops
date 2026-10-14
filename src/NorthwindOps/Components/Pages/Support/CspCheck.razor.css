@@ -1,0 +1,66 @@
+.csp {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+    gap: 24px;
+    padding: 16px 20px;
+}
+
+.csp h2 {
+    margin: 0 0 4px;
+    font-size: 15px;
+}
+
+.csp p {
+    margin: 0 0 10px;
+    font-size: 13px;
+}
+
+.csp code {
+    font-family: var(--mono);
+    font-size: 12px;
+}
+
+.policy {
+    display: block;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #f6f5fb;
+    color: var(--ink-soft);
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+.csp-test ul {
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 13px;
+}
+
+.csp-test li {
+    margin-bottom: 8px;
+    padding-left: 22px;
+    position: relative;
+}
+
+.csp-test li.ok::before { content: "✓"; position: absolute; left: 0; color: var(--ok); font-weight: 700; }
+.csp-test li.bad::before { content: "✗"; position: absolute; left: 0; color: var(--bad); font-weight: 700; }
+
+.btn {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    background: #f1eff7;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+}
+
+.btn:hover:not(:disabled) { background: #e6e2f2; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+
+@media (max-width: 900px) {
+    .csp { grid-template-columns: 1fr; }
+}

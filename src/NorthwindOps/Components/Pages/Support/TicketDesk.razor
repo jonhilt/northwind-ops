@@ -1,0 +1,108 @@
+@*
+    The master/detail ticket desk. Interactive Server, because QuickGrid's OnRowClick is a C# event handler.
+    The selected ticket lives in the URL (/support/{id}), so Back, refresh and shared links all work.
+*@
+@inject SupportDesk Desk
+@inject NavigationManager Navigation
+
+<div class="desk">
+    <XRay For="quickgrid-onrowclick" Class="desk-list-zone">
+        <section class="card ticket-list" aria-label="Tickets">
+            <header class="list-head">
+                <strong>@tickets.Count tickets</strong>
+                <span class="muted">@tickets.Count(t => t.Status == TicketStatus.Open) open · @tickets.Count(t => t.Unread > 0) with unread messages</span>
+            </header>
+            <div class="list-scroll">
+                @* xray:quickgrid-onrowclick *@
+                <QuickGrid TGridItem="TicketRow" Items="rows" OnRowClick="OpenTicket" RowClass="RowClass">
+                    <TemplateColumn Title="Ticket">
+                        @* Rows can't take keyboard focus, so the subject is also a real link. stopPropagation stops the
+                           click reaching OnRowClick as well, so the link alone does the navigating. *@
+                        <a class="subject" href="support/@context.Id" @onclick:stopPropagation>@context.Subject</a>
+                        <span class="meta">#@context.Id · @context.Company · <time>@context.LastActivityOn.ToString("d MMM")</time></span>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Status" Class="status-col">
+                        <span class="pill ticket-@context.Status.ToString().ToLowerInvariant()">@StatusLabel(context.Status)</span>
+                        @if (context.Unread > 0)
+                        {
+                            <span class="unread" title="@context.Unread unread">@context.Unread new</span>
+                        }
+                    </TemplateColumn>
+                </QuickGrid>
+                @* /xray:quickgrid-onrowclick *@
+            </div>
+        </section>
+    </XRay>
+
+    <section class="card thread-pane" aria-label="Ticket thread">
+        @if (ticket is not null)
+        {
+            <TicketThread @key="ticket.Id" Ticket="ticket" InitialIndex="initialIndex" OnChanged="ReloadListAsync" />
+        }
+        else
+        {
+            <div class="empty">
+                <h2>Pick a ticket</h2>
+                <p class="muted">Click any row in the list, or tab to a subject and press Enter.</p>
+                @if (longest is not null)
+                {
+                    <p>
+                        For the long-thread demo, open <a href="support/@longest.Id">#@longest.Id @longest.Subject</a>:
+                        @longest.MessageCount messages of very different sizes, opening at the first of @longest.Unread unread.
+                    </p>
+                }
+            </div>
+        }
+    </section>
+</div>
+
+@code {
+    List<TicketRow> tickets = [];
+    IQueryable<TicketRow> rows = Enumerable.Empty<TicketRow>().AsQueryable();
+    TicketRow? longest;
+    TicketView? ticket;
+    int initialIndex;
+    (int? Ticket, int? Message) loaded;
+
+    [Parameter] public int? TicketId { get; set; }
+
+    [Parameter] public int? Message { get; set; }
+
+    protected override async Task OnInitializedAsync() => await ReloadListAsync();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Enhanced navigation to /support/{id} hands this component a new TicketId without restarting it.
+        if (loaded == (TicketId, Message))
+        {
+            return;
+        }
+        loaded = (TicketId, Message);
+        ticket = TicketId is int id ? await Desk.GetAsync(id) : null;
+        initialIndex = ticket is null ? 0 : SupportDesk.OpeningIndex(ticket.Messages.Count, ticket.ReadUpTo, Message);
+    }
+
+    // xray:quickgrid-onrowclick
+    void OpenTicket(TicketRow row) => Navigation.NavigateTo($"support/{row.Id}");
+
+    string? RowClass(TicketRow row) => (row.Id == TicketId, row.Unread > 0) switch
+    {
+        (true, _) => "selected",
+        (false, true) => "has-unread",
+        _ => null,
+    };
+    // /xray:quickgrid-onrowclick
+
+    async Task ReloadListAsync()
+    {
+        tickets = await Desk.ListAsync();
+        rows = tickets.AsQueryable();
+        longest = tickets.MaxBy(t => t.MessageCount);
+    }
+
+    static string StatusLabel(TicketStatus status) => status switch
+    {
+        TicketStatus.Waiting => "Awaiting customer",
+        _ => status.ToString(),
+    };
+}

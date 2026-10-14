@@ -1,0 +1,59 @@
+@page "/demo/tempdata/orders/{Id:int}"
+@using System.ComponentModel.DataAnnotations
+@layout DemoLayout
+@inject IDbContextFactory<NorthwindDb> DbFactory
+@inject NavigationManager Navigation
+
+<a href="demo/tempdata/orders">← Orders</a>
+<h1>Order @Id</h1>
+
+@if (Input is not null)
+{
+    <EditForm Model="Input" FormName="edit-order" OnValidSubmit="SaveAsync" Enhance>
+        <DataAnnotationsValidator />
+        <label for="notes">Internal note</label>
+        <InputText id="notes" @bind-Value="Input.Notes" maxlength="500" />
+        <ValidationMessage For="() => Input.Notes" />
+        <button type="submit">Save changes</button>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    [SupplyParameterFromForm] public NoteForm? Input { get; set; }
+
+    // xray:tempdata-ssr
+    // Whatever this holds when the request ends is saved to TempData, under the key "flash".
+    [SupplyParameterFromTempData(Name = "flash")] public string? Flash { get; set; }
+    // /xray:tempdata-ssr
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        if (await db.Orders.FindAsync(Id) is not { } order)
+        {
+            Navigation.NotFound();
+            return;
+        }
+        Input ??= new() { Notes = order.Notes };
+    }
+
+    async Task SaveAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        if (await db.Orders.FindAsync(Id) is not { } order) return;
+        order.Notes = Input!.Notes;
+        await db.SaveChangesAsync();
+
+        // xray:tempdata-ssr
+        Flash = $"Order {Id} saved";
+        Navigation.NavigateTo("demo/tempdata/orders");
+        // /xray:tempdata-ssr
+    }
+
+    public sealed class NoteForm
+    {
+        [StringLength(500)] public string? Notes { get; set; }
+    }
+}

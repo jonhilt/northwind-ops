@@ -1,0 +1,211 @@
+@*
+    One ticket's thread. Messages range from one-line log entries to multi-paragraph emails, and threads run
+    to hundreds of messages, so they're virtualized: only the messages near the viewport are in the DOM.
+*@
+@inject SupportDesk Desk
+@implements IDisposable
+
+<div class="thread">
+    <header class="thread-head">
+        <div>
+            <h2>@Ticket.Subject</h2>
+            <p class="muted">
+                #@Ticket.Id · @Ticket.Company@(Ticket.Contact is null ? "" : $" ({Ticket.Contact})")
+                @if (Ticket.OrderId is int order)
+                {
+                    <span> · order #@order</span>
+                }
+                · @Ticket.Priority priority · @Messages.Count messages
+            </p>
+        </div>
+        @if (Unread > 0)
+        {
+            <button type="button" class="btn" disabled="@(!RendererInfo.IsInteractive)" @onclick="MarkReadAsync">Mark @Unread as read</button>
+        }
+    </header>
+
+    <XRay For="virtualize-scroll-to-item" Class="tools-zone">
+        <div class="thread-tools">
+            @* xray:virtualize-scroll-to-item *@
+            <button type="button" class="btn" disabled="@(!RendererInfo.IsInteractive || firstUnread is null)" @onclick="() => GoToAsync(firstUnread!.Value)">
+                First unread@(firstUnread is int i ? $" (#{i + 1})" : "")
+            </button>
+            <button type="button" class="btn" disabled="@(!RendererInfo.IsInteractive)" @onclick="() => GoToAsync(Messages.Count - 1)">Latest</button>
+            @* Before the circuit starts this is an ordinary GET form, which reloads the page at ?message=N. *@
+            <form class="jump" method="get" @onsubmit="JumpAsync">
+                <label for="jump-to">Jump to message #</label>
+                <input id="jump-to" name="message" type="number" min="1" max="@Messages.Count" required @bind="jumpTo" />
+                <button type="submit" class="btn">Go</button>
+            </form>
+            @* /xray:virtualize-scroll-to-item *@
+            <button type="button" class="btn expand" disabled="@(!RendererInfo.IsInteractive)" @onclick="ToggleAll" aria-pressed="@(expandAll ? "true" : "false")">
+                @(expandAll ? "Collapse all" : "Expand all")
+            </button>
+        </div>
+    </XRay>
+
+    <XRay For="virtualize-variable-height" Class="messages-zone">
+        <div class="thread-scroll">
+            @* xray:virtualize-variable-height *@
+            @* xray:virtualize-scroll-to-item *@
+            @* ItemSize is only a first guess now: Virtualize measures messages as they render. *@
+            <Virtualize @ref="list" Items="Messages" Context="message" ItemSize="96" InitialItemIndex="InitialIndex">
+            @* /xray:virtualize-scroll-to-item *@
+                <article class="msg @message.AuthorKind.ToString().ToLowerInvariant() @(message.Number == highlighted ? "target" : null)" @key="message.Id">
+                    @if (message.Number == readUpTo + 1)
+                    {
+                        <div class="new-marker">New since you last read</div>
+                    }
+                    @if (message.AuthorKind == MessageAuthor.System)
+                    {
+                        <p class="log"><time>@message.SentOn.ToString("d MMM HH:mm")</time> <b>@message.Author</b> @message.Body <span class="num">#@message.Number</span></p>
+                    }
+                    else
+                    {
+                        <header>
+                            <strong>@message.Author</strong>
+                            <span class="role">@(message.AuthorKind == MessageAuthor.Customer ? Ticket.Company : "Northwind")</span>
+                            <time>@message.SentOn.ToString("ddd d MMM, HH:mm")</time>
+                            <span class="num">#@message.Number</span>
+                        </header>
+                        <div class="body @(IsLong(message) && !IsExpanded(message) ? "clamped" : null)">
+                            @foreach (var block in message.Body.Split("\n\n"))
+                            {
+                                if (block.StartsWith("- "))
+                                {
+                                    <ul>@foreach (var line in block.Split('\n')) { <li>@line.TrimStart('-', ' ')</li> }</ul>
+                                }
+                                else
+                                {
+                                    <p>@block</p>
+                                }
+                            }
+                        </div>
+                        @if (IsLong(message))
+                        {
+                            <button type="button" class="more" @onclick="() => Toggle(message)">@(IsExpanded(message) ? "Show less" : "Show more")</button>
+                        }
+                    }
+                </article>
+            </Virtualize>
+            @* /xray:virtualize-variable-height *@
+        </div>
+    </XRay>
+
+    <EditForm Model="reply" OnValidSubmit="SendAsync" class="reply">
+        <DataAnnotationsValidator />
+        <label for="reply-body" class="visually-hidden">Reply to @Ticket.Company</label>
+        <InputTextArea id="reply-body" @bind-Value="reply.Body" rows="2" placeholder="@($"Reply to {Ticket.Contact ?? Ticket.Company}…")" />
+        <button type="submit" class="btn primary" disabled="@(!RendererInfo.IsInteractive || sending)">Send reply</button>
+        <ValidationMessage For="() => reply.Body" />
+    </EditForm>
+</div>
+
+@code {
+    readonly CancellationTokenSource leaving = new();
+    readonly HashSet<int> toggled = [];
+    readonly ReplyForm reply = new();
+    Virtualize<TicketMessage>? list;
+    bool expandAll;
+    bool sending;
+    int readUpTo;
+    int? firstUnread;
+    int? jumpTo;
+    int? highlighted;
+
+    [Parameter, EditorRequired] public TicketView Ticket { get; set; } = default!;
+
+    /// <summary>Zero-based index of the message to open at. Only used when the thread first renders.</summary>
+    [Parameter] public int InitialIndex { get; set; }
+
+    /// <summary>Raised after a reply or "mark as read", so the ticket list can refresh its counts.</summary>
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    List<TicketMessage> Messages => Ticket.Messages;
+
+    int Unread => Messages.Count - readUpTo;
+
+    protected override void OnInitialized()
+    {
+        readUpTo = Ticket.ReadUpTo;
+        firstUnread = readUpTo < Messages.Count ? readUpTo : null;
+    }
+
+    // xray:virtualize-variable-height
+    // Long messages start clamped. Expanding one, or all of them, changes heights above the viewport too,
+    // and Virtualize keeps the message you're reading where it is.
+    static bool IsLong(TicketMessage message) => message.Body.Length > 420 || message.Body.Split("\n\n").Length > 3;
+
+    bool IsExpanded(TicketMessage message) => expandAll != toggled.Contains(message.Id);
+
+    void Toggle(TicketMessage message)
+    {
+        if (!toggled.Add(message.Id))
+        {
+            toggled.Remove(message.Id);
+        }
+    }
+
+    void ToggleAll()
+    {
+        expandAll = !expandAll;
+        toggled.Clear();
+    }
+    // /xray:virtualize-variable-height
+
+    // xray:virtualize-scroll-to-item
+    Task JumpAsync() => jumpTo is int number ? GoToAsync(Math.Clamp(number, 1, Messages.Count) - 1) : Task.CompletedTask;
+
+    async Task GoToAsync(int index)
+    {
+        highlighted = index + 1;
+        try
+        {
+            // Fetches and renders the window around the message if it isn't in the DOM yet, then aligns it to the top.
+            await list!.ScrollToItemAsync(index, leaving.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // The visitor opened another ticket before the scroll finished.
+        }
+    }
+    // /xray:virtualize-scroll-to-item
+
+    async Task MarkReadAsync()
+    {
+        readUpTo = await Desk.MarkReadAsync(Ticket.Id);
+        await OnChanged.InvokeAsync();
+    }
+
+    async Task SendAsync()
+    {
+        sending = true;
+        try
+        {
+            var message = await Desk.ReplyAsync(Ticket.Id, reply.Body);
+            Messages.Add(message);
+            readUpTo = message.Number;
+            reply.Body = "";
+            StateHasChanged();
+            await GoToAsync(Messages.Count - 1);
+            await OnChanged.InvokeAsync();
+        }
+        finally
+        {
+            sending = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        leaving.Cancel();
+        leaving.Dispose();
+    }
+
+    sealed class ReplyForm
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Write a reply first.")]
+        [System.ComponentModel.DataAnnotations.StringLength(SupportDesk.MaxReplyLength)]
+        public string Body { get; set; } = "";
+    }
+}

@@ -1,0 +1,25 @@
+.count { margin: 0 0 10px; color: var(--muted); }
+
+/* Virtualize scrolls inside the nearest box with overflow-y: auto, so give it a fixed height. */
+.orders {
+    height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fcfcfe;
+}
+
+.order {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    height: 41px;
+    padding: 0 14px;
+    line-height: 40px;
+    border-bottom: 1px solid #f0eef6;
+    white-space: nowrap;
+}
+.order b { flex: none; width: 60px; font-weight: 600; }
+.order span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--ink-soft); }
+.order time { flex: none; font-size: 13px; color: var(--muted); }
+.order .total { flex: none; width: 70px; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
