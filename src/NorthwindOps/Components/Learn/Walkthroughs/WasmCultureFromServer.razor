@@ -8,52 +8,48 @@
     <p class="l-sub">The server renders a German invoice. Does it stay German once WebAssembly takes over?</p>
     <p class="l-meta">.NET 11 · WebAssembly · Interactive WebAssembly · about 5 minutes</p>
     <p class="l-new">
-        <b>What's new in .NET 11:</b> a prerendered WebAssembly component now starts in the culture the server
-        rendered it in. .NET 10 could get there too, but only if you passed the culture along yourself, from a
-        start-up script or into each component. This page shows what went wrong without that, then what changed.
+        <b>What's new in .NET 11:</b> a prerendered WebAssembly component now uses the same culture the server used.
+        In .NET 10 you had to pass the culture along yourself, with a start-up script or a parameter on each
+        component.
     </p>
 
     <p>
-        A German customer opens an invoice. The page is rendered on the server, in the request's culture, so the
-        total reads <code>1.234,56</code> and the due date reads <i>Freitag</i>. The invoice itself is a WebAssembly
-        component: it's prerendered with the page, then runs in the browser.
+        A German customer opens an invoice. The server renders the page in German, so the total reads
+        <code>1.234,56</code> and the due date reads <i>Freitag</i>. The invoice is a WebAssembly component. The server
+        renders it first (that's "prerendering"), then it starts running in the browser.
     </p>
     <p>
-        The browser has its own language, and it may not be German. .NET 11 changed how WebAssembly starts, so the
-        old behaviour can't run live here. Fig. 1 replays two moments recorded from a real .NET 10 app, in an
-        English browser.
+        The browser has its own language, and it may not be German. Fig. 1 shows what happened on .NET 10 in an English
+        browser. It's a recording, because this app runs .NET 11.
     </p>
 
     <DemoFigure Number="1" Title="The invoice on .NET 10" Url="demo/wasm-culture/invoice/net10"
                 Label=".NET 10 · recorded" Side="before">
         <Caption>
-            This replays what .NET 10 did; nothing in it runs live. Read the first two rows. The server sent
-            <b>1.234,56</b> and <b>Freitag</b>. Once WebAssembly started, the same component showed <b>1,234.56</b>
-            and <b>Friday</b>: the browser's language won. The third row passed the culture in as a parameter. Its
-            total stayed German, but the date, the one format call that forgot it, still flipped. Its Culture column
-            still reads <b>en-US</b> because the parameter only reaches the calls it's handed to; the runtime's own
-            culture never changed.
+            Each row is one moment. The first row is what the server sent: <b>1.234,56</b> and <b>Freitag</b>. The
+            second row is the same component once WebAssembly started: <b>1,234.56</b> and <b>Friday</b>. The third
+            row passed the culture in as a parameter. Only the total used it, so the total stayed German and the date
+            turned English. Its Culture column says <b>en-US</b>: the parameter didn't change the browser's culture.
         </Caption>
     </DemoFigure>
 
     <h2><small>The problem</small>Two renders, two cultures</h2>
-    <p>A prerendered WebAssembly component renders twice, and in .NET 10 each render picked its culture on its own:</p>
+    <p>A prerendered WebAssembly component renders twice. In .NET 10, each render picked its own culture:</p>
     <div class="fig">
         <span class="fig-title">Where each render got its culture in .NET 10</span>
         <pre class="snip">1. Server prerender   culture from the request <span class="dim">(?culture=de-DE)</span>   <span class="ok">1.234,56</span>
 2. WebAssembly starts culture from the browser <span class="dim">(navigator.languages[0])</span>  <span class="err">1,234.56</span></pre>
     </div>
     <p>
-        The server's culture never reached the browser. So the same <code>ToString("N2")</code> gave a German answer
-        on the server and an English one a moment later. In a French browser, the repro showed
-        <code>1 234,56</code> and <i>vendredi</i>: whatever the browser speaks, that's what you get.
+        The server never told the browser its culture. So the same <code>ToString("N2")</code> gave German on the
+        server and English a moment later. In a French browser you'd get <code>1 234,56</code> and <i>vendredi</i>.
+        Whatever the browser speaks wins.
     </p>
 
-    <h2><small>The fix</small>Register localization, and keep prerendering on</h2>
+    <h2><small>The fix</small>Add localization, keep prerendering</h2>
     <p>
-        There's no new API to call. A localized app already registers localization in the server's
-        <code>Program.cs</code>, and WebAssembly components prerender by default. On .NET 11 those two together are
-        the fix:
+        There's no new API. A localized app already sets up localization in the server's <code>Program.cs</code>, and
+        WebAssembly components prerender by default. On .NET 11, that's all it takes:
     </p>
     <div class="fig">
         <span class="fig-title">What turns it on</span>
@@ -69,53 +65,46 @@ app.UseRequestLocalization(...);
 <span class="dim">// The component: plain formatting, no culture passed in</span>
 &lt;td&gt;@@Total.ToString("N2")&lt;/td&gt;</pre>
     </div>
-    <p>
-        Upgrade, keep the prerender, and the component's formatting needs nothing extra. Here's an invoice on .NET 11,
-        rendered in German.
-    </p>
+    <p>Here's an invoice on .NET 11, rendered in German.</p>
 
     <DemoFigure Number="2" Title="An invoice on .NET 11" Url="demo/wasm-culture/invoice?culture=de-DE"
                 Label=".NET 11 · live">
         <Caption>
-            Wait for the badge to say <b>Running on WebAssembly</b>. It says <b>Formatting in de-DE</b>, whatever your
-            browser's language. The table at the bottom keeps what the server rendered: <b>Server rendered</b> and
-            <b>WebAssembly now</b> match. Then pick <b>fr-FR</b>. The page loads in full, and WebAssembly starts in
-            French. This is a live order from the demo database, so its total and due date aren't the recording's;
-            the amounts are US dollars formatted as plain numbers (<code>N2</code>, no currency sign), which is why
-            they read German-style.
+            Wait for <b>Running on WebAssembly</b>. The badge says <b>Formatting in de-DE</b>, whatever your browser's
+            language, and <b>Server rendered</b> matches <b>WebAssembly now</b>. Pick <b>fr-FR</b> and the page
+            reloads in French. The amounts are plain numbers with no currency sign, so they follow whichever culture you pick.
         </Caption>
     </DemoFigure>
 
-    <p>Nothing in the demo's code mentions the browser's culture. Here are its three files:</p>
+    <p>None of the demo's code mentions the browser's culture. Here are its three files:</p>
 
     <CodeFigure Number="3" Path="Components/Guide/Demos/WasmCulture/Invoice.razor" Feature="wasm-culture-from-server">
         <Caption>
-            The page Fig. 2 runs. Request localization sets its culture from <code>?culture=</code>, and it prerenders
-            the invoice component with <code>InteractiveWebAssembly</code>.
+            The page Fig. 2 runs. Its culture comes from <code>?culture=</code>, and it prerenders the invoice with
+            <code>InteractiveWebAssembly</code>.
         </Caption>
     </CodeFigure>
 
     <CodeFigure Number="4" Path="Client/WasmCulture/InvoiceSummary.razor" Feature="wasm-culture-from-server">
         <Caption>
-            The component itself. It formats with plain <code>ToString("N2")</code> and <code>ToString("D")</code>,
-            the same code that flipped in Fig. 1, and no culture parameter.
+            The component. It uses plain <code>ToString("N2")</code> and <code>ToString("D")</code>, the same code
+            that flipped in Fig. 1, with no culture parameter.
         </Caption>
     </CodeFigure>
 
     <CodeFigure Number="5" Path="Components/Guide/Demos/WasmCulture/WasmCultureSetup.cs" Feature="wasm-culture-from-server">
         <Caption>
-            Optional, and not part of the fix. <code>UseCultureFromServer(this WebApplicationBuilder)</code> is this
-            demo's own helper, named after the key it sets; the framework's only surface is the configuration key
-            <code>Components:UseCultureFromServer</code>. Because this app calls <code>AddLocalization()</code>, the
-            feature is on already, and setting <code>"true"</code> just makes the switch visible. You'd only set the
-            key to turn the feature off, or on in an app without localization.
+            You don't need this file for the fix. It's a small helper this demo wrote. It sets
+            <code>Components:UseCultureFromServer</code> to <code>"true"</code>, which is already the case because the
+            app calls <code>AddLocalization()</code>. You'd only set that yourself to turn the feature off. Or to turn
+            it on, in an app that doesn't call <code>AddLocalization()</code>.
         </Caption>
     </CodeFigure>
 
-    <h2><small>The .NET 10 way</small>Repeat what the server already knew</h2>
-    <p>To keep the two renders in step, .NET 10 apps passed the culture along by hand. The repro tried both common ways:</p>
+    <h2><small>The .NET 10 way</small>Pass the culture by hand</h2>
+    <p>In .NET 10 you had to pass the culture along yourself. These were the two usual ways:</p>
     <div class="fig">
-        <span class="fig-title">Two .NET 10 workarounds, and what the repro showed</span>
+        <span class="fig-title">Two .NET 10 workarounds, and what happened</span>
         <div class="flow">
             <div class="box">
                 <pre class="snip">&lt;script src="_framework/blazor.web.js"
@@ -139,22 +128,23 @@ app.UseRequestLocalization(...);
         </div>
     </div>
     <p>
-        The first works, but it's a start-up script just to repeat what the server already knew. The second fails
-        the moment one format call is missed, as Fig. 1's third row shows.
+        The script works, but it's extra code to repeat what the server already knew. The parameter breaks as soon as
+        you miss one format call, as Fig. 1's third row shows.
     </p>
 
     <h2><small>.NET 11</small>The culture travels with the page</h2>
     <p>
-        In .NET 11 the server saves its culture and UI culture with the page's persisted state as it prerenders,
-        and the WebAssembly host sets them as it starts, before any component renders. No script and no parameter:
-        plain formatting gives the same answer on both sides. That's what Fig. 2 runs.
+        In .NET 11 the server saves its culture into the page as it prerenders. It saves the UI culture too, which
+        picks the language for translated text. WebAssembly reads them
+        back as it starts, before any component renders. No script, no parameter: plain formatting gives the same
+        result on both sides.
     </p>
 
     <h2><small>Good to know</small></h2>
     <ul class="gk">
-        <li><b>Prerendering carries it.</b> With <code>prerender: false</code> there's no server render to take the culture from, so WebAssembly uses the browser's language.</li>
-        <li><b>Set once, at start.</b> After an enhanced navigation WebAssembly keeps its culture, which is why the demo's culture links load the page in full.</li>
-        <li><b>Globalization data.</b> WebAssembly loads data for the browser's own language group. For a culture outside it, like German in a Japanese browser, set <code>BlazorWebAssemblyLoadAllGlobalizationData</code> to <code>true</code> in the client project.</li>
-        <li><b>Turn it off</b> by setting <code>Components:UseCultureFromServer</code> to <code>false</code>. Older posts show a <code>UseCultureFromServer</code> property from Preview 5; it was replaced by this key. (Fig. 5's method of the same name is the demo's own helper, not that property.)</li>
+        <li><b>It needs prerendering.</b> With <code>prerender: false</code> there's no server render to copy from, so WebAssembly uses the browser's language.</li>
+        <li><b>It's set once, at start.</b> An enhanced navigation (Blazor swapping in the next page without a full load) doesn't change WebAssembly's culture. That's why the demo's culture links reload the whole page.</li>
+        <li><b>Language data.</b> To keep downloads small, WebAssembly only loads formatting data for some languages, picked from the browser's language. A Japanese browser, for example, doesn't get German. To load every language, set <code>BlazorWebAssemblyLoadAllGlobalizationData</code> to <code>true</code> in the client project.</li>
+        <li><b>To turn it off,</b> set <code>Components:UseCultureFromServer</code> to <code>false</code>. Some older posts describe a property from Preview 5 instead. That property is gone; this setting replaced it.</li>
     </ul>
 </article>

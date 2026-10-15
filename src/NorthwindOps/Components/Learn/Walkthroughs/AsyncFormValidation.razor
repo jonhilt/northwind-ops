@@ -9,37 +9,36 @@
     <p class="l-meta">.NET 11 · Forms · Interactive Server · about 6 minutes</p>
     <p class="l-new">
         <b>What's new in .NET 11:</b> validation attributes can be async. <code>EditForm</code> waits for every check
-        before it saves, and tells you while one is running. In .NET 10 validation was synchronous, so a database
-        check had to live outside it, in code that Save didn't wait for.
+        before it saves, and tells you while one is running. In .NET 10, validation rules couldn't be async, so a
+        database check had to run outside validation, and Save didn't wait for it.
     </p>
 
     <p>
-        Below is a <i>New supplier</i> form. A supplier code must look like <code>ABCD-01</code>, and it must not
-        belong to another supplier. <code>EXOT-01</code> already belongs to Exotic Liquids.
+        Below is a <i>New supplier</i> form. A supplier code must look like <code>ABCD-01</code>, and no other
+        supplier can have it. <code>EXOT-01</code> already belongs to Exotic Liquids.
     </p>
     <p>
-        Only the database can answer the second rule, and here it takes 1.5 seconds, on purpose, like a busy ERP.
-        This form checks the code the .NET 10 way: a handler that runs when the field changes.
+        Only the database can check that second rule. Here it takes 1.5 seconds on purpose, like a busy server. This
+        form does the check the .NET 10 way: in code that runs when the field changes.
     </p>
 
     <DemoFigure Number="1" Title="The code check, in a field-changed handler" Url="demo/async-validation/suppliers/new/net10"
                 Label=".NET 10: a field-changed handler" Side="before">
         <Caption>
             <p>
-                <b>Try 1, a quick Save.</b> Type any company, type <code>EXOT-01</code> into <b>Supplier code</b>, and
-                click <b>Save supplier</b> straight away, within a second. Save goes ahead: a red banner says
-                validation passed and only the database's unique index stopped a second <code>EXOT-01</code>. About a
-                second later, "already used" appears under the field, after Save has run.
+                <b>Try 1: save quickly.</b> Type any company, type <code>EXOT-01</code> as the <b>Supplier code</b>,
+                and click <b>Save supplier</b> within a second. Save goes ahead, and only the database stops the
+                duplicate: a red banner shows its error. "Already used" turns up under the field a moment later.
             </p>
             <p>
-                <b>Try 2, a quick change.</b> Press <b>Start over</b>. Type <code>EXOT-01</code> and press Tab, then,
-                within a second, change it to <code>ZZZZ-99</code> and press Tab again. Wait two seconds: "already
-                used" sits under <code>ZZZZ-99</code>, a code nobody has. It's the answer for <code>EXOT-01</code>.
+                <b>Try 2: change it quickly.</b> Press <b>Start over</b>. Type <code>EXOT-01</code> and press Tab.
+                Within a second, change it to <code>ZZZZ-99</code> and press Tab. Wait two seconds: "already used"
+                appears under <code>ZZZZ-99</code>, a code nobody has. It's the answer meant for <code>EXOT-01</code>.
             </p>
         </Caption>
     </DemoFigure>
 
-    <h2><small>The problem</small>Validation can't wait, so Save doesn't</h2>
+    <h2><small>The problem</small>Save doesn't wait for the check</h2>
     <p>Here's what happens when you leave the field and press Save straight away:</p>
     <div class="fig">
         <span class="fig-title">One quick Save, in order</span>
@@ -49,19 +48,22 @@
 <span class="dim">1.5 s</span>  lookup answers       "already used"   <span class="err">Save already ran</span></pre>
     </div>
     <p>
-        In .NET 10, validation is synchronous. <code>EditForm</code> runs the attributes on the model, and none of
-        them knows about the database. The lookup lives in an <code>async void</code> handler, so nothing can wait for it: not
-        Save, and not the next edit. A second edit starts a second lookup, and the first one isn't cancelled. When it
-        answers, it puts its message on whatever the field holds by then.
+        In .NET 10, validation can't wait for anything. <code>EditForm</code> runs the attributes on the model, and
+        none of them talks to the database. So the lookup runs in an <code>async void</code> handler, and Save can't
+        wait for that.
     </p>
     <p>
-        In Fig. 1 a unique index happens to catch the duplicate, so what the user gets is a database exception in a
-        banner, not a message on the field. A rule with no index behind it, like "this VAT number must be registered",
-        has nothing to catch it: the bad value saves.
+        There's a second problem. A new edit starts a new lookup but doesn't stop the old one. When the old one
+        answers, its message lands on whatever the field holds by then.
+    </p>
+    <p>
+        In Fig. 1 a unique index in the database happens to catch the duplicate, so the user sees a database error
+        instead of a message on the field. A rule with nothing like that behind it, such as "this VAT number must be
+        registered", just lets the bad value save.
     </p>
 
-    <h2><small>The fix</small>An async attribute, with the other rules</h2>
-    <p>Derive from <code>AsyncValidationAttribute</code>, and put the attribute on the property like any other.</p>
+    <h2><small>The fix</small>An async attribute</h2>
+    <p>Derive from <code>AsyncValidationAttribute</code>, and put it on the property like any other rule.</p>
     <div class="fig">
         <span class="fig-title">The whole fix</span>
         <pre class="snip">public sealed class UniqueSupplierCodeAttribute()
@@ -83,31 +85,30 @@ public string? Code { get; set; }
 &lt;button type="submit" disabled="<span class="hl">@@form.IsValidationPending()</span>"&gt;</pre>
     </div>
     <p>
-        <code>EditForm</code> now awaits every check before it calls <code>OnValidSubmit</code>. A check finishes
-        after the event that started it, so the page subscribes to <code>OnValidationStateChanged</code> to redraw
-        when it does. Leave that line out and "Checking…" and the message wait for something else to redraw the
-        page.
+        <code>EditForm</code> now waits for every check before it calls <code>OnValidSubmit</code>. Blazor only
+        redraws the page after an event, like a click or a keypress. An async check can finish later than that, so
+        the page listens to <code>OnValidationStateChanged</code> and redraws when the check finishes. Without that line, "Checking…" and the
+        message don't show until something else redraws the page.
     </p>
     <p>
-        <code>IsValidationPending</code> comes in two forms. With a field, it's true while that field's check runs:
-        that's the "Checking…" beside the box, after you Tab out. With no field, it's true only while Save is waiting
-        for the whole form: that's what disables the button, from the moment you click it until every check has
-        answered. Tabbing out of the field doesn't disable the button. Here's the same form, with the code check as an
-        attribute.
+        <code>IsValidationPending</code> works two ways. Give it a field, and it's true while that field's check
+        runs: that drives the "Checking…" beside the box. Give it nothing, and it's true only while Save is waiting
+        for the whole form. That's what disables the button: it greys out when you click Save, and comes back when
+        every check has answered. Tabbing out of the field doesn't disable it.
     </p>
 
     <DemoFigure Number="2" Title="The same form, with an async attribute" Url="demo/async-validation/suppliers/new"
                 Label=".NET 11: an async attribute">
         <Caption>
             <p>
-                <b>Try 1 again.</b> A company, <code>EXOT-01</code>, and click <b>Save supplier</b> straight away. The
-                button greys out and says <b>Checking…</b> for about a second and a half, then the field says
-                "Supplier code is already used by another supplier." Nothing is saved, and there's no red banner.
+                <b>Try 1 again.</b> Type a company and <code>EXOT-01</code>, then click <b>Save supplier</b> straight
+                away. The button greys out and says <b>Checking…</b> for about a second and a half. Then the field says
+                "Supplier code is already used by another supplier." Nothing saves.
             </p>
             <p>
-                <b>Try 2 again.</b> <b>Start over</b>, type <code>EXOT-01</code>, Tab, and within a second change it to
-                <code>ZZZZ-99</code> and Tab. "Checking…" shows beside the field, then clears with no message: the
-                newer edit cancelled the check for <code>EXOT-01</code>.
+                <b>Try 2 again.</b> Press <b>Start over</b>, type <code>EXOT-01</code> and Tab, then quickly change it
+                to <code>ZZZZ-99</code> and Tab. "Checking…" shows, then clears with no message: the newer edit
+                cancelled the old check.
             </p>
         </Caption>
     </DemoFigure>
@@ -116,33 +117,32 @@ public string? Code { get; set; }
 
     <CodeFigure Number="3" Path="Components/Guide/Demos/AsyncValidation/UniqueSupplierCodeAttribute.cs" Feature="async-form-validation">
         <Caption>
-            The attribute Fig. 2 runs. It gets the database from the <code>ValidationContext</code>, and passes the
-            token on, so a newer edit can cancel it.
+            The attribute in Fig. 2. It gets the database from the <code>ValidationContext</code>, and passes the
+            cancellation token along so a newer edit can cancel it.
         </Caption>
     </CodeFigure>
 
     <CodeFigure Number="4" Path="Components/Guide/Demos/AsyncValidation/NewSupplierForm.cs" Feature="async-form-validation">
         <Caption>
-            The model: the async rule sits with the others, and only runs once they pass. Fig. 1 posts
-            <code>NewSupplierFormNet10</code>, the same fields without it.
+            The model. The async rule sits with the others, and only runs once they pass. Fig. 1 posts
+            <code>NewSupplierFormNet10</code>, the same fields without <code>[UniqueSupplierCode]</code>.
         </Caption>
     </CodeFigure>
 
     <CodeFigure Number="5" Path="Components/Guide/Demos/AsyncValidation/NewSupplier.razor" Feature="async-form-validation">
         <Caption>
-            The page in Fig. 2: "Checking…" beside the field while its check runs, and a Save button that waits for
-            the whole form.
+            The page in Fig. 2: "Checking…" beside the field, and a Save button that waits for the whole form.
         </Caption>
     </CodeFigure>
 
     <CodeFigure Number="6" Path="Components/Guide/Demos/AsyncValidation/NewSupplierNet10.razor" Feature="async-form-validation">
         <Caption>
-            The page in Fig. 1: the same lookup, in a handler that nothing waits for.
+            The page in Fig. 1: the same lookup, in a handler nothing waits for.
         </Caption>
     </CodeFigure>
 
     <h2><small>The .NET 10 way</small>The check lived outside validation</h2>
-    <p>A synchronous validator gave three places to put a database check, and each one cost something:</p>
+    <p>There were three places to put a database check, and each had a cost:</p>
     <div class="fig">
         <span class="fig-title">Three ways to check a code in .NET 10</span>
         <div class="flow">
@@ -167,29 +167,29 @@ public string? Code { get; set; }
                 <pre class="snip">protected override ValidationResult? IsValid(...)
     =&gt; IsTakenAsync(code)<span class="err">.GetAwaiter().GetResult()</span> ...</pre>
                 <span class="why">block on the lookup in a plain attribute</span>
-                <div class="verdict bad">✗ deadlocks the circuit: no message, and the form stops responding</div>
+                <div class="verdict bad">✗ freezes the page: no message, and the form stops responding</div>
             </div>
         </div>
     </div>
     <p>
-        Fig. 1 runs the handler on its own. Most apps paired it with the save-handler check: the handler for early
-        feedback, the save handler to catch what it missed. That closes the quick-Save hole in Try 1, but the stale
-        answer in Try 2 stays, and the rule is now written twice, in the page, away from the attributes.
+        Most apps used the first two together: the handler for early feedback, and the save handler to catch what it
+        missed. That fixes Try 1. Try 2's wrong message stays, and the rule is now written twice, both in the page instead of on the model.
     </p>
 
-    <h2><small>.NET 11</small>Validation that can await</h2>
+    <h2><small>.NET 11</small>Validation that can wait</h2>
     <p>
-        <code>AsyncValidationAttribute</code> is new in <code>System.ComponentModel.DataAnnotations</code>, and
+        <code>AsyncValidationAttribute</code> is new in <code>System.ComponentModel.DataAnnotations</code>.
         <code>DataAnnotationsValidator</code> runs it with the other rules: when the field changes, and again before
-        Save. That's what Fig. 2 runs. The same attribute works on a static SSR form too: it runs when the form posts,
-        and the post waits for it.
+        Save. That's what Fig. 2 runs. It also works on a non-interactive (static) form: the server runs the check
+        when the form is posted, and waits for it before saving.
     </p>
 
     <h2><small>Good to know</small></h2>
     <ul class="gk">
-        <li><b>Name the field in the result.</b> Pass <code>[context.MemberName!]</code> to <code>ValidationResult</code>, as Fig. 3 does. Without it, the check Save runs files its message under no field: no <code>ValidationMessage</code> shows it, and the form just doesn't save. This demo's model is a plain class, so it needs this. A model marked <code>[ValidatableType]</code> (the source-generated validation from <a href="learn/validatable-type-stable">Nested validation</a>) gets the field filled in for it.</li>
-        <li><b>Override <code>IsValid</code> too.</b> It's abstract. Throw, as Fig. 3 does: Blazor only calls <code>IsValidAsync</code>.</li>
-        <li><b>Calling <code>Validate()</code> yourself?</b> Switch to <code>await form.ValidateAsync()</code>. <code>EditContext.Validate()</code> is obsolete in .NET 11, and throws once an async check is registered.</li>
-        <li><b>Faulted isn't invalid.</b> If a check throws, the field gets no message. <code>IsValidationFaulted()</code> is true instead, and the form won't submit, so show a banner saying so.</li>
+        <li><b>Name the field in the result.</b> Pass <code>[context.MemberName!]</code> to <code>ValidationResult</code>, as Fig. 3 does. Without it, the check Save runs gives a message tied to no field. No <code>ValidationMessage</code> shows it, and the form just won't save.</li>
+        <li><b>Marked models name it for you.</b> On a model marked <code>[ValidatableType]</code> (see <a href="learn/validatable-type-stable">Nested validation</a>), you can skip this. This demo's model isn't marked.</li>
+        <li><b>Override <code>IsValid</code> too.</b> You have to, because it's abstract. Throwing is fine, as Fig. 3 does, since Blazor only calls <code>IsValidAsync</code>.</li>
+        <li><b>Calling <code>Validate()</code> yourself?</b> Switch to <code>await form.ValidateAsync()</code>. <code>EditContext.Validate()</code> is obsolete in .NET 11, and throws once there's an async check.</li>
+        <li><b>A check that crashes isn't the same as a failed one.</b> If a check throws, the field gets no message. Instead <code>IsValidationFaulted()</code> is true and the form won't submit, so show a banner saying so.</li>
     </ul>
 </article>

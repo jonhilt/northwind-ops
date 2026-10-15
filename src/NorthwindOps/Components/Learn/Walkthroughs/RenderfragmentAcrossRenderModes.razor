@@ -5,41 +5,40 @@
 
 <article class="l-article" data-learn>
     <h1 class="l-title">Static content in interactive components</h1>
-    <p class="l-sub">You've built an interactive card. Why does a static page fail when it passes a table in as <code>ChildContent</code>?</p>
+    <p class="l-sub">You've built an interactive card. Why does a static page fail when it puts a table inside it?</p>
     <p class="l-meta">.NET 11 · Rendering · Static SSR with an Interactive Server card · about 5 minutes</p>
     <p class="l-new">
-        <b>What's new in .NET 11:</b> a static page can pass <code>ChildContent</code>, or any plain
-        <code>RenderFragment</code>, to an interactive component. In .NET 10 the same code compiled cleanly, then
-        failed every request with a 500: <i>"RenderFragment, which is arbitrary code and cannot be serialized"</i>.
-        There's no new API: .NET 11 fixed it inside the framework.
+        <b>What's new in .NET 11:</b> a static page can put markup inside an interactive component (its
+        <code>ChildContent</code>, or any other <code>RenderFragment</code> parameter). In .NET 10 the same code compiled, then failed every
+        request with a 500: <i>"RenderFragment, which is arbitrary code and cannot be serialized"</i>. There's no new
+        API. The fix is inside the framework.
     </p>
 
     <p>
-        Below is a <i>Warehouse</i> page. It's static: the server renders it once, and no circuit is needed. It queries
-        the products that are low on stock, and puts the table inside <code>Collapsible</code>, a small card that runs
-        on Interactive Server so its header can fold it away.
+        Below is a <i>Warehouse</i> page. It's static: the server renders it once, with no circuit (the live
+        connection an interactive component uses). It lists products that are low on stock, inside
+        <code>Collapsible</code>, a small card that runs on Interactive Server so its header can fold it away.
     </p>
     <p>
-        Folding on its own doesn't need a circuit: a <code>&lt;details&gt;</code> element does it in plain HTML. The
-        card stands in for the wrappers that do need C#: tabs that load on demand, a dialog with its own state, a panel
-        that remembers what the user chose. What matters is the shape: an interactive component, static markup inside.
+        You don't need a circuit just to fold content: a <code>&lt;details&gt;</code> element does that. Think of
+        the card as a stand-in for something that does need C#, like tabs that load on demand or a dialog with its own
+        state. What matters is the setup: an interactive component with static markup inside it.
     </p>
     <p>
-        Because .NET 11 fixed this in the framework, the old failure can't run here. So Fig. 1 replays what our .NET 10
-        build returned for the same page, unchanged.
+        The .NET 10 failure can't happen on .NET 11, so Fig. 1 replays what our .NET 10 build returned for the same
+        page.
     </p>
 
     <DemoFigure Number="1" Title="The page, as .NET 10 ran it" Url="demo/static-content/low-stock/net10"
                 Label=".NET 10 · recorded" Side="before">
         <Caption>
-            A recording, not a live page, so its buttons don't change anything. The address bar shows this demo's own
-            address; the request it replays is <code>GET /warehouse</code>, our .NET 10 copy of the page in Fig. 3.
-            That build had no warnings.
+            This is a recording, so its buttons do nothing. It replays <code>GET /warehouse</code>, our .NET 10 copy of
+            the page in Fig. 3. The build gave no warnings.
         </Caption>
     </DemoFigure>
 
-    <h2><small>The problem</small>.NET 10 won't send code to an interactive component</h2>
-    <p>The table between the card's tags isn't data. It's a <code>RenderFragment</code>, a delegate:</p>
+    <h2><small>The problem</small>.NET 10 can't send code across</h2>
+    <p>The table between the card's tags isn't data. It's a <code>RenderFragment</code>: a piece of code that writes markup.</p>
     <div class="fig">
         <span class="fig-title">What the static page tries to pass to the card</span>
         <pre class="snip">Collapsible  <span class="dim">@@rendermode="InteractiveServer"</span>
@@ -48,14 +47,14 @@
    └─ &lt;p&gt; Queried at, &lt;table&gt; ...</pre>
     </div>
     <p>
-        An interactive component starts later, on the circuit, so its parameters have to travel there as data. A
-        string can. A delegate can't. .NET 10 checks this while the static page renders, and throws
+        The static page's HTML is sent to the browser first. The card only comes alive after that, over the circuit,
+        so its parameters have to be written down as data and sent along. A string can be written down. Code can't. .NET 10 checks this while the static page renders, and throws
         <code>InvalidOperationException</code>: <i>"which is arbitrary code and cannot be serialized"</i>. The build
-        gives no warning.
+        doesn't warn you.
     </p>
 
-    <h2><small>The fix</small>None in your code</h2>
-    <p>The page that failed on .NET 10 is the fix. Pass markup to an interactive component as usual:</p>
+    <h2><small>The fix</small>Nothing to change</h2>
+    <p>The page that failed on .NET 10 now works. Pass markup to an interactive component as usual:</p>
     <div class="fig">
         <span class="fig-title">The whole page, in short</span>
         <pre class="snip"><span class="hl">&lt;Collapsible @@rendermode="InteractiveServer" Title="Low stock"&gt;</span>
@@ -64,25 +63,24 @@
 <span class="hl">&lt;/Collapsible&gt;</span></pre>
     </div>
     <p>
-        .NET 11 doesn't send the code. The static page runs the fragment while it prerenders, records the markup it
-        produced, and sends that to the card. On the circuit, the card replays it like any other
-        <code>ChildContent</code>.
+        .NET 11 doesn't send the code. The static page runs the fragment while it renders, keeps the markup it
+        produced, and sends that to the card. The card then shows it like any other <code>ChildContent</code>.
     </p>
     <div class="fig">
-        <span class="fig-title">What doesn't cross, silently</span>
+        <span class="fig-title">What gets lost, without an error</span>
         <pre class="snip">&lt;Collapsible @@rendermode="InteractiveServer" Title="Low stock"&gt;
     &lt;button <span class="err">@@onclick="Reorder"</span>&gt;Reorder&lt;/button&gt;
 &lt;/Collapsible&gt;</pre>
-        <div class="verdict bad">✗ the button renders, but its handler is dropped, with only a warning in the server log. The same goes for <code>@@ref</code> and <code>@@formname</code>. A button that should do something in C# belongs in the interactive component, not in the markup you pass it.</div>
+        <div class="verdict bad">✗ the button shows, but its click handler is dropped. Only a warning in the server log tells you. The same goes for <code>@@ref</code> and <code>@@formname</code>. Put buttons that run C# inside the interactive component, not in the markup you pass it.</div>
     </div>
     <p>Here's the same page, live on .NET 11.</p>
 
     <DemoFigure Number="2" Title="The same page, on .NET 11" Url="demo/static-content/low-stock"
                 Label=".NET 11 · live">
         <Caption>
-            Wait for <b>Interactive</b> in the card's corner. Click <b>▾ Low stock</b> to fold the card, and again to
-            open it: the click runs in C# on the server. The table comes back with the same <b>Queried at</b> time,
-            because the page's query didn't run again.
+            Wait for <b>Interactive</b> in the card's corner, then click <b>▾ Low stock</b> to fold and reopen the card.
+            The click runs in C# on the server. The <b>Queried at</b> time stays the same, because the page's query
+            didn't run again.
         </Caption>
     </DemoFigure>
 
@@ -90,54 +88,54 @@
 
     <CodeFigure Number="3" Path="Components/Guide/Demos/StaticContent/LowStock.razor" Feature="renderfragment-across-render-modes">
         <Caption>
-            The page both figures run. Fig. 1 is this file on .NET 10; Fig. 2 is this file on .NET 11, unchanged.
-            The highlighted lines aren't a change: they mark the fragment that crosses the boundary.
+            The page Fig. 2 runs, unchanged. Fig. 1 replays our .NET 10 copy of it. The highlighted lines aren't a
+            change. They mark the content passed to the card.
         </Caption>
     </CodeFigure>
 
     <CodeFigure Number="4" Path="Components/Guide/Demos/StaticContent/Collapsible.razor" Feature="renderfragment-across-render-modes">
         <Caption>
-            The card, also unchanged. The highlights mark the <code>ChildContent</code> parameter and where it
-            renders. It starts open, because the page only records the fragment if it renders on the first pass.
+            The card, also unchanged. The highlights mark the <code>ChildContent</code> parameter and where it shows.
+            The card starts open. If it started folded, its content wouldn't render when the page does, so there'd be no
+            markup to keep.
         </Caption>
     </CodeFigure>
 
-    <h2><small>The .NET 10 way</small>Move the boundary, or move the table</h2>
-    <p>With no way to pass the table across, you moved one or the other:</p>
+    <h2><small>The .NET 10 way</small>Make the page interactive, or move the table</h2>
+    <p>With no way to pass the table in, you had two choices:</p>
     <div class="fig">
         <span class="fig-title">Two ways round it in .NET 10, and what they cost</span>
         <div class="flow">
             <div class="box">
                 <pre class="snip">@@page "/warehouse"
 <span class="err">@@rendermode InteractiveServer</span></pre>
-                <span class="why">no boundary to cross, so the card folds and reopens</span>
-                <div class="verdict bad">✗ every visitor holds a circuit for the whole page, and the fragment's code re-runs there: a stamp in it changes on every re-render</div>
+                <span class="why">the whole page is interactive, so the table no longer has to be sent to the card, and the card folds and reopens</span>
+                <div class="verdict bad">✗ every visitor keeps a circuit open for the whole page. The table's code reruns on the server whenever the page re-renders, so a timestamp in it keeps changing</div>
             </div>
             <div class="box">
                 <pre class="snip">&lt;LowStockCard @@rendermode="InteractiveServer"
               <span class="err">Products="products"</span> /&gt;</pre>
-                <span class="why">the table moves into the interactive component, which gets the data instead</span>
+                <span class="why">the table moves into the interactive component, which takes the data instead</span>
                 <div class="verdict bad">✗ a new card for every table, each with its own copy of the folding logic</div>
             </div>
         </div>
     </div>
     <p>
-        Either way, one reusable interactive wrapper around static content from many pages wasn't possible: the
+        Either way, you couldn't have one reusable interactive wrapper around static content from many pages. The
         content had to become interactive too, or move inside the wrapper.
     </p>
 
-    <h2><small>.NET 11</small>What crosses is a snapshot</h2>
+    <h2><small>.NET 11</small>The card gets a snapshot</h2>
     <p>
-        The first workaround re-runs the fragment's code on the circuit, so a stamp in it changes on every re-render.
-        In .NET 11 the fragment's code runs once, in the static render, and the card only ever replays that output.
-        That's why <b>Queried at</b> in Fig. 2 never moves. It also means the content can't update: anything that
-        should change while the user watches has to load inside the card.
+        In .NET 11 the content's code runs once, during the static render. The card only shows the result. That's why
+        <b>Queried at</b> in Fig. 2 never changes. It also means the content can't update: anything that should change
+        while the user watches has to load inside the card.
     </p>
 
     <h2><small>Good to know</small></h2>
     <ul class="gk">
-        <li><b>Render it on the first pass.</b> With <code>prerender: false</code>, or content hidden behind an <code>@@if</code> until later, there's nothing to record, and it throws when the page runs. The build can't catch it. That's why the card starts open.</li>
-        <li><b>Only plain <code>RenderFragment</code> crosses.</b> A <code>RenderFragment&lt;T&gt;</code>, such as a grid's row template, still throws as it did in .NET 10.</li>
-        <li><b>Mind the size.</b> The recorded markup travels in the component's marker, several times bigger than the HTML, and SignalR's default limit is 32 KB per message. The dashboard's two tables went past it, so <code>Program.cs</code> raises <code>MaximumReceiveMessageSize</code> to 64 KB. A short table is fine; a long report isn't.</li>
+        <li><b>It must render the first time.</b> With <code>prerender: false</code>, or content inside an <code>@@if</code> that's false when the page renders, there's nothing to capture, and the page throws when it runs. The build can't catch this. That's why the card starts open.</li>
+        <li><b>Only plain <code>RenderFragment</code> works.</b> A <code>RenderFragment&lt;T&gt;</code>, like a grid's row template, still throws, as in .NET 10.</li>
+        <li><b>Watch the size.</b> The captured markup is sent to the server when the circuit starts, packed in a form several times bigger than the HTML the visitor sees. The circuit runs on SignalR, which limits a message to 32 KB by default. This app's dashboard puts two tables in cards like this and went over it, so <code>Program.cs</code> raises <code>MaximumReceiveMessageSize</code> to 64 KB. A short table is fine; a long report isn't.</li>
     </ul>
 </article>

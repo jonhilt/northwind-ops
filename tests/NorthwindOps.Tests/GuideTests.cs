@@ -19,50 +19,40 @@ public partial class GuideTests(AppFactory app) : IClassFixture<AppFactory>
 
     [Theory]
     [MemberData(nameof(Entries))]
-    public void Entry_has_every_step(string id)
+    public void Entry_has_a_write_up_and_a_walkthrough(string id)
     {
-        var entry = guide.Find(id)!;
-
         Assert.True(features.Find(id) is not null, $"{id} needs a full write-up in Showcase/Features/{id}.md.");
-        Assert.NotEmpty(entry.Problem.Question);
-        Assert.NotEmpty(entry.Problem.Options);
-        Assert.All(entry.Problem.Options, o => Assert.Contains("class=\"bad\"", o.Html));
-        Assert.NotEmpty(entry.Try.Question);
-        Assert.InRange(entry.Try.WatchHtml.Count, 2, 4);
-        Assert.NotEmpty(entry.Code.Question);
-        Assert.NotEmpty(entry.Code.Cards);
-        Assert.InRange(entry.GoodToKnow.Count, 1, 4);
+        Assert.Contains($"/learn/{id}", LearnTests.Urls);
     }
 
     [Theory]
     [MemberData(nameof(Entries))]
-    public void Code_cards_show_demo_source_that_marks_the_feature(string id)
+    public async Task Old_guide_steps_redirect_to_the_walkthrough(string id)
     {
-        foreach (var card in guide.Find(id)!.Code.Cards)
+        var client = app.CreateClient(new() { AllowAutoRedirect = false });
+
+        foreach (var url in new[] { $"/guide/{id}", $"/guide/{id}/try", $"/guide/{id}/code" })
         {
-            var view = sources.View(card.Path, id);
-            Assert.True(view is not null, $"{id} shows {card.Path}, which isn't embedded source.");
-            Assert.True(view.HighlightedLines.Length > 0, $"{card.Path} has no xray:{id} markers to highlight.");
+            var response = await client.GetAsync(url);
+            Assert.Equal(HttpStatusCode.MovedPermanently, response.StatusCode);
+            Assert.Equal($"/learn/{id}", response.Headers.Location!.OriginalString);
         }
     }
 
     [Theory]
     [MemberData(nameof(Entries))]
-    public async Task Every_step_and_the_demo_render(string id)
+    public async Task Both_demos_run(string id)
     {
         var client = app.CreateClient();
         var entry = guide.Find(id)!;
 
-        foreach (var url in new[] { $"/guide/{id}", $"/guide/{id}/try", $"/guide/{id}/code", "/" + entry.DemoUrl })
-        {
-            var response = await client.GetAsync(url);
-            Assert.True(response.StatusCode == HttpStatusCode.OK, $"{url} returned {(int)response.StatusCode}.");
-        }
+        var response = await client.GetAsync("/" + entry.DemoUrl);
+        Assert.True(response.StatusCode == HttpStatusCode.OK, $"/{entry.DemoUrl} returned {(int)response.StatusCode}.");
 
         // The old way may fail outright, as long as it says why in its frame.
         if (entry.Before is { } before)
         {
-            var response = await client.GetAsync("/" + before.Url);
+            response = await client.GetAsync("/" + before.Url);
             var failed = response.StatusCode == HttpStatusCode.InternalServerError
                 && (await response.Content.ReadAsStringAsync()).Contains("data-crash");
             Assert.True(response.StatusCode == HttpStatusCode.OK || failed, $"/{before.Url} returned {(int)response.StatusCode}.");
@@ -70,22 +60,6 @@ public partial class GuideTests(AppFactory app) : IClassFixture<AppFactory>
     }
 
     public static TheoryData<string> EntriesWithBefore => [.. new GuideRegistry().All.Where(e => e.Before is not null).Select(e => e.Id)];
-
-    [Theory]
-    [MemberData(nameof(EntriesWithBefore))]
-    public async Task Before_and_after_demos_run_side_by_side(string id)
-    {
-        var entry = guide.Find(id)!;
-        var html = WebUtility.HtmlDecode(await app.CreateClient().GetStringAsync($"/guide/{id}/try"));
-
-        Assert.NotNull(entry.Try.ExplainHtml);
-        Assert.Contains("data-compare", html);
-        Assert.Contains($"src=\"{entry.Before!.Url}\"", html);
-        Assert.Contains($"src=\"{entry.DemoUrl}\"", html);
-        Assert.Contains(entry.Before.Label, html);
-        Assert.Contains(entry.Before.AfterLabel, html);
-        Assert.Contains("Check your guess", html);
-    }
 
     [Fact]
     public async Task Nested_validation_demo_shows_the_address_and_a_list_of_contacts()
@@ -328,8 +302,7 @@ public partial class GuideTests(AppFactory app) : IClassFixture<AppFactory>
     {
         var html = await app.CreateClient().GetStringAsync("/guide");
 
-        // A feature with a walkthrough links to that instead of its guide steps.
-        Assert.All(guide.All, e => Assert.Contains($"href=\"{NorthwindOps.Components.Learn.LearnPages.UrlFor(e.Id)}\"", html));
+        Assert.All(guide.All, e => Assert.Contains($"href=\"learn/{e.Id}\"", html));
     }
 
     [Theory]
@@ -378,69 +351,15 @@ public partial class GuideTests(AppFactory app) : IClassFixture<AppFactory>
             group: Forms
             order: 5
             hook: A hook.
-            intro: An intro.
             mode: Static SSR
             demo: demo/x
             before: demo/x/old
             labels: The old way | The new way
             ---
-
-            ## The problem
-
-            Why is this *hard*?
-
-            The lead.
-
-            ### Workaround one
-
-            ```csharp
-            // ### not a heading inside a fence
-            var x = 1;
-            ```
-
-            It hurts. {.bad}
-
-            ## See it work
-
-            Try this.
-
-            A lead.
-
-            1. Do **this**.
-            2. Then that.
-
-            Explain: Because **this**.
-
-            ## How it's built
-
-            Two parts.
-
-            ### The first part
-            code: Components/Guide/Demos/TempData/EditOrder.razor
-
-            A note.
-
-            ## Good to know
-
-            - **First thing.** Its detail with `code`.
             """);
 
-        Assert.Equal("Why is this <em>hard</em>?", entry.Problem.Question);
-        var option = Assert.Single(entry.Problem.Options);
-        Assert.Equal("Workaround one", option.Title);
-        Assert.Contains("### not a heading", option.Html);
-        Assert.Matches("<p class=\"bad\">It hurts.\\s*</p>", option.Html);
-        Assert.Equal(["Do <strong>this</strong>.", "Then that."], entry.Try.WatchHtml);
-        Assert.Contains("A lead.", entry.Try.LeadHtml);
-        Assert.DoesNotContain("Because", entry.Try.LeadHtml);
-        Assert.Equal("Because <strong>this</strong>.", entry.Try.ExplainHtml);
-        Assert.Equal(new GuideBefore("demo/x/old", "The old way", "The new way"), entry.Before);
-        var card = Assert.Single(entry.Code.Cards);
-        Assert.Equal(("The first part", "Components/Guide/Demos/TempData/EditOrder.razor"), (card.Caption, card.Path));
-        Assert.Contains("A note.", card.NoteHtml);
-        var note = Assert.Single(entry.GoodToKnow);
-        Assert.Equal("First thing", note.Title);
-        Assert.Equal("Its detail with <code>code</code>.", note.Html);
+        Assert.Equal(new GuideEntry("demo-feature", "Demo", "Forms", 5, "A hook.", "Static SSR", "demo/x",
+            new GuideBefore("demo/x/old", "The old way", "The new way")), entry);
     }
 
     [GeneratedRegex(@"data-contact[\s>]")]

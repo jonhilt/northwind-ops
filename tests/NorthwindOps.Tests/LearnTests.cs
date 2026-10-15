@@ -6,12 +6,15 @@ using NorthwindOps.Components.Learn;
 namespace NorthwindOps.Tests;
 
 /// <summary>Checks every walkthrough (/learn/{id}) renders whole: its code and its live demos.</summary>
-public class LearnTests(AppFactory app) : IClassFixture<AppFactory>
+public partial class LearnTests(AppFactory app) : IClassFixture<AppFactory>
 {
-    public static TheoryData<string> Walkthroughs => [.. typeof(LearnLayout).Assembly.GetTypes()
+    /// <summary>Every page routed at /learn/{id}.</summary>
+    public static readonly string[] Urls = [.. typeof(LearnLayout).Assembly.GetTypes()
         .SelectMany(t => t.GetCustomAttributes(typeof(RouteAttribute), false).Cast<RouteAttribute>())
         .Select(r => r.Template)
         .Where(t => t.StartsWith("/learn/"))];
+
+    public static TheoryData<string> Walkthroughs => [.. Urls];
 
     [Fact]
     public void There_are_walkthroughs()
@@ -31,15 +34,19 @@ public class LearnTests(AppFactory app) : IClassFixture<AppFactory>
         Assert.All(Regex.Matches(html, "<pre class=\"line-numbers\" data-line=\"([^\"]*)\""),
             m => Assert.NotEmpty(m.Groups[1].Value));
 
-        var demos = Regex.Matches(html, "<iframe src=\"([^\"]+)\" data-demo-frame").Select(m => m.Groups[1].Value).ToList();
-        Assert.NotEmpty(demos);
-        foreach (var demo in demos)
+        var demos = DemoFrame().Matches(html).Select(m => (Side: m.Groups["side"].Value, Url: m.Groups["url"].Value)).ToList();
+        Assert.Contains(demos, d => d.Side == "before");
+        Assert.Contains(demos, d => d.Side == "after");
+        foreach (var (side, demo) in demos)
         {
-            // A .NET 10 demo may fail on purpose: then it's a 500 that names the exception in the frame (DemoCrash).
+            // Only a .NET 10 demo may fail on purpose: a 500 that names the exception in the frame (DemoCrash).
             var response = await client.GetAsync("/" + demo);
-            var crashed = response.StatusCode == HttpStatusCode.InternalServerError
+            var crashed = side == "before" && response.StatusCode == HttpStatusCode.InternalServerError
                 && (await response.Content.ReadAsStringAsync()).Contains("data-crash");
-            Assert.True(response.StatusCode == HttpStatusCode.OK || crashed, $"{demo} returned {(int)response.StatusCode}.");
+            Assert.True(response.StatusCode == HttpStatusCode.OK || crashed, $"The {side} demo {demo} returned {(int)response.StatusCode}.");
         }
     }
+
+    [GeneratedRegex("data-side=\"(?<side>[a-z]+)\".*?<iframe src=\"(?<url>[^\"]+)\" data-demo-frame", RegexOptions.Singleline)]
+    private static partial Regex DemoFrame();
 }

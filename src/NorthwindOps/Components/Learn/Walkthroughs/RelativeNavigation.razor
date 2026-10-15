@@ -5,36 +5,33 @@
 
 <article class="l-article" data-learn>
     <h1 class="l-title">Relative links</h1>
-    <p class="l-sub">An order page has tabs. Can each tab link to its neighbours without spelling out <code>/orders/12047/</code>?</p>
+    <p class="l-sub">An order page has tabs. Can each tab link to the others without spelling out <code>/orders/12047/</code>?</p>
     <p class="l-meta">.NET 11 · Pages &amp; navigation · Any render mode · about 5 minutes</p>
     <p class="l-new">
-        <b>What's new in .NET 11:</b> <code>NavLink</code> and <code>NavigateTo</code> gain a
-        <code>RelativeToCurrentUri</code> option, which resolves a link against the current page instead of the
-        app's root. It's off by default. .NET 10 had no such option: you spelled out the full path, or worked out
-        the folder yourself.
+        <b>What's new in .NET 11:</b> <code>NavLink</code> and <code>NavigateTo</code> get a
+        <code>RelativeToCurrentUri</code> option. It makes a link start from the current page instead of the app's
+        root. It's off by default. .NET 10 had no such option: you wrote the full path, or built it yourself.
     </p>
 
     <p>
         Below is order 12047, at <code>…/orders/12047/summary</code>. It has three tabs: Summary, Lines and
-        Customer. Each tab is a <code>NavLink</code> written the natural way, <code>href="lines"</code>, with no
-        option set.
+        Customer. Each tab is a <code>NavLink</code> with a short link like <code>href="lines"</code>.
     </p>
     <p>
-        This frame runs on .NET 11 with the option left off. That behaves exactly as .NET 10 did, which had no
-        option to turn on; a real .NET 10 build lands in the same place. Watch the tabs, and the
-        <b>You are at</b> line under them.
+        Here the option is off, which behaves just like .NET 10. Watch the tabs and the <b>You are at</b> line
+        under them.
     </p>
 
     <DemoFigure Number="1" Title="Tabs written as plain relative links" Url="demo/relative-nav/net10/orders/12047/summary"
                 Label='Option off, as in .NET 10' Side="before">
         <Caption>
-            Before clicking, look at the tabs: none is underlined, though you're on Summary. Now click <b>Lines</b>.
-            The address becomes <code>/lines</code>, and the app answers <b>Not Found</b>.
+            Notice no tab is underlined, even though you're on Summary. Click <b>Lines</b>. The address becomes
+            <code>/lines</code>, and you get <b>Not Found</b>.
         </Caption>
     </DemoFigure>
 
-    <h2><small>The problem</small>Relative links start from the app's root</h2>
-    <p>Every Blazor app has a base URL in its <code>&lt;head&gt;</code>, and the browser resolves relative links against it:</p>
+    <h2><small>The problem</small>Links start from the app's root</h2>
+    <p>Every Blazor app sets a base URL in its <code>&lt;head&gt;</code>. The browser starts relative links from there:</p>
     <div class="fig">
         <span class="fig-title">Where href="lines" goes</span>
         <pre class="snip">&lt;base href="/" /&gt;                <span class="dim">in App.razor</span>
@@ -42,13 +39,13 @@ current page   /demo/relative-nav/net10/orders/12047/summary
 href="lines"   →  /lines           <span class="err">the app's root, not the order</span></pre>
     </div>
     <p>
-        So <code>lines</code> means <code>/lines</code>, from any page. That's also why no tab is underlined:
-        <code>NavLink</code> marks the tab whose URL matches the current one, and <code>/summary</code> doesn't.
-        <code>NavigateTo</code> works the same way: in .NET 10, <code>NavigateTo("summary")</code> from an order
-        redirects to <code>/summary</code>, a 404.
+        So <code>lines</code> means <code>/lines</code>, from any page. That's also why no tab is underlined.
+        <code>NavLink</code> underlines a tab when its link is the page you're on. The Summary tab points to
+        <code>/summary</code>, which isn't the page you're on. <code>NavigateTo</code> is the same: in .NET 10, <code>NavigateTo("summary")</code> from an
+        order goes to <code>/summary</code>, a 404.
     </p>
 
-    <h2><small>The fix</small>Resolve the link against the current page</h2>
+    <h2><small>The fix</small>Start from the current page</h2>
     <p>Set <code>RelativeToCurrentUri</code> on each link, and pass the same option to <code>NavigateTo</code>.</p>
     <div class="fig">
         <span class="fig-title">The whole fix</span>
@@ -59,38 +56,33 @@ Navigation.NavigateTo("summary",
     <span class="hl">new NavigationOptions { RelativeToCurrentUri = true }</span>);</pre>
     </div>
     <p>
-        With the option on, everything after the current URL's last <code>/</code> is dropped, and your path goes
-        on the end. From <code>…/12047/summary</code>, <code>lines</code> becomes <code>…/12047/lines</code>. The
-        tabs need no order id and no path. Here's the same order page with the option on. It was opened at
-        <code>…/orders/12047</code>, with no tab, and redirected itself to the Summary tab.
+        With the option on, Blazor drops the last part of the current URL and adds your path. From
+        <code>…/12047/summary</code>, <code>lines</code> becomes <code>…/12047/lines</code>. The tabs don't need to
+        know the order id. One more thing: the page below was opened at <code>…/orders/12047</code>, with no tab,
+        and sent itself on to the Summary tab. That redirect comes up again after the code.
     </p>
 
     <DemoFigure Number="2" Title="The same tabs, relative to the page" Url="demo/relative-nav/orders/12047"
                 Label=".NET 11: RelativeToCurrentUri" Side="after">
         <Caption>
-            <b>Summary</b> is underlined, and <b>You are at</b> reads <code>…/orders/12047/summary</code>: the page
-            redirected there with <code>NavigateTo</code>. Click <b>Lines</b>: the order's lines show, and
-            <b>You are at</b> reads <code>/demo/relative-nav/orders/12047/lines</code>. Then click <b>← Orders</b>
-            and open another order: the same tabs now point under it.
+            <b>Summary</b> is underlined. Click <b>Lines</b>: the order's lines show, at
+            <code>/demo/relative-nav/orders/12047/lines</code>. Click <b>← Orders</b> and open another order: the
+            same tabs now point to that one.
         </Caption>
     </DemoFigure>
 
-    <p>
-        Fig. 2's page also has an <b>← Orders</b> link back to a list, and Fig. 1 lives under <code>…/net10/…</code>
-        so both can run in one app. Otherwise the two pages are the same, and only their tabs differ. Here are
-        the tabs:
-    </p>
+    <p>Apart from the tabs, the two pages are the same. Here are the tabs:</p>
 
     <CodeFigure Number="3" Path="Components/Guide/Demos/RelativeLinks/OrderTabs.razor" Feature="relative-navigation">
         <Caption>
-            Fig. 2's tabs: three relative links, and no parameters. Fig. 1's tabs are the same three
-            <code>NavLink</code>s without <code>RelativeToCurrentUri</code>.
+            Fig. 2's tabs: three relative links. They don't need the order id. Fig. 1's tabs are the same without
+            <code>RelativeToCurrentUri</code>.
         </Caption>
     </CodeFigure>
 
     <p>
-        The redirect is where the option can catch you out. It drops everything after the last <code>/</code>, and
-        on a page opened with no tab, that's the order id:
+        The redirect is where the option can trip you up. It drops the last part of the URL, and on a page opened
+        without a tab, that last part is the order id:
     </p>
     <div class="fig">
         <span class="fig-title">NavigateTo with the option on, from three addresses</span>
@@ -100,60 +92,64 @@ Navigation.NavigateTo("summary",
 …/orders/12047          "summary"      →  …/orders/summary         <span class="err">the id was dropped</span>
 …/orders/12047          "12047/summary" → …/orders/12047/summary   <span class="ok">✓ name the id again</span></pre>
     </div>
-    <p>Fig. 2's page is opened both ways, so it checks for the slash before it redirects:</p>
+    <p>Fig. 2's page can be opened either way, so it checks for the slash first:</p>
 
     <CodeFigure Number="4" Path="Components/Guide/Demos/RelativeLinks/OrderPage.razor" Feature="relative-navigation">
         <Caption>
-            The redirect in Fig. 2. With a trailing slash it navigates to <code>summary</code>; without one, to
-            <code>12047/summary</code>, putting back the id the option drops. The tabs don't meet this: the
-            page redirects before they're shown, so they always sit on a tab's own URL.
+            With a trailing slash it goes to <code>summary</code>. Without one, it goes to
+            <code>12047/summary</code>, to put the id back. The tabs don't have this problem. They only show after the
+            redirect, so the URL always ends in a tab name.
         </Caption>
     </CodeFigure>
 
-    <h2><small>The .NET 10 way</small>Spell out the path, or cut it up yourself</h2>
+    <h2><small>The .NET 10 way</small>Write the full path, or build it</h2>
     <p>
-        .NET 10 has no option to set. A .NET 10 build showed what three ways of writing an order's tabs do, on
-        an order's Summary tab, <code>/orders/12047/summary</code>:
+        .NET 10 has no option. Here's what three ways of writing a tab did in a .NET 10 build, on
+        <code>/orders/12047/summary</code>:
     </p>
     <div class="fig">
         <span class="fig-title">Three ways to write a tab in .NET 10, and where it went</span>
         <div class="flow">
             <div class="box">
                 <pre class="snip">&lt;NavLink href="lines"&gt;</pre>
-                <span class="why">resolves against the app's root, and no tab is marked active</span>
+                <span class="why">starts from the app's root, and no tab is underlined</span>
                 <div class="verdict bad">✗ /lines: 404 Not found</div>
             </div>
             <div class="box">
                 <pre class="snip">&lt;NavLink href="orders/{Id}/lines"&gt;</pre>
-                <span class="why">works, but the tabs need the id and the whole path</span>
+                <span class="why">works, but every tab needs the id and the full path</span>
                 <div class="verdict ok">✓ /orders/12047/lines</div>
             </div>
             <div class="box">
                 <pre class="snip">&lt;NavLink href="lines"
   <span class="err">RelativeToCurrentUri="true"</span>&gt;</pre>
-                <span class="why">compiles: NavLink passes attributes it doesn't know through to the &lt;a&gt;</span>
+                <span class="why">compiles, because NavLink passes unknown attributes on to the &lt;a&gt;</span>
                 <div class="verdict bad">✗ still /lines, with no warning</div>
             </div>
         </div>
     </div>
     <p>
-        <code>NavigationOptions.RelativeToCurrentUri</code> doesn't compile there at all: CS0117. The other
-        workaround was string surgery, taking <code>Navigation.Uri</code>, cutting it at the last <code>/</code>,
-        and adding the sibling's name, copied into every component that links to a sibling.
+        For <code>NavigateTo</code>, <code>NavigationOptions.RelativeToCurrentUri</code> doesn't compile at all
+        (CS0117).
+    </p>
+    <p>
+        So in .NET 10 the only way to link from the current page was to build the URL yourself. You took
+        <code>Navigation.Uri</code>, cut it at the last <code>/</code> and added the tab's name, in every component
+        that needed it.
     </p>
 
     <h2><small>.NET 11</small>One option, on NavLink and NavigateTo</h2>
     <p>
-        In .NET 11, <code>NavLink.RelativeToCurrentUri</code> and <code>NavigationOptions.RelativeToCurrentUri</code>
-        are both <code>bool</code>, and both default to <code>false</code>, so existing links behave as before.
-        <code>NavLink</code> resolves the link while rendering, so it works on static pages too. It renders the
-        full URL as its <code>href</code>, and matches that for its active tab. That's what Fig. 2 runs.
+        In .NET 11 the option is <code>NavLink.RelativeToCurrentUri</code> on links and
+        <code>NavigationOptions.RelativeToCurrentUri</code> for <code>NavigateTo</code>. <code>NavLink</code> builds
+        the full URL on the server, so it works on pages with no interactivity. It writes that URL into the link,
+        and uses it to pick which tab to underline. That's what Fig. 2 runs.
     </p>
 
     <h2><small>Good to know</small></h2>
     <ul class="gk">
-        <li><b>Mind the last segment.</b> It's dropped, even when it's an id rather than a page name, as the table above Fig. 4 shows. If a page can be reached with or without a trailing slash, check which before you navigate.</li>
-        <li><b>Relative paths only.</b> With the option on, a path starting with <code>/</code>, or an absolute URL, throws <code>ArgumentException</code>.</li>
-        <li><b><code>?</code> and <code>#</code> keep the page.</b> <code>?tab=2</code> replaces just the query, and <code>#notes</code> just the fragment.</li>
+        <li><b>Watch the last part of the URL.</b> It's always dropped, even when it's an id. If a page can be opened with or without a trailing slash, check which before you navigate.</li>
+        <li><b>Relative paths only.</b> With the option on, a path starting with <code>/</code>, or a full URL, throws <code>ArgumentException</code>.</li>
+        <li><b>Links starting with <code>?</code> or <code>#</code> stay on the page.</b> <code>?tab=2</code> keeps the page and changes only what follows the <code>?</code>. <code>#notes</code> changes only what follows the <code>#</code>.</li>
     </ul>
 </article>

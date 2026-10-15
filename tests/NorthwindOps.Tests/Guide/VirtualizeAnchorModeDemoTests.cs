@@ -15,7 +15,6 @@ public partial class VirtualizeAnchorModeDemoTests(AppFactory app) : IClassFixtu
         var entry = new GuideRegistry().Find("virtualize-anchor-mode")!;
 
         Assert.Equal("demo/anchor-mode/inbox/net10", entry.Before?.Url.TrimStart('/'));
-        Assert.Equal(3, entry.Code.Cards.Count);
     }
 
     [Fact]

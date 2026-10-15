@@ -204,6 +204,10 @@ NorthwindOps.Components.Guide.Demos.EnvConfig.OrdersApi.MapOrdersApi(app);
 // ── end webassembly ──
 
 // ── Field Guide, web-worker: the order-line CSV that the Web Worker demo downloads and totals ──
+// Field Guide: the old three-step pages (/guide/{id}, /try, /code) now live on as one walkthrough at /learn/{id}.
+app.MapGet("/guide/{id}/{step:regex(^(try|code)$)?}", IResult (string id, GuideRegistry guide) =>
+    guide.Find(id) is { } entry ? Results.LocalRedirect($"~/learn/{entry.Id}", permanent: true) : Results.NotFound());
+
 app.MapGet("/demo/web-worker/order-lines.csv", NorthwindOps.Components.Guide.Demos.WebWorker.OrderLinesCsv.GetAsync);
 // ── end web-worker ──
 

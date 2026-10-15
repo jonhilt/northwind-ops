@@ -17,7 +17,7 @@
         <div class="gi-cards">
             @foreach (var entry in group)
             {
-                <a class="gi-card" href="@LearnPages.UrlFor(entry.Id)">
+                <a class="gi-card" href="learn/@entry.Id">
                     <span class="mode">@entry.Mode</span>
                     <h3>@entry.Title</h3>
                     <p>@entry.Hook</p>

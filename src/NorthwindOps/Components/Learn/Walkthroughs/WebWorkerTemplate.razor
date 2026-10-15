@@ -8,34 +8,35 @@
     <p class="l-sub">Your WebAssembly page totals a big CSV export. How do you keep it responsive while it works?</p>
     <p class="l-meta">.NET 11 · WebAssembly · Interactive WebAssembly · about 6 minutes</p>
     <p class="l-new">
-        <b>What's new in .NET 11:</b> a project template, <code>blazorwebworker</code>, that writes the plumbing for
-        running .NET in a Web Worker into your project, as source you own. No framework API changed. .NET 10 could
-        already do it, if you wrote that plumbing yourself.
+        <b>What's new in .NET 11:</b> a project template, <code>blazorwebworker</code>. It writes the code to run .NET
+        in a Web Worker into your project, as source you own. No framework API changed. You could do this in .NET 10,
+        but you had to write that code yourself.
     </p>
 
     <p>
-        Below is a <i>Revenue by product</i> report. It downloads last year's order lines as a CSV export, then
-        totals them in the browser, on WebAssembly, and lists the top five products.
+        Below is a <i>Revenue by product</i> report. It downloads last year's order lines as a CSV file, totals them
+        in the browser, and lists the top five products.
     </p>
     <p>
-        A clock on the page ticks ten times a second, on the UI thread. Each run adds a line: how long it took, and
-        how often the clock ticked out of the times it should have. Fig. 1 has no worker: the method runs on the UI
-        thread, the way a .NET 10 app would run it. It's running for real, on this page's .NET 11 runtime; the
-        behaviour is the same on both.
+        A clock on the page ticks ten times a second. Each run shows how long it took, and how many ticks the clock
+        managed. Fig. 1 runs the work on the page's UI thread, the way a .NET 10 app would. It behaves the same on
+        .NET 10 and .NET 11.
     </p>
 
     <DemoFigure Number="1" Title="The report on the UI thread" Url="demo/web-worker/order-lines/net10"
                 Label="No worker: on the UI thread" Side="before">
         <Caption>
-            When it says <b>Ready</b>, press <b>Total on the UI thread</b>. The clock freezes until the top five
-            appear, and the run line says it ticked <b>0</b> times. Fig. 2's clock stops too: every demo on this page
-            shares the tab's one UI thread. Then press <b>Total, pausing every 1,000 lines</b>, a .NET 10 workaround.
-            The clock keeps ticking, but the run takes longer.
+            When it says <b>Ready</b>, press <b>Total on the UI thread</b>. The clock freezes until the results appear,
+            and it ticked <b>0</b> times. While it runs, every clock on the page stops. Then
+            press <b>Total, pausing every 1,000 lines</b>: the clock keeps ticking, but the run takes longer.
         </Caption>
     </DemoFigure>
 
     <h2><small>The problem</small>One thread does everything</h2>
-    <p>Blazor WebAssembly runs your C# on the page's UI thread, in .NET 11 too. That thread has a queue of jobs:</p>
+    <p>
+        Blazor WebAssembly runs your C# on the page's UI thread, the one that also draws the page and handles clicks.
+        That's still true in .NET 11. The thread does one job at a time:
+    </p>
     <div class="fig">
         <span class="fig-title">The browser's UI thread, while the report runs</span>
         <pre class="snip">UI thread <span class="dim">(one per tab)</span>
@@ -45,14 +46,13 @@
 └─ your click             <span class="dim">waits</span></pre>
     </div>
     <p>
-        The loop never yields, so nothing else gets a turn until it finishes. The work isn't slow because it's on the
-        UI thread. It's just in the way.
+        The totalling code never pauses to let anything else run. The work isn't slower here. It's just in the way.
     </p>
 
     <h2><small>The fix</small>Run the same method in a Web Worker</h2>
     <p>
-        A Web Worker is a second thread the browser gives you. Make a worker library from the template, add a
-        project reference to it from the WebAssembly client, and call your method by name:
+        A Web Worker is a second thread the browser gives you. Create a worker library from the template, reference
+        it from your WebAssembly client, and call your method by name:
     </p>
     <div class="fig">
         <span class="fig-title">The whole fix</span>
@@ -71,21 +71,20 @@ var json = await worker.<span class="hl">InvokeAsync&lt;string&gt;</span>(
     "NorthwindOps.Worker.WorkerMethods.TotalOrderLines", [csv]);</pre>
     </div>
     <p>
-        <code>WebWorkerClient</code> is a class the template wrote into the library. It starts a second .NET
-        runtime in a worker, and copies the bytes across. The method runs there, and the UI thread stays free to
-        tick and draw. The template's two scripts sit in the library's <code>wwwroot</code>; the reference serves
-        them at <code>_content/NorthwindOps.Worker/</code>, and <code>WebWorkerClient</code> loads them itself, so
-        <code>App.razor</code> doesn't change. Here's the same report with the worker.
+        <code>WebWorkerClient</code> is a class the template adds to the library. It starts a second copy of .NET in
+        the worker and sends your data across. The method runs there, so the UI thread stays free.
+    </p>
+    <p>
+        The template also adds two scripts, and <code>WebWorkerClient</code> loads them itself, so you don't add
+        any script tags. Here's the same report with the worker.
     </p>
 
     <DemoFigure Number="2" Title="The same report, in a Web Worker" Url="demo/web-worker/order-lines"
                 Label=".NET 11 template: in a Web Worker">
         <Caption>
-            When it says <b>Ready</b>, the worker has started. Press <b>Total in a Web Worker</b>. The same top five
-            arrive, every tick is counted, and the run takes about as long as the first one in Fig. 1: the worker isn't
-            faster, the work has just moved. Optionally, press <b>Call a misspelled method</b>: it asks for
-            <code>TotalOrderLine</code>, without the <i>s</i>, and the status shows "Method not found". The name is
-            only checked at run time, and the worker's error comes back to the call as an exception.
+            When it says <b>Ready</b>, press <b>Total in a Web Worker</b>. You get the same top five, the clock never
+            misses a tick, and the run takes about as long as Fig. 1's first one. Press <b>Call a misspelled
+            method</b> to see a typo (<code>TotalOrderLine</code>) fail at run time with "Method not found".
         </Caption>
     </DemoFigure>
 
@@ -93,31 +92,29 @@ var json = await worker.<span class="hl">InvokeAsync&lt;string&gt;</span>(
 
     <CodeFigure Number="3" Path="Client/WebWorker/OrderLineReportNet10.razor" Feature="web-worker-template">
         <Caption>
-            Fig. 1's component. It imports <code>NorthwindOps.Worker</code> only to reuse the same
-            <code>TotalOrderLines</code> method, and calls it as plain C# on the UI thread; no worker is started.
-            The second method is the pausing workaround.
+            Fig. 1's component. It calls the same <code>TotalOrderLines</code> method as plain C#, on the UI thread,
+            with no worker. The second method is the pausing workaround.
         </Caption>
     </CodeFigure>
 
     <CodeFigure Number="4" Path="Client/WebWorker/OrderLineReport.razor" Feature="web-worker-template">
         <Caption>
-            Fig. 2's component. It starts the worker once, after its first render, calls the method by name, and
-            disposes of the worker when the component goes. Where its comments say "New in .NET 11", they mean new
-            with the template: <code>WebWorkerClient</code>, <code>InvokeAsync</code> and <code>DisposeAsync</code> are
-            the template's generated source, not framework types.
+            Fig. 2's component. It starts the worker once, when the component first appears, calls the method by
+            name, and disposes of the worker at the end. <code>WebWorkerClient</code> and its methods
+            (<code>InvokeAsync</code>, <code>DisposeAsync</code>) come from the template, not from .NET itself.
         </Caption>
     </CodeFigure>
 
     <CodeFigure Number="5" Path="Worker/WorkerMethods.cs" Feature="web-worker-template">
         <Caption>
-            The method both figures run: a static <code>[JSExport]</code> method, bytes in and a JSON string out.
+            The method both figures run: a static method, marked <code>[JSExport]</code> so JavaScript can call it, that takes bytes and returns JSON.
         </Caption>
     </CodeFigure>
 
     <h2><small>The .NET 10 way</small>Pause, offload, or write the worker yourself</h2>
     <p>
-        Nothing here is broken in .NET 10. The repro's UI-thread run took 7.9 s, the clock ticked 0 of about 79
-        times, and the browser drew no frame for 7.9 s. Apps had three ways out:
+        This isn't a .NET 10 bug. On the UI thread the run took 7.9 s. The clock ticked 0 of about 79 times,
+        and the page didn't redraw once. You had three ways out:
     </p>
     <div class="fig">
         <span class="fig-title">Three .NET 10 workarounds, and what they cost</span>
@@ -125,13 +122,13 @@ var json = await worker.<span class="hl">InvokeAsync&lt;string&gt;</span>(
             <div class="box">
                 <pre class="snip">if (++lines % 1000 == 0)
     <span class="hl">await Task.Delay(1);</span></pre>
-                <span class="why">Fig. 1's second button; the repro kept every tick (92 of 92), but took 9.2 s instead of 7.9 s</span>
+                <span class="why">Fig. 1's second button: every tick counted (92 of 92), but 9.2 s instead of 7.9 s</span>
                 <div class="verdict bad">✗ about 17% slower, and every heavy loop needs its own pauses</div>
             </div>
             <div class="box">
                 <pre class="snip">await Http.PostAsync(
     "api/reports/order-lines", content);</pre>
-                <span class="why">post the export, and let the server total it</span>
+                <span class="why">send the file to the server and let it do the totals</span>
                 <div class="verdict bad">✗ another API to build and secure, and no report when the server can't be reached</div>
             </div>
             <div class="box">
@@ -140,28 +137,31 @@ const { getAssemblyExports, getConfig } =
     await dotnet.create();
 <span class="dim">// ...match replies to requests yourself</span></pre>
                 <span class="why">one of five files Microsoft's guide had you write</span>
-                <div class="verdict bad">✗ request ids, errors, timeouts and start-up failures all up to you</div>
+                <div class="verdict bad">✗ you had to match replies, and handle errors and timeouts, yourself</div>
             </div>
         </div>
     </div>
     <p>
-        The third is the real fix, and it already worked in .NET 10. It was just a lot of code to write, test and keep working.
+        The third is the real fix, and it worked in .NET 10. It was just a lot of code to write and maintain.
     </p>
 
     <h2><small>.NET 11</small>The worker, written for you</h2>
     <p>
-        In .NET 11, <code>dotnet new blazorwebworker</code> writes that code into your project: <code>WorkerMethods.cs</code>
-        for your methods, <code>WebWorkerClient.cs</code> (69 lines of C#), and two scripts (157 lines). The scripts
-        start the worker and its runtime, match each reply to its request, turn the worker's errors into exceptions,
-        and time calls out after 60 seconds. It's source you own, not a framework API, so you can read and change all
-        of it. That's what Fig. 2 runs.
+        In .NET 11, <code>dotnet new blazorwebworker</code> writes that code for you: <code>WorkerMethods.cs</code>
+        for your methods, <code>WebWorkerClient.cs</code> (69 lines of C#), and two scripts (157 lines).
+    </p>
+    <p>
+        The scripts start the worker, match each reply to its request, turn worker errors into exceptions, and give
+        up on a call after 60 seconds. It's your source, not a framework API, so you can read and change all of it.
+        That's what Fig. 2 runs.
     </p>
 
     <h2><small>Good to know</small></h2>
     <ul class="gk">
-        <li><b>Not faster, just elsewhere.</b> The worker runs the same code at the same speed. Copying the data across even adds a little.</li>
-        <li><b>WebAssembly only.</b> The worker boots the WebAssembly app's runtime, so reference the library from the client project. It does nothing for Interactive Server.</li>
-        <li><b>Found by name, at run time.</b> A typo or a rename only fails when called, as Fig. 2 shows. Only simple values cross over: strings, numbers and byte arrays, so send JSON for the rest.</li>
-        <li><b>A timeout stops the wait, not the work.</b> Both <code>CreateAsync</code> (start-up) and <code>InvokeAsync</code> (each call) take a <code>timeoutMs</code> argument, 60,000 by default; pass a bigger one for longer jobs. When it fires, the worker finishes the method anyway, and the next call waits behind it. Each worker is a whole second .NET runtime, so start one, keep it, and dispose of it when the component goes.</li>
+        <li><b>Not faster, just elsewhere.</b> The worker runs the same code at the same speed. Copying the data across adds a little time.</li>
+        <li><b>WebAssembly only.</b> Reference the library from the client project. It does nothing for components that run on the server.</li>
+        <li><b>Called by name.</b> A typo or a rename only fails when the call runs, as Fig. 2 shows. Only simple values cross over (strings, numbers, byte arrays), so send JSON for anything else.</li>
+        <li><b>A timeout stops the wait, not the work.</b> <code>CreateAsync</code> and <code>InvokeAsync</code> both take a <code>timeoutMs</code> argument, 60 seconds by default. Pass a bigger one for long jobs. When a call times out, the method keeps running in the worker. Your next call has to wait until it ends.</li>
+        <li><b>Keep one worker.</b> Each worker is a whole second copy of .NET. Start one, reuse it, and dispose of it when the component goes.</li>
     </ul>
 </article>

@@ -8,30 +8,28 @@
     <p class="l-sub">Your form checks the company name. Does it check the contacts?</p>
     <p class="l-meta">.NET 11 · Forms · Static SSR · about 5 minutes</p>
     <p class="l-new">
-        <b>What's new in .NET 11:</b> nested validation arrived in .NET 10, behind an experimental attribute. In .NET 11
-        that attribute, <code>[ValidatableType]</code>, is a supported API. This page shows the problem it solves, then
-        what changed.
+        <b>What's new in .NET 11:</b> nested validation came in .NET 10, but the attribute that turns it on was
+        experimental. In .NET 11, <code>[ValidatableType]</code> is a supported API.
     </p>
 
     <p>
-        Below is a <i>New supplier</i> form. A supplier has a company name, an address, and a list of contacts, and
-        every field has a rule: <code>[Required]</code> on all of them, <code>[EmailAddress]</code> on the emails.
+        Below is a <i>New supplier</i> form. A supplier has a company name, an address and a list of contacts. Every
+        field is <code>[Required]</code>, and the emails are <code>[EmailAddress]</code> too.
     </p>
     <p>
-        It's running for real, and it starts with three mistakes in it: the city is empty, Ann's email is
-        <code>sales@@</code>, and Bo has no email at all. Try to save it.
+        The form starts with three mistakes: the city is empty, Ann's email is <code>sales@@</code>, and Bo has no
+        email. Try to save it.
     </p>
 
     <DemoFigure Number="1" Title="The form, as most apps write it" Url="demo/nested-validation/without"
                 Label="Without [ValidatableType]" Side="before">
         <Caption>
-            Press <b>Save supplier</b>. It saves: the green banner shows what went in, Ann's bad email and Bo's empty
-            one included. No error, no warning.
+            Press <b>Save supplier</b>. It saves, bad emails and all. The green banner shows what went in.
         </Caption>
     </DemoFigure>
 
-    <h2><small>The problem</small>The validator only checks the top level</h2>
-    <p>The form looks flat, but the model behind it is a tree:</p>
+    <h2><small>The problem</small>Only the top level is checked</h2>
+    <p>The form looks flat, but the model behind it has layers:</p>
     <div class="fig">
         <span class="fig-title">The model the form posts</span>
         <pre class="snip">SupplierDraft
@@ -43,12 +41,12 @@
     </div>
     <p>
         <code>&lt;DataAnnotationsValidator /&gt;</code> checks the rules on the model's own properties, and stops there.
-        <code>Address</code> and <code>Contacts</code> carry no rules themselves, so it never looks inside them. The
-        only rule it runs is the one on <code>Company</code>, and that one passes.
+        <code>Address</code> and <code>Contacts</code> have no rules of their own, so it never looks inside them. The
+        only rule it runs is on <code>Company</code>, and that passes.
     </p>
 
-    <h2><small>The fix</small>Mark the root, and validation walks the whole tree</h2>
-    <p>Mark the form's model with <code>[ValidatableType]</code>, and register validation once in <code>Program.cs</code>.</p>
+    <h2><small>The fix</small>Mark the model</h2>
+    <p>Put <code>[ValidatableType]</code> on the form's model, and register validation once in <code>Program.cs</code>.</p>
     <div class="fig">
         <span class="fig-title">The whole fix</span>
         <pre class="snip"><span class="hl">using Microsoft.Extensions.Validation;</span>
@@ -60,42 +58,41 @@ public sealed class NewSupplierForm { ... }
 <span class="hl">builder.Services.AddValidation();</span></pre>
     </div>
     <p>
-        At build time, a source generator reads the marked type and follows its properties: <code>Address</code> to
-        <code>AddressForm</code>, and <code>Contacts</code> to every <code>ContactForm</code> in the list. It writes
-        validation code for all three types, and the validator uses it to walk the whole tree. Here's the same form,
-        with the same three mistakes, on the marked model.
+        At compile time, .NET reads the marked type and follows its properties: <code>Address</code> to
+        <code>AddressForm</code>, and <code>Contacts</code> to each <code>ContactForm</code>. It generates validation
+        code for all three, so every level gets checked. Here's the same form, same mistakes, with the mark.
     </p>
 
     <DemoFigure Number="2" Title="The same form, marked" Url="demo/nested-validation/with"
                 Label="With [ValidatableType]">
         <Caption>
-            Press <b>Save supplier</b>. <b>City</b> and both emails are flagged, each on its own field, and nothing
-            saves. Then press <b>+ Add contact</b> and save again: the new empty row is flagged too, because every
-            item in the list is checked.
+            Press <b>Save supplier</b>. <b>City</b> and both emails are flagged, and nothing saves. Press
+            <b>+ Add contact</b> and save again: the new empty row is flagged too.
         </Caption>
     </DemoFigure>
 
-    <p>The two demos differ by one attribute. Here's the file both models live in:</p>
+    <p>The two demos differ by one attribute. Both models live in this file:</p>
 
     <CodeFigure Number="3" Path="Components/Guide/Demos/NestedValidation/SupplierForms.cs" Feature="validatable-type-stable">
         <Caption>
-            Fig. 1 posts <code>SupplierDraft</code>; Fig. 2 posts <code>NewSupplierForm</code>, the one that's marked.
-            They share an interface rather than a base class, because a marked type's base classes get walked too.
+            Fig. 1 posts <code>SupplierDraft</code>. Fig. 2 posts <code>NewSupplierForm</code>, the marked one. They
+            share an interface, not a base class. If <code>SupplierDraft</code> were the base class, marking
+            <code>NewSupplierForm</code> would get it checked too, and Fig. 1 wouldn't fail.
         </Caption>
     </CodeFigure>
 
-    <h2><small>The .NET 10 way</small>The same idea, behind an experimental attribute</h2>
+    <h2><small>The .NET 10 way</small>It worked, but the attribute was experimental</h2>
     <p>
-        All of this worked in .NET 10. <code>AddValidation()</code> and the generator were there, and so was the
-        attribute. What .NET 11 changes is the attribute itself. In .NET 10 the public one was experimental, so the
-        SDK quietly wrote a private copy into each Blazor project. Which one you got depended on how you wrote it:
+        All of this worked in .NET 10: <code>AddValidation()</code>, the generated code, and the attribute. The
+        catch was the attribute. The official attribute was experimental, so the SDK also added a hidden copy to each
+        Blazor project. How you wrote it decided which of the two you got:
     </p>
     <div class="fig">
         <span class="fig-title">Three ways to write it in .NET 10, and what the build said</span>
         <div class="flow">
             <div class="box">
                 <pre class="snip">[ValidatableType]</pre>
-                <span class="why">binds to a hidden copy of the attribute the SDK generates into your project</span>
+                <span class="why">uses the hidden copy the SDK adds to your project</span>
                 <div class="verdict ok">✓ builds and validates</div>
             </div>
             <div class="box">
@@ -112,22 +109,22 @@ public sealed class NewSupplierForm { ... }
         </div>
     </div>
     <p>
-        The one that built cleanly was an attribute you never asked for, and the one in the docs came with a warning
-        that it might not survive the next release.
+        So the only version that built cleanly used the hidden copy. The official one, from the docs, needed a pragma
+        to get past the experimental error ASP0029.
     </p>
 
-    <h2><small>.NET 11</small>One attribute, public and supported</h2>
+    <h2><small>.NET 11</small>One supported attribute</h2>
     <p>
-        In .NET 11 there's no private copy and no experimental warning. <code>[ValidatableType]</code> is a supported
-        API in <code>Microsoft.Extensions.Validation</code>: add the <code>using</code>, mark the root, and it builds
-        cleanly. That's what Fig. 2 runs.
+        In .NET 11 there's no hidden copy and no experimental error. <code>[ValidatableType]</code> is a supported API in
+        <code>Microsoft.Extensions.Validation</code>. Add the <code>using</code>, mark the model, and it builds. That's
+        what Fig. 2 runs.
     </p>
 
     <h2><small>Good to know</small></h2>
     <ul class="gk">
-        <li><b>Only the root needs the attribute.</b> The generator finds the nested types through its properties.</li>
-        <li><b>A marked type's base classes are walked too,</b> even where the base class is used on its own, unmarked.</li>
-        <li><b>No <code>AddValidation()</code>, no nesting.</b> Without it, <code>DataAnnotationsValidator</code> falls back to the top level.</li>
-        <li><b>Marks only count in the project that calls <code>AddValidation()</code>.</b> Mark a model in a shared class library and nothing validates; .NET 11 at least warns you, with ASP0038.</li>
+        <li><b>Only the top model needs the attribute.</b> The types inside it are found through its properties.</li>
+        <li><b>Mark a class and its base class gets checked everywhere it's used,</b> even where nothing marks it.</li>
+        <li><b>Forget <code>AddValidation()</code> and only the top level is checked.</b> <code>DataAnnotationsValidator</code> won't look inside it.</li>
+        <li><b>The mark only works in the project that calls <code>AddValidation()</code>.</b> Mark a model in a shared class library and nothing gets checked. .NET 11 warns you about this with ASP0038.</li>
     </ul>
 </article>

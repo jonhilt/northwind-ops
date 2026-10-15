@@ -8,39 +8,39 @@
     <p class="l-sub">You build your WebAssembly app once. How does it find its API on each server?</p>
     <p class="l-meta">.NET 11 · WebAssembly · Interactive WebAssembly · about 5 minutes</p>
     <p class="l-new">
-        <b>What's new in .NET 11:</b> two things. A WebAssembly app's <code>IConfiguration</code> now reads
-        environment variables, and a variable beats an <code>appsettings.json</code> key with the same name. And the
-        server can set those variables in C#, with <code>BrowserOptions</code>. .NET 10 could pass a variable too, but
-        only from a hand-written start-up script, and <code>IConfiguration</code> didn't see it without an extra line
-        and package.
+        <b>What's new in .NET 11:</b> the server can now hand settings to a WebAssembly app in C#, with
+        <code>BrowserOptions</code>. The app reads them with <code>IConfiguration</code>, like any other setting, and
+        they beat the same key in <code>appsettings.json</code>. In .NET 10 you needed a hand-written start-up script,
+        plus a call to <code>AddEnvironmentVariables()</code> and the <code>EnvironmentVariables</code> package in the
+        client.
     </p>
 
     <p>
-        Below is a <i>Recent orders</i> list that runs in the browser, on WebAssembly. It reads its API's address
-        with plain <code>Config["Orders:ApiUrl"]</code>. The build's <code>wwwroot/appsettings.json</code> says a
-        staging address, which doesn't exist. The server knows the real one, and passes it to the page as the
-        environment variable <code>Orders__ApiUrl</code>. Here the server's value is a relative path,
-        <code>demo/env-config/api/orders</code>: the client resolves it against the server that sent the page, so
-        it means "this server's orders API". The staging value is a full URL to another host.
+        Below is a <i>Recent orders</i> list that runs in the browser. It gets its API address with
+        <code>Config["Orders:ApiUrl"]</code>. The build's <code>wwwroot/appsettings.json</code> points at a staging
+        server that doesn't exist. The real server knows the right address. It sends it with the page as
+        <code>Orders__ApiUrl</code>, a value that .NET in the browser treats as an environment variable.
     </p>
     <p>
-        .NET 11 changed how WebAssembly builds its configuration, so the old behaviour can't run live here. Fig. 1
-        replays what a real .NET 10 app read, its server passing the same variable from a <code>Blazor.start</code>
-        script.
+        That value is <code>demo/env-config/api/orders</code>. It's a relative path, so the browser treats it as
+        "this server's orders API".
+    </p>
+    <p>
+        .NET 11 changed how WebAssembly apps read these values, so the .NET 10 version can't run live. Fig. 1 replays what a real .NET 10 app
+        did when its server sent the same variable.
     </p>
 
     <DemoFigure Number="1" Title="The list on .NET 10" Url="demo/env-config/orders/net10"
                 Label=".NET 10 · recorded" Side="before">
         <Caption>
-            This replays what .NET 10 did; nothing in it runs live. In the table, the <b>Variable</b> column shows the
-            server's <b>demo/env-config/api/orders</b> arrived. But <b>Config[key]</b> returned the staging URL, so the
-            list called staging and couldn't reach it. (The grey note under the table records the .NET 10 workaround;
-            it's explained in <i>The .NET 10 way</i> below.)
+            This is a recording, not a live run. The <b>Variable</b> column shows that the server's
+            value, <b>demo/env-config/api/orders</b>, arrived. But <b>Config[key]</b> still gave the staging URL, so the list
+            failed to load. The grey note is the .NET 10 workaround, covered below.
         </Caption>
     </DemoFigure>
 
-    <h2><small>The problem</small>Configuration only read the files</h2>
-    <p>In .NET 10, a WebAssembly app's configuration had one kind of source:</p>
+    <h2><small>The problem</small>Only the file was read</h2>
+    <p>In .NET 10, a WebAssembly app's settings came from one place: the JSON file.</p>
     <div class="fig">
         <span class="fig-title">What a .NET 10 client's IConfiguration read</span>
         <pre class="snip">IConfiguration
@@ -48,15 +48,16 @@
 └─ environment variables      <span class="dim">Orders__ApiUrl = demo/env-config/api/orders</span>  <span class="err">never read</span></pre>
     </div>
     <p>
-        The repro found exactly one provider, <code>JsonStreamConfigurationProvider</code>. The variable reached the
-        runtime, and <code>Environment.GetEnvironmentVariable</code> could read it. But code that asked
-        <code>IConfiguration</code>, the way the rest of the app reads settings, got the file's value. And the only
-        way the server could pass the variable was a hand-written <code>Blazor.start</code> script; there was no C#
-        API for it.
+        The variable did reach the app. <code>Environment.GetEnvironmentVariable</code> could see it. But
+        <code>IConfiguration</code>, where the rest of the app looks for settings, only saw the file. And the server
+        could only send the variable from a hand-written <code>Blazor.start</code> script. There was no C# way.
     </p>
 
-    <h2><small>The fix</small>Set the variable in C#, read it as a setting</h2>
-    <p>The server puts the variable in the page's browser options. The client doesn't change.</p>
+    <h2><small>The fix</small>Set it in C#, read it as a setting</h2>
+    <p>
+        The server adds the variable to the settings it passes to the browser with the page. The client code stays
+        the same.
+    </p>
     <div class="fig">
         <span class="fig-title">The whole fix</span>
         <pre class="snip"><span class="dim">// Server: the demo page</span>
@@ -74,21 +75,18 @@ static readonly BrowserOptions ordersApi = new()
 apiUrl = Config["Orders:ApiUrl"];</pre>
     </div>
     <p>
-        <code>Options="ordersApi"</code> isn't a string: the parameter's type is <code>BrowserOptions</code>, so
-        Razor reads the value as C# and passes the static field, no <code>@@</code> needed. The server writes the
-        variables into the page. When <code>blazor.web.js</code> starts WebAssembly, it hands
-        them to the runtime. <code>WebAssemblyHostBuilder.CreateDefault</code> adds them to configuration after the
-        <code>appsettings</code> files, so the variable wins. Here's the same list on .NET 11.
+        The server writes the variables into the page. When WebAssembly starts, it picks them up.
+        <code>WebAssemblyHostBuilder.CreateDefault</code> adds them to configuration after the
+        <code>appsettings</code> files, so the variable overrides the file. Here's the same list on .NET 11.
     </p>
 
     <DemoFigure Number="2" Title="The same list on .NET 11" Url="demo/env-config/orders"
                 Label=".NET 11 · live">
         <Caption>
-            Wait for <b>Running on WebAssembly</b>. <b>Config[key]</b> is now the variable's
-            <b>demo/env-config/api/orders</b>, <b>Calling</b> shows it resolved against this server, and the orders
+            Wait for <b>Running on WebAssembly</b>. <b>Config[key]</b> now shows the server's value, and the orders
             load. <code>Orders:PageSize</code> has no variable, so it still comes from the file. Then click
-            <b>Build's own settings</b>. The server passes nothing, and the same build falls back to staging, as
-            .NET 10 always did.
+            <b>Build's own settings</b>, which stops the server sending the variable. The app falls back to the
+            staging URL, and the list fails to load, as it did on .NET 10.
         </Caption>
     </DemoFigure>
 
@@ -96,20 +94,19 @@ apiUrl = Config["Orders:ApiUrl"];</pre>
 
     <CodeFigure Number="3" Path="Components/Guide/Demos/EnvConfig/RecentOrdersPage.razor" Feature="wasm-env-vars-config">
         <Caption>
-            The server page. It passes <code>Orders__ApiUrl</code> with <code>&lt;ConfigureBrowser&gt;</code>, unless
-            the link says <code>?variable=off</code>, which is the second state in Fig. 2.
+            The server page. It sends <code>Orders__ApiUrl</code> with <code>&lt;ConfigureBrowser&gt;</code>, unless
+            the link has <code>?variable=off</code> (the second state in Fig. 2).
         </Caption>
     </CodeFigure>
 
     <CodeFigure Number="4" Path="Client/EnvConfig/RecentOrders.razor" Feature="wasm-env-vars-config">
         <Caption>
-            The client component. <code>Config["Orders:ApiUrl"]</code> is the same line that returned staging in
-            Fig. 1.
+            The client component. <code>Config["Orders:ApiUrl"]</code> is the same line that gave staging in Fig. 1.
         </Caption>
     </CodeFigure>
 
     <h2><small>The .NET 10 way</small>A file per server, or a script and a package</h2>
-    <p>To let the server decide, .NET 10 apps went one of two ways. The repro tried the second, with and without the fix:</p>
+    <p>In .NET 10, people tried three things to let the server choose. Only the last one worked:</p>
     <div class="fig">
         <span class="fig-title">.NET 10 workarounds, and what they cost</span>
         <div class="flow">
@@ -142,35 +139,36 @@ builder.Configuration
         </div>
     </div>
     <p>
-        So .NET 10 could get there, with a hand-written script on the server, and a line and a package in the client.
-        There was no C# way to pass the variable: <code>BrowserOptions</code> doesn't exist in .NET 10 (CS0234).
+        So it worked, but only with a script on the server, plus <code>AddEnvironmentVariables()</code> and its
+        package in the client. There was no <code>BrowserOptions</code> to do it in C#.
     </p>
 
     <h2><small>.NET 11</small>A server setting, read like any other</h2>
     <p>
-        In .NET 11 the server sets variables in C#, with <code>BrowserOptions</code>, and the client's default host
-        reads them into <code>IConfiguration</code>. No script, no extra line, no package. That's what Fig. 2 runs.
-        To set a variable for every page rather than one, use <code>WithBrowserOptions</code> on
+        In .NET 11 the server sets variables in C# with <code>BrowserOptions</code>, and the client reads them through
+        <code>IConfiguration</code>. No script, no extra line, no package. That's Fig. 2.
+    </p>
+    <p>
+        To set a variable for every page, not just one, use <code>WithBrowserOptions</code> on
         <code>MapRazorComponents</code> instead.
     </p>
     <div class="fig">
-        <span class="fig-title">Watch out in RC2: pick one, per page or app-wide</span>
+        <span class="fig-title">Watch out in RC2: use one or the other</span>
         <pre class="snip">app.MapRazorComponents&lt;App&gt;()
    .<span class="hl">WithBrowserOptions</span>(...);       <span class="dim">// app-wide</span>
 &lt;<span class="hl">ConfigureBrowser</span> Options="..." /&gt;   <span class="dim">// per page</span></pre>
-        <div class="verdict bad">✗ with both set, a page's &lt;ConfigureBrowser&gt; writes into the app-wide options, and its values leak into pages visited later</div>
+        <div class="verdict bad">✗ with both, one page's settings end up on every page, for every visitor</div>
         <p>
-            The per-page approach on its own, as this demo uses it, is fine. So is <code>WithBrowserOptions</code>
-            on its own. Don't mix them in RC2.
+            This demo uses only the per-page one.
         </p>
     </div>
 
     <h2><small>Good to know</small></h2>
     <ul class="gk">
-        <li><b>A breaking change.</b> A variable now overrides an <code>appsettings.json</code> key with the same name. An app that already passed variables from <code>Blazor.start</code> will see them in <code>IConfiguration</code> too, so check for stray ones when you upgrade.</li>
-        <li><b>Double underscore for a colon.</b> <code>Orders__ApiUrl</code> becomes the key <code>Orders:ApiUrl</code>, as on the server.</li>
-        <li><b>Read once, at start.</b> The runtime gets its variables as WebAssembly starts, which is why the demo's links load the page in full.</li>
-        <li><b>No prerender needed.</b> The variables are written into the page either way. The demo uses <code>prerender: false</code> (Fig. 3) only so every value on screen is the browser's; a prerender would read the server's own configuration first.</li>
-        <li><b>Not a secret keeper.</b> The value is written into the page, and anyone can read it. Pass addresses and switches, never keys.</li>
+        <li><b>A breaking change.</b> A variable now overrides the same key in <code>appsettings.json</code>. If your app already sent variables from <code>Blazor.start</code>, they'll now show up in <code>IConfiguration</code> too. Check for stray ones when you upgrade.</li>
+        <li><b>Double underscore means colon.</b> <code>Orders__ApiUrl</code> becomes the key <code>Orders:ApiUrl</code>, same as on the server.</li>
+        <li><b>Read once, at start.</b> The app reads its variables when WebAssembly starts. That's why the demo's links reload the whole page.</li>
+        <li><b>Works with or without prerendering.</b> The variables are in the page either way. The demo turns off prerendering, where the server draws the page first (<code>prerender: false</code>, Fig. 3), so every value you see comes from the browser.</li>
+        <li><b>Not for secrets.</b> The value is written into the page, so anyone can read it. Send addresses and on/off flags, never API keys or passwords.</li>
     </ul>
 </article>

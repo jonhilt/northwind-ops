@@ -1,18 +1,5 @@
-// The Field Guide's small extras: arrow keys step through a feature, code is highlighted, and the
-// demo frame's address bar and buttons work. The pages work without any of it.
-
-const typing = el => el.closest("input, textarea, select, [contenteditable]");
-
-document.addEventListener("keydown", e => {
-    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || typing(e.target)) return;
-    const link = e.key === "ArrowRight" ? document.querySelector("[data-guide-next]")
-        : e.key === "ArrowLeft" ? document.querySelector("[data-guide-prev]")
-        : null;
-    if (link) {
-        e.preventDefault();
-        link.click();
-    }
-});
+// The walkthroughs' demo frames: the address bar follows the demo, the frame grows to fit it, and the
+// refresh and Start over buttons work. The demos work without any of it.
 
 // Shows the frame's current address, which changes on enhanced navigation as well as on full loads.
 function wireDemo(box) {
@@ -58,10 +45,7 @@ function wireDemo(box) {
 }
 
 function enhance() {
-    // Guide steps highlight their own code; walkthroughs ([data-learn]) do that in learn.js.
-    const stage = document.querySelector("[data-guide-step]");
-    if (stage) window.Prism?.highlightAllUnder(stage);
-    document.querySelectorAll("[data-guide-step] [data-demo], [data-learn] [data-demo]").forEach(wireDemo);
+    document.querySelectorAll("[data-learn] [data-demo]").forEach(wireDemo);
 }
 
 enhance();
