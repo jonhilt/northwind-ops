@@ -1,0 +1,5 @@
+@page "/cacheview"
+@* The .NET 11 fix. In .NET 10 there is no CacheView component. *@
+<CacheView ExpiresAfter="TimeSpan.FromSeconds(20)">
+    <StockSummary />
+</CacheView>

@@ -4,17 +4,19 @@ title: Nested validation
 group: Forms
 order: 15
 hook: Validate the address and every contact, with a supported attribute.
-intro: Validate a form's nested objects and list items with [ValidatableType], no longer experimental in .NET 11.
+intro: Validate a form's nested objects and list items with [ValidatableType], a supported API in .NET 11 rather than an experimental one.
 mode: Static SSR
-demo: demo/nested-validation/suppliers/new
+demo: demo/nested-validation/with
+before: demo/nested-validation/without
+labels: Without [ValidatableType] | With [ValidatableType]
 app: suppliers/new
 ---
 
 ## The problem
 
-Your form has an address and a list of contacts. How do you validate those too?
+Your form has an address and a list of contacts. Does `DataAnnotationsValidator` check them?
 
-`DataAnnotationsValidator` only checks the model's own properties. In .NET 10, apps used one of three workarounds.
+Only if the model is marked `[ValidatableType]`. Unmarked, it checks the model's own properties and stops, so a bad contact saves without a word. .NET 10 had the mark, but only as an experimental API.
 
 ### Use the experimental attribute
 
@@ -29,23 +31,7 @@ public class NewSupplierForm
 #pragma warning restore ASP0029
 ```
 
-It worked, but an experimental API in production code came with no promise it would survive the next release. {.bad}
-
-### Add the old preview package
-
-```razor
-@* Microsoft.AspNetCore.Components
-   .DataAnnotations.Validation, preview only *@
-<EditForm Model="Input" OnValidSubmit="SaveAsync">
-    <ObjectGraphDataAnnotationsValidator />
-</EditForm>
-
-@* ...and on every nested property of the model:
-   [ValidateComplexType]
-   public AddressForm Address { get; set; } *@
-```
-
-A package that never left preview, and an attribute on every nested property you remember to mark. {.bad}
+It worked, but ASP0029 is an error until you suppress it, and an experimental API comes with no promise it will survive the next release. {.bad}
 
 ### Validate the children yourself
 
@@ -59,33 +45,38 @@ foreach (var contact in Input.Contacts)
 // ...then map each error back to its field
 ```
 
-Only after Save, and with each error mapped back to its field by hand. {.bad}
+The pre-.NET 10 way: no experimental API, but every nested type is yours to walk, and every error yours to map back to its field. {.bad}
 
 ## See it work
 
-Leave the nested fields wrong, then save.
+Both forms start with an empty city and a contact whose email is `sales@`. Which one saves?
 
-This is a cut-down copy of the New supplier screen, as a static page. City is on the supplier's address, and the contact is the first item in a list.
+The two forms are the same. Only the model behind the right-hand one is marked. Browser validation is off here, so both forms post and the server decides.
 
-1. Press **Save supplier** with the form empty. **City** and both contact fields are flagged, along with **Company**.
-2. Type `sales@` into **Contact email** and press Tab. The list item's own `[EmailAddress]` flags it.
-3. Fill everything in and save. The server checks the whole graph again, then adds the supplier and its contact.
+1. Press **Save supplier** on the left. It saves, empty city and bad email included.
+2. Press it on the right. **City** and both contact emails are flagged, and nothing saves.
+3. On the right, press **+ Add contact**, then save. The new empty row is flagged too: every item in the list is checked.
+
+Explain: `DataAnnotationsValidator` checks what the model's validation reaches. Unmarked, that's only `Company`, the one property with rules of its own. `[ValidatableType]` lets the validation source generator walk into `Address` and every item in `Contacts`.
 
 ## How it's built
 
-Mark the form's model `[ValidatableType]`. `DataAnnotationsValidator` then checks everything the model reaches.
+What makes the right-hand form different? One attribute on its model.
 
-`Program.cs` calls `AddValidation()` once for the whole app. In .NET 11, there's no `#pragma` to add.
+`Program.cs` calls `builder.Services.AddValidation()` once, for both forms. In .NET 11, `[ValidatableType]` is a supported API, so there's no `#pragma` to add.
 
-### The model: one attribute on the root
-code: Components/Guide/Demos/NestedValidation/NewSupplierForm.cs
+### Two models with the same fields: only the right one is marked
+code: Components/Guide/Demos/NestedValidation/SupplierForms.cs
 
-### The page binds the nested fields by their full path
-code: Components/Guide/Demos/NestedValidation/NewSupplier.razor
+### Each page hands the shared form its model
+code: Components/Guide/Demos/NestedValidation/With.razor
+
+### The form binds nested fields by their full path, and its validator checks what the model reaches
+code: Components/Guide/Demos/NestedValidation/SupplierEditor.razor
 
 ## Good to know
 
-- **Only the root needs the attribute.** A source generator finds `AddressForm` and `ContactForm` through its properties.
+- **Only the root needs the attribute.** The generator finds `AddressForm` and `ContactForm` through its properties.
+- **A marked type's base classes are walked too.** Even where the base class is used on its own, unmarked. That's why this demo's two models share an interface rather than a base class.
 - **No `AddValidation()`, no nesting.** Without it, `DataAnnotationsValidator` falls back to checking top-level properties only.
-- **`[SkipValidation]` leaves something out.** Put it on a property or a type. It's no longer experimental either.
-- **A static form can post no list.** With no contact rows, `Contacts` binds as `null`, not an empty list. Guard the setter, as this model does.
+- **Browser validation follows the same rule.** A static form only sends the browser rules for fields the server validates, so unmarked nested fields go unchecked there too.

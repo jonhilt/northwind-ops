@@ -1,0 +1,12 @@
+@page "/demo/web-worker/order-lines/net10"
+@layout DemoLayout
+@using NorthwindOps.Client.WebWorker
+
+<h1>Revenue by product</h1>
+<p>
+    Last year's <a href="demo/web-worker/order-lines.csv" target="_blank">order lines</a>,
+    as a CSV export. Total them, and watch the clock.
+</p>
+
+@* The same page, the .NET 10 way: no worker, so the report totals on the UI thread. *@
+<OrderLineReportNet10 @rendermode="InteractiveWebAssembly" />

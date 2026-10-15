@@ -1,0 +1,79 @@
+@page "/demo/session/restock/net10"
+@layout DemoLayout
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+@* .NET 10, hidden fields: both steps share one URL, and the draft lives in the page. *@
+<p class="kept">
+    In session: <b>nothing</b> · Hidden fields in the page: <b>@(draft?.Count ?? 0)</b>
+</p>
+@if (sent is not null)
+{
+    <div class="flash" role="status">✓ Sent to the supplier: @sent</div>
+    @if (draft!.Values.Any(packs => packs > 99))
+    {
+        <p class="warn">Over step 1's 99-pack cap: the page was edited, and Send trusted it.</p>
+    }
+}
+else if (draft is null)
+{
+    <h1>Restock · 1. Quantities</h1>
+    <form method="post" @formname="restock-lines" @onsubmit="Review" data-enhance>
+        <AntiforgeryToken />
+        @foreach (var p in products)
+        {
+            <label for="p@(p.Id)">@p.Name · @p.UnitsInStock in stock</label>
+            <input id="p@(p.Id)" name="Packs[@p.Id]" type="number" />
+        }
+        <button type="submit">Review order →</button>
+    </form>
+}
+else
+{
+    <h1>Restock · 2. Review</h1>
+    <form method="post" @formname="restock-send" @onsubmit="Send" data-enhance>
+        <AntiforgeryToken />
+        @foreach (var (id, packs) in draft)
+        {
+            <div>@packs packs of @Name(id)</div>
+            @* xray:supply-parameter-from-session *@
+            @* .NET 10: step 1's answers ride along in the page, for anyone to edit. *@
+            <input type="hidden" name="Draft[@id]" value="@packs" />
+            @* /xray:supply-parameter-from-session *@
+        }
+        <button type="submit">Send to supplier</button>
+    </form>
+    @* A link is a fresh GET: nothing is posted, so the draft is lost. So is a refresh. *@
+    <p><a href="demo/session/restock/net10">← Change quantities</a></p>
+}
+
+@code {
+    List<Product> products = [];
+    Dictionary<int, int>? draft;
+    string? sent;
+
+    [SupplyParameterFromForm(FormName = "restock-lines")]
+    public Dictionary<int, int?>? Packs { get; set; }
+
+    // xray:supply-parameter-from-session
+    // .NET 10: Send reads the draft back from the hidden fields, and trusts it.
+    [SupplyParameterFromForm(FormName = "restock-send")]
+    public Dictionary<int, int>? Draft { get; set; }
+    // /xray:supply-parameter-from-session
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        products = await db.Products.Where(p => !p.Discontinued)
+            .OrderBy(p => p.UnitsInStock).ThenBy(p => p.Id).Take(4).ToListAsync();
+        draft = Draft; // on Send, step 2 renders again, or its form isn't found (a 400)
+    }
+
+    void Review() => draft = products.Where(p => Packs?.GetValueOrDefault(p.Id) > 0)
+        .ToDictionary(p => p.Id, p => Math.Min(Packs![p.Id]!.Value, 99));
+
+    // A real app saves the purchase order here, with whatever quantities were posted.
+    void Send() => sent = string.Join(", ",
+        draft!.Select(d => $"{d.Value} packs of {Name(d.Key)}"));
+
+    string Name(int id) => products.FirstOrDefault(p => p.Id == id)?.Name ?? $"#{id}";
+}

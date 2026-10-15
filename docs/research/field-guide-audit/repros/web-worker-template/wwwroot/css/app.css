@@ -1,0 +1,3 @@
+body { font-family: system-ui, sans-serif; margin: 2rem; }
+.clock b { font-family: monospace; font-size: 1.6rem; }
+#blazor-error-ui { display: none; }

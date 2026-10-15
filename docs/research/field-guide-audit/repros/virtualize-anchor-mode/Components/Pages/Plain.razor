@@ -1,0 +1,14 @@
+@page "/"
+@* .NET 10: Virtualize over an in-memory list. Just add the item, as the .NET 11 demo does. *@
+<h1>Plain Virtualize (.NET 10)</h1>
+<button id="add" @onclick="Add">Add message</button> <span id="count">@messages.Count messages</span>
+<div class="feed fixed" id="feed">
+    <Virtualize Items="messages" Context="m">
+        <div class="msg" data-n="@m.N">@m.Text</div>
+    </Virtualize>
+</div>
+
+@code {
+    List<Message> messages = [.. Enumerable.Range(0, 30).Select(n => Message.Make(n, false))];
+    void Add() => messages.Add(Message.Make(messages.Count, false));
+}

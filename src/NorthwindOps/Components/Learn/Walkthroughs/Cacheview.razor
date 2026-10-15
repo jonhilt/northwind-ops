@@ -1,0 +1,153 @@
+@page "/learn/cacheview"
+@layout LearnLayout
+
+<PageTitle>Caching part of a page · Field Guide</PageTitle>
+
+<article class="l-article" data-learn>
+    <h1 class="l-title">Caching part of a page</h1>
+    <p class="l-sub">One panel on a page runs a slow report query on every view. How do you cache just that panel?</p>
+    <p class="l-meta">.NET 11 · Rendering · Static SSR · about 6 minutes</p>
+    <p class="l-new">
+        <b>What's new in .NET 11:</b> the <code>&lt;CacheView&gt;</code> component, which keeps the rendered HTML of
+        part of a page. .NET 10 could already cache data with <code>IMemoryCache</code>, and whole responses with
+        output caching. What it couldn't do was cache the rendered HTML of one part of a page, so the component
+        behind it isn't even created on a hit.
+    </p>
+
+    <p>
+        Below is a <i>Stock by category</i> page. Its report takes 1.5 seconds to calculate, so it caches itself for
+        10 seconds with <code>IMemoryCache</code>, the usual .NET 10 answer. The page has two stamps:
+        <b>Page rendered at</b> for the page, and <b>Figures calculated at</b> for the report.
+    </p>
+    <p>
+        Under it, a line counts visitors and report queries since the app started, so the totals don't start at zero.
+        The <b>Five visitors at once</b> button sends five requests at the same moment, like a busy morning, then
+        reloads and adds a <b>Last burst</b> line beside the button saying how many queries those five ran. At rest,
+        this demo and the .NET 11 one further down look the same; the difference only shows in a burst.
+    </p>
+
+    <DemoFigure Number="1" Title="The report caches its own data" Url="demo/cacheview/stock/net10"
+                Label=".NET 10: IMemoryCache in the component" Side="before">
+        <Caption>
+            Press <b>⟳</b> a few times. It comes back at once: <b>Page rendered at</b> moves and <b>Figures
+            calculated at</b> stays, so hits work. Now wait until <b>Figures calculated at</b> is more than 10 seconds
+            old, so the entry has expired, and press <b>Five visitors at once</b>. After the reload, the line beside
+            the button reads <b>Last burst: 5 visitors, 5 queries ran</b>: every visitor ran the 1.5-second query.
+        </Caption>
+    </DemoFigure>
+
+    <h2><small>The problem</small>Every visitor who misses runs the query</h2>
+    <p>Caching the data works while the entry is there. The trouble starts the moment it expires:</p>
+    <div class="fig">
+        <span class="fig-title">Five visitors arrive just after the entry expired</span>
+        <pre class="snip">visitor 1  GetOrCreateAsync("stock-report")  <span class="err">miss → runs the query</span>
+visitor 2  GetOrCreateAsync("stock-report")  <span class="err">miss → runs the query</span>
+visitor 3  GetOrCreateAsync("stock-report")  <span class="err">miss → runs the query</span>
+visitor 4  GetOrCreateAsync("stock-report")  <span class="err">miss → runs the query</span>
+visitor 5  GetOrCreateAsync("stock-report")  <span class="err">miss → runs the query</span>
+<span class="dim">5 × 1.5 s of database work, for one report</span></pre>
+    </div>
+    <p>
+        <code>IMemoryCache.GetOrCreateAsync</code> doesn't lock. Each visitor who finds no entry runs the factory, and
+        nothing makes the others wait for the first. And the caching code lives inside the component: its key, its
+        expiry, and the <code>@@inject</code>. Even on a hit, the component is still created and renders its table
+        again. That's cheap for one table, but it's work on every request that caching the HTML would skip.
+    </p>
+
+    <h2><small>The fix</small>Wrap the slow part in a CacheView</h2>
+    <p>Take the caching code out of the report, and wrap it where the page uses it.</p>
+    <div class="fig">
+        <span class="fig-title">The whole fix</span>
+        <pre class="snip"><span class="hl">&lt;CacheView ExpiresAfter="TimeSpan.FromSeconds(10)"&gt;</span>
+    &lt;StockSummary /&gt;
+<span class="hl">&lt;/CacheView&gt;</span></pre>
+    </div>
+    <p>
+        On a miss, Blazor renders <code>StockSummary</code> as usual and keeps the HTML it produced. Visitors who miss
+        at the same moment wait for that one render, and get its HTML. On a hit, it replays the HTML, and
+        <code>StockSummary</code> isn't created at all. The rest of the page, outside the CacheView, still renders on
+        every request. There's nothing to set up in <code>Program.cs</code>: unlike <code>IMemoryCache</code>, which
+        needs <code>AddMemoryCache()</code>, CacheView keeps its entries in memory by default. Here's the same page,
+        with the same report, wrapped.
+    </p>
+
+    <DemoFigure Number="2" Title="The same page, with CacheView" Url="demo/cacheview/stock"
+                Label=".NET 11: CacheView">
+        <Caption>
+            Press <b>⟳</b> a few times: from outside, hits look the same as in Fig. 1. Then wait until <b>Figures
+            calculated at</b> is more than 10 seconds old, and press <b>Five visitors at once</b>. After the reload,
+            the line beside the button reads <b>Last burst: 5 visitors, 1 query ran</b>: the other four waited for the
+            first visitor's render.
+        </Caption>
+    </DemoFigure>
+
+    <p>
+        Two report components are involved. <code>StockSummaryNet10</code> is the .NET 10 one, with its own caching
+        code; <code>StockSummary</code> is the same component with that code taken out. Both hand their rows to a
+        shared <code>StockTable</code>, which draws the table and the <b>Figures calculated at</b> stamp. Here's the
+        .NET 10 report component, then the .NET 11 page that wraps the plain one:
+    </p>
+
+    <CodeFigure Number="3" Path="Components/Guide/Demos/Caching/StockSummaryNet10.razor" Feature="cacheview">
+        <Caption>
+            Fig. 1's report component. Fig. 1's page just renders <code>&lt;StockSummaryNet10 /&gt;</code>. The
+            component picks its own key, <code>"stock-report"</code>, and its own expiry, and every visitor who misses
+            runs the factory.
+        </Caption>
+    </CodeFigure>
+
+    <CodeFigure Number="4" Path="Components/Guide/Demos/Caching/StockReport.razor" Feature="cacheview">
+        <Caption>
+            Fig. 2's page, <code>StockReport.razor</code>. The change is the CacheView around
+            <code>StockSummary</code>, which is Fig. 3's component with the caching code removed: it runs the query in
+            <code>OnInitializedAsync</code> and nothing else.
+        </Caption>
+    </CodeFigure>
+
+    <h2><small>The .NET 10 way</small>Cache the data, or cache the whole page</h2>
+    <p>Blazor in .NET 10 had nothing for caching the HTML of part of a page. We built both usual workarounds on .NET 10:</p>
+    <div class="fig">
+        <span class="fig-title">Two ways to cache the report in .NET 10, and what a .NET 10 build did</span>
+        <div class="flow">
+            <div class="box">
+                <pre class="snip">@@inject IMemoryCache Cache
+<span class="err">Cache.GetOrCreateAsync("stock-report", ...)</span></pre>
+                <span class="why">fast on hits, but needs <code>AddMemoryCache()</code>, and the component is still created on every request</span>
+                <div class="verdict bad">✗ five visitors who miss together run the query five times</div>
+            </div>
+            <div class="box">
+                <pre class="snip">@@page "/stock"
+<span class="err">@@attribute [OutputCache(Duration = 10)]</span></pre>
+                <span class="why">fast, but all or nothing: the page's own stamp freezes too</span>
+                <div class="verdict bad">✗ add a form, and its antiforgery token sends <code>Set-Cookie</code> and <code>no-store</code>: nothing is cached, and every view takes 1.5 s, with no warning</div>
+            </div>
+        </div>
+    </div>
+    <p>
+        The stampede on its own did have a .NET 10 answer: <code>HybridCache</code> (.NET 9 and later, in the
+        <code>Microsoft.Extensions.Caching.Hybrid</code> package). Its <code>GetOrCreateAsync</code> makes concurrent
+        misses for the same key wait for one factory call. But it still caches data, so the component is still
+        created and rendered on every request, and the key and expiry still live in the component.
+    </p>
+    <div class="fig">
+        <span class="fig-title">CacheView in a .NET 10 project</span>
+        <pre class="snip">&lt;CacheView ExpiresAfter="TimeSpan.FromSeconds(10)"&gt;</pre>
+        <div class="verdict bad">✗ not a build error: only warning RZ10012, "unexpected name 'CacheView'". The page sends a literal <code>&lt;CacheView&gt;</code> tag to the browser and stays slow on every request.</div>
+    </div>
+
+    <h2><small>.NET 11</small>Cache the HTML, not the data</h2>
+    <p>
+        What .NET 11 adds is the layer above the data: the rendered output. The component inside a CacheView is
+        skipped entirely on a hit, which no data cache can do, and the caching decision moves out of the component
+        to the page that uses it.
+    </p>
+
+    <h2><small>Good to know</small></h2>
+    <ul class="gk">
+        <li><b>Every visitor gets the same cached HTML.</b> The key is where the CacheView sits, plus <code>CacheKey</code> if you set one. The user, query string and route aren't in it, so a panel that shows one user's data will be served to the next user too. Add <code>VaryByUser</code>, <code>VaryByQuery</code>, <code>VaryByRoute</code> or <code>VaryByCulture</code> for anything that differs per visitor.</li>
+        <li><b>Entries last 30 seconds unless you say otherwise.</b> Set <code>ExpiresAfter</code> or <code>ExpiresOn</code> to change that. <code>ExpiresSliding</code> alone doesn't lift the 30-second limit, so pair it with one of the other two.</li>
+        <li><b>Keep one small part fresh inside a cached one.</b> Mark a component <code>[CacheBehavior(CacheBehavior.Rerender)]</code> and it runs on every request, even on a hit. The app's dashboard uses one to say how old its cached figures are.</li>
+        <li><b>Only static server-rendered GETs are cached.</b> Form posts render as usual, and so do CacheViews inside a <code>[StreamRendering]</code> component. Use it on the static parts of a page, not inside an interactive island.</li>
+        <li><b>Already using <code>HybridCache</code>?</b> When one is registered, CacheView stores its entries there instead of its own in-memory store.</li>
+    </ul>
+</article>

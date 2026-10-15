@@ -3,6 +3,7 @@
 @inject IDbContextFactory<NorthwindDb> DbFactory
 @inject NavigationManager Navigation
 
+<SessionStrip />
 <h1>Restock · 1. Quantities</h1>
 
 <form method="post" @formname="restock-lines" @onsubmit="Review" data-enhance>
@@ -19,9 +20,10 @@
     List<Product> products = [];
 
     // xray:supply-parameter-from-session
-    // Read from session as the page renders, and saved back when the request ends.
+    // New in .NET 11: read from session as the page renders, saved when the request ends.
+    // Session takes simple types, and a dictionary's keys must be strings: product id "31".
     [SupplyParameterFromSession(Name = "restock-draft")]
-    public Dictionary<string, int>? Draft { get; set; } // product id → packs
+    public Dictionary<string, int>? Draft { get; set; }
     // /xray:supply-parameter-from-session
 
     [SupplyParameterFromForm] public Dictionary<int, int?>? Packs { get; set; }
@@ -36,6 +38,7 @@
     void Review()
     {
         // xray:supply-parameter-from-session
+        // New in .NET 11: just assign it. It's saved even though the handler redirects.
         Draft = products.Where(p => Packs?.GetValueOrDefault(p.Id) > 0)
             .ToDictionary(p => $"{p.Id}", p => Math.Min(Packs![p.Id]!.Value, 99));
         // /xray:supply-parameter-from-session

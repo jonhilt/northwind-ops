@@ -1,0 +1,136 @@
+@page "/learn/label-and-input-ids"
+@layout LearnLayout
+
+<PageTitle>Labels and input ids · Field Guide</PageTitle>
+
+<article class="l-article" data-learn>
+    <h1 class="l-title">Labels and input ids</h1>
+    <p class="l-sub">Clicking a label should put the cursor in its field. Why does every form need hand-typed ids for that?</p>
+    <p class="l-meta">.NET 11 · Forms · Any render mode · about 5 minutes</p>
+    <p class="l-new">
+        <b>What's new in .NET 11:</b> a <code>&lt;Label For&gt;</code> component, and an <code>id</code> that every
+        built-in input now renders for itself. In .NET 10 inputs rendered no <code>id</code> and there was no
+        <code>Label</code>. <code>[Display]</code> names are not new: validation messages already used them.
+    </p>
+
+    <p>
+        Below is a <i>New supplier</i> form with two fields, <b>Company name</b> and <b>Contact email</b>. The model
+        names both with <code>[Display]</code>, and both are <code>[Required]</code>.
+    </p>
+    <p>
+        It's labelled two of the ways .NET 10 allowed. <b>Company name</b> points at an <code>id</code> typed by
+        hand on both the label and the input, with a one-letter typo: <code>supplier-<b>compnay</b></code> on the
+        label, <code>supplier-company</code> on the input. <b>Email</b> wraps its input, with the label text typed
+        again. Under the form, a panel reads the rendered markup: which label the browser ties to each input, and
+        what has focus.
+    </p>
+
+    <DemoFigure Number="1" Title="The form, labelled by hand" Url="demo/labels/suppliers/new/net10"
+                Label=".NET 10: ids and names typed by hand" Side="before">
+        <Caption>
+            Before you press anything, the panel shows two red rows: <code>&lt;label for="supplier-compnay"&gt;</code>
+            matches no id, and the Company input has no label. Click <b>Company name</b>: nothing gets focus. Then
+            press <b>Save supplier</b> with the form empty: the label <b>Email</b> sits over "The Contact email field
+            is required.", and the Email row turns red. Its tick before that was real: wrapping did give focus in
+            .NET 10. Only the <code>id="Input_Email"</code> in that row is .NET 11's, added by the runtime this demo
+            runs on; the panel notes it in italics.
+        </Caption>
+    </DemoFigure>
+
+    <h2><small>The problem</small>Every label is typed twice, and nothing checks either copy</h2>
+    <p>In .NET 10, a label and its input share nothing but strings you typed:</p>
+    <div class="fig">
+        <span class="fig-title">What .NET 10 renders for that form</span>
+        <pre class="snip">&lt;label for="<span class="err">supplier-compnay</span>"&gt;Company name&lt;/label&gt;
+&lt;input id="supplier-company" name="Input.Company"&gt;   <span class="err">no label points here</span>
+
+&lt;label&gt;<span class="err">Email</span> &lt;input name="Input.Email"&gt;&lt;/label&gt;   <span class="ok">✓ focus works</span>
+<span class="dim">The Contact email field is required.</span>           <span class="err">not the label's name</span></pre>
+    </div>
+    <p>
+        <code>&lt;InputText&gt;</code> rendered no <code>id</code>, so a <code>for</code> needed one typed on both
+        sides. A typo builds with no warning, and the label points at nothing. Wrapping the input avoids the id, but
+        the label text is still typed by hand. The messages read <code>[Display(Name = "Contact email")]</code>; the
+        label doesn't, so the two drift.
+    </p>
+
+    <h2><small>The fix</small>Let the model name the label, and the input name itself</h2>
+    <p>Replace each hand-written label with <code>&lt;Label For&gt;</code>. The <code>&lt;InputText&gt;</code> lines don't change.</p>
+    <div class="fig">
+        <span class="fig-title">The whole fix</span>
+        <pre class="snip"><span class="hl">&lt;Label For="() =&gt; Input!.Company" /&gt;</span>
+&lt;InputText @@bind-Value="Input!.Company" /&gt;
+
+<span class="hl">&lt;Label For="() =&gt; Input!.Email" /&gt;</span>
+&lt;InputText @@bind-Value="Input!.Email" type="email" /&gt;</pre>
+    </div>
+    <p>
+        In .NET 11 every built-in input renders an <code>id</code> from the field it binds, dots becoming
+        underscores: <code>Input.Company</code> becomes <code>Input_Company</code>. <code>Label</code> uses the same
+        rule for its <code>for</code>, and takes its text from <code>[Display]</code>. Here's the same form, labelled
+        that way.
+    </p>
+
+    <DemoFigure Number="2" Title="The same form, with Label For" Url="demo/labels/suppliers/new"
+                Label=".NET 11: Label For">
+        <Caption>
+            Click <b>Company name</b>. The cursor lands in the field: the panel shows
+            <code>&lt;label for="Input_Company"&gt;</code> naming <code>&lt;input id="Input_Company"&gt;</code>. Press
+            <b>Save supplier</b> empty: the label and the message both say "Contact email".
+        </Caption>
+    </DemoFigure>
+
+    <p>Here's the page behind Fig. 2, the model both forms share, and the page behind Fig. 1:</p>
+
+    <CodeFigure Number="3" Path="Components/Guide/Demos/Labels/NewSupplier.razor" Feature="label-and-input-ids">
+        <Caption>
+            Fig. 2's form. Only the two <code>&lt;Label For&gt;</code> lines are new code. The
+            <code>&lt;InputText&gt;</code> lines are highlighted too, but they're the same as in .NET 10: what changed
+            is their output, an <code>id</code> the label points at.
+        </Caption>
+    </CodeFigure>
+
+    <CodeFigure Number="4" Path="Components/Guide/Demos/Labels/NewSupplierForm.cs" Feature="label-and-input-ids">
+        <Caption>
+            The model behind both figures. Each field is named once, and labels and messages read that name.
+        </Caption>
+    </CodeFigure>
+
+    <CodeFigure Number="5" Path="Components/Guide/Demos/Labels/NewSupplierNet10.razor" Feature="label-and-input-ids">
+        <Caption>
+            Fig. 1's form: a typed <code>id</code> with a typo, and a wrapping label whose text has drifted.
+        </Caption>
+    </CodeFigure>
+
+    <h2><small>The .NET 10 way</small>Two typed copies, or no label at all</h2>
+    <p>
+        Fig. 1 shows the two .NET 10 ways that work until something drifts: an <code>id</code> passed to
+        <code>&lt;InputText&gt;</code> as a plain attribute and typed again in <code>for</code>, or a label wrapped
+        around the input with its text typed again. The third, a label written beside the input with no <code>for</code>, doesn't work at all:
+    </p>
+    <div class="fig">
+        <span class="fig-title">A bare label in .NET 10</span>
+        <pre class="snip">&lt;label&gt;Company name&lt;/label&gt;
+&lt;InputText @@bind-Value="Input!.Company" /&gt;
+<span class="dim">renders</span> &lt;input name="Input.Company"&gt;   <span class="err">no id: clicking focuses nothing, no accessible name</span></pre>
+    </div>
+    <p>
+        <code>&lt;Label For&gt;</code> isn't there to reach for. On .NET 10 it builds with warning RZ10012, "Found
+        markup element with unexpected name 'Label'", and renders as an unknown <code>&lt;Label&gt;</code> element.
+    </p>
+
+    <h2><small>.NET 11</small>One name, one id, nothing typed</h2>
+    <p>
+        If a field has no <code>[Display(Name)]</code>, <code>&lt;Label For&gt;</code> falls back to
+        <code>[DisplayName]</code>, then to the property name. Whichever it finds,
+        the label and its messages can't disagree, and there's no id to mistype.
+    </p>
+
+    <h2><small>Good to know</small></h2>
+    <ul class="gk">
+        <li><b>Don't give the input your own id.</b> An <code>id</code> you set replaces the generated one, but <code>&lt;Label For&gt;</code> doesn't look at the input: it still writes <code>for="Input_Company"</code>, which now matches nothing. If you need your own id, put the input inside the label instead: <code>&lt;Label For="..."&gt;&lt;InputText id="..." ... /&gt;&lt;/Label&gt;</code> ties the label to the input it wraps, so no <code>for</code> has to match.</li>
+        <li><b>The id comes from the property path.</b> A nested field is <code>Input_Address_City</code>; one in a list is <code>Input_Contacts[0]_Name</code>, which needs <code>[</code> and <code>]</code> escaped in CSS.</li>
+        <li><b>Inputs render an id now.</b> Check for CSS, scripts or test selectors that could clash with the new ids.</li>
+        <li><b>Your own inputs</b> derived from <code>InputBase&lt;T&gt;</code> should render <code>id="@@IdAttributeValue"</code>, so labels can find them.</li>
+    </ul>
+</article>

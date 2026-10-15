@@ -1,0 +1,67 @@
+@* The .NET 10 way, live. It's the whole page, as App.razor was then: this app's App.razor
+   starts Blazor automatically, so BrowserOptionsDemo.cs maps this page on its own. *@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="/" />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["NorthwindOps.styles.css"]" />
+</head>
+<body>
+    <DemoLayout><Body>
+        <h1>Pick list · order 10950</h1>
+        @* A full page load each: Blazor.start() runs once per page, so no enhanced navigation. *@
+        <nav class="ways" data-enhance-nav="false">
+            <a href="demo/browser-options/pick-list/net10" class="@On(null)">Settings in JavaScript</a>
+            <a href="demo/browser-options/pick-list/net10?from=config" class="@On("config")">Settings from config</a>
+        </nav>
+        <p class="rejoin">
+            Rejoin attempt <b id="components-reconnect-current-attempt"></b>
+            of <b id="components-reconnect-max-retries"></b>
+            <RetryGaps />
+        </p>
+        <PickLines @rendermode="InteractiveServer" />
+        <WifiDropout />
+        <SentToBrowser />
+    </Body></DemoLayout>
+    <ReconnectModal />
+
+    @* xray:browser-options *@
+    @* .NET 10, the old way (not the feature): Blazor.start() by hand. *@
+    <script src="_framework/blazor.web.js" autostart="false"></script>
+    @if (From == "config")
+    {
+        @* Config values pasted in by Razor. Nobody added Reconnect:Tries. *@
+        <script nonce="@Nonce" data-start>
+            Blazor.start({ circuit: { reconnectionOptions: {
+                maxRetries: @Config["Reconnect:Tries"],
+                retryIntervalMilliseconds: @Config["Reconnect:IntervalMs"]
+            } } });
+        </script>
+    }
+    else
+    {
+        @* Both names are misspelt. Nothing checks them. *@
+        <script nonce="@Nonce" data-start>
+            Blazor.start({ circuit: { reconnectionOptions: {
+                maxRetry: 20,
+                retryIntervalMs: 2000
+            } } });
+        </script>
+    }
+    @* /xray:browser-options *@
+</body>
+</html>
+
+@code {
+    [Parameter] public string? From { get; set; }
+    // The page's Content-Security-Policy lets its inline scripts run by this nonce.
+    [Parameter] public string Nonce { get; set; } = "";
+
+    // This demo's settings: the interval is there, the tries aren't.
+    static readonly IConfiguration Config = new ConfigurationBuilder()
+        .AddInMemoryCollection([new("Reconnect:IntervalMs", "2000")]).Build();
+
+    string? On(string? from) => From == from ? "on" : null;
+}

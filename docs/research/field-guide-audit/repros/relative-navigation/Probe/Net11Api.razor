@@ -1,0 +1,4 @@
+@inject NavigationManager Navigation
+@code {
+    void Go() => Navigation.NavigateTo("lines", new NavigationOptions { RelativeToCurrentUri = true });
+}

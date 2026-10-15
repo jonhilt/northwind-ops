@@ -1,0 +1,99 @@
+/* Walkthroughs: one long page per feature, read top to bottom, with numbered figures that play as they come
+   into view. Everything here sits under .learn, so the rest of the app keeps its own look. */
+
+.learn {
+    --bg: #141311;
+    --panel: #1b1a17;
+    --edge: #3a3731;
+    --text: #d6d3cc;
+    --bright: #f2efe8;
+    --soft: #9c978d;
+    --faint: #6f6a62;
+    --amber: #e0a64a;
+    --amber-bg: #4b3d22;
+    --good: #7fd39a;
+    --good-bg: #1f3a2a;
+    --bad: #ff9b8f;
+    --bad-bg: #4a2020;
+    --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.8 var(--mono);
+}
+.learn a { color: var(--amber); }
+
+.l-top { display: flex; align-items: center; gap: 18px; padding: 14px 28px; border-bottom: 1px solid #2c2a26; }
+.l-top .brand { font-weight: 700; color: var(--bright); text-decoration: none; }
+.l-top .brand span { color: var(--amber); }
+.l-top .crumb { flex: 1; color: var(--soft); text-decoration: none; font-size: 14px; }
+.l-top .to-app { font-size: 13px; color: var(--amber); text-decoration: none; border: 1px solid var(--amber); padding: 4px 12px; }
+
+.l-article { max-width: 760px; margin: 0 auto; padding: 46px 22px 110px; }
+
+.l-title { text-align: center; font-size: 40px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--bright); margin: 0; font-weight: 600; }
+.l-sub { text-align: center; font-style: italic; color: var(--soft); margin: 10px 0 6px; }
+.l-meta { text-align: center; font-size: 13px; color: var(--faint); padding-bottom: 24px; margin-bottom: 30px; border-bottom: 1px solid #2c2a26; }
+
+.learn h2 { color: var(--bright); font-size: 21px; line-height: 1.4; margin: 56px 0 8px; }
+.learn h2 small { display: block; font-size: 12px; letter-spacing: 0.14em; color: var(--amber); margin-bottom: 4px; }
+.learn p { margin: 14px 0; }
+.learn :not(pre) > code { color: #e8c27a; font-size: 0.92em; }
+.learn ul.gk { padding-left: 20px; }
+.learn ul.gk li { margin: 10px 0; }
+.learn .tasks { counter-reset: task; list-style: none; padding: 0; }
+.learn .tasks li { counter-increment: task; display: flex; gap: 12px; margin: 10px 0; }
+.learn .tasks li::before { content: counter(task); flex: none; width: 24px; height: 24px; border: 1px solid var(--amber); color: var(--amber); display: grid; place-items: center; font-size: 12px; margin-top: 3px; }
+
+/* Figures */
+.fig { position: relative; margin: 34px 0; padding: 30px 24px 16px; border: 1px solid var(--edge); background: var(--panel); }
+.fig-title { position: absolute; top: -11px; background: var(--bg); padding: 0 8px; font: 12px/22px var(--mono); color: var(--soft); }
+.fig-title { left: 12px; }
+.fig-cap { font-size: 13px; line-height: 1.7; color: #8d887e; margin: 16px 0 0; }
+.fig .lbl { font-size: 11px; letter-spacing: 0.1em; color: var(--faint); text-transform: uppercase; }
+
+/* Code, in figures and inline */
+.learn pre[class*=language-] { margin: 0; padding: 1em 0; /* the line-highlight plugin assumes 1em above the first line */ font: 13px/1.75 var(--mono); background: none; overflow-x: auto; color: var(--text); }
+.learn pre.line-numbers { padding-left: 3.6em; }
+.learn .line-numbers .line-numbers-rows { border-right-color: #3a3731; }
+.learn .line-numbers-rows > span::before { color: #57534b; }
+.learn .line-highlight { background: linear-gradient(to right, rgb(224 166 74 / 0.2) 75%, rgb(224 166 74 / 0)); }
+.learn .token.comment { color: #77736a; font-style: italic; }
+.learn .token.keyword, .learn .token.directive { color: #e8a87c; }
+.learn .token.string { color: #9fd3b0; }
+.learn .token.class-name, .learn .token.attr-name { color: #e8c27a; }
+.learn .token.punctuation, .learn .token.operator { color: #a8a39a; }
+.learn .token.tag { color: #e8a87c; }
+.fig.code { width: min(940px, 94vw); margin-left: 50%; transform: translateX(-50%); }
+
+.snip { margin: 0; font: 13px/1.75 var(--mono); white-space: pre; overflow-x: auto; }
+.snip .hl, .flow .hl { background: var(--amber-bg); color: #f2e2b8; }
+.snip .err { background: var(--bad-bg); color: #ffb3a8; }
+.snip .ok { color: var(--good); }
+.snip .dim { color: #6f6a62; }
+
+/* Live demos: a real /demo page in a browser-like frame, as a figure */
+.fig.demo { padding: 26px 0 0; }
+.fig.demo .fig-cap { padding: 0 22px 16px; font-size: 14px; color: var(--text); }
+.fig.demo .browser { border-top: 1px solid var(--edge); border-bottom: 1px solid var(--edge); background: #fff; }
+.fig.demo .bar { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: var(--panel); border-bottom: 1px solid var(--edge); font-size: 12px; }
+.fig.demo .side { flex: none; padding: 1px 8px; font-weight: 600; }
+.fig.demo .side.before { background: var(--bad-bg); color: var(--bad); }
+.fig.demo .side.after { background: var(--good-bg); color: var(--good); }
+.fig.demo .addr { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; color: var(--soft); text-decoration: none; }
+.fig.demo .bar button { font: inherit; border: 1px solid var(--edge); background: none; color: var(--soft); padding: 1px 8px; cursor: pointer; }
+.fig.demo .bar button:hover { color: var(--amber); }
+.fig.demo iframe { border: 0; width: 100%; height: 520px; display: block; background: #fff; }
+
+/* Verdicts and build results */
+.verdict.ok { background: var(--good-bg); color: var(--good); }
+.verdict.bad { background: var(--bad-bg); color: var(--bad); }
+.verdict { display: inline-block; padding: 6px 12px; font-size: 13px; margin-top: 12px; }
+.flow { display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+.flow .box { border: 1px solid var(--edge); padding: 8px 12px; background: #171614; }
+.flow .why { color: var(--soft); font-size: 12px; }
+
+/* Blazor's error bar: hidden until the framework shows it. */
+#blazor-error-ui { display: none; position: fixed; bottom: 0; left: 0; width: 100%; z-index: 1000; padding: 10px 20px; background: var(--bad-bg); color: var(--bright); font: 14px var(--mono); }
+#blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: 16px; }
+.l-new { border-left: 3px solid var(--amber); padding: 6px 14px; color: var(--soft); font-size: 14px; }

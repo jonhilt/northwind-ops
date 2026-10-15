@@ -1,0 +1,51 @@
+@implements IDisposable
+@inject HttpClient Http
+
+@* The .NET 10 way: the same bell, but it polls by itself. *@
+<div class="bell" role="status">
+    <span class="count">@count</span>
+    <span>new order updates since this page opened</span>
+    @if (latest is { } update)
+    {
+        <span class="latest">Latest: <b>@update.Order</b> · @update.Detail</span>
+    }
+    <span class="checked" data-checks>
+        checked the server @(checks)× since @since.ToString("HH:mm:ss")
+    </span>
+</div>
+
+@code {
+    readonly DateTime since = DateTime.Now;
+    int count, checks;
+    long lastSeen;
+    OrderUpdate? latest;
+
+    // xray:wasm-hosted-services
+    // .NET 10: the timer belongs to this component, so it starts when the page does.
+    readonly PeriodicTimer timer = new(TimeSpan.FromSeconds(3));
+    // /xray:wasm-hosted-services
+
+    protected override async Task OnInitializedAsync()
+    {
+        while (await timer.WaitForNextTickAsync())
+        {
+            try { await CheckAsync(); } catch (HttpRequestException) { }
+        }
+    }
+
+    // xray:wasm-hosted-services
+    // .NET 10: a page without the bell disposes it. The timer stops, and the count goes too.
+    public void Dispose() => timer.Dispose();
+    // /xray:wasm-hosted-services
+
+    async Task CheckAsync()
+    {
+        var updates = await Http.GetFromJsonAsync<OrderUpdate[]>(
+            $"demo/hosted-services/api/updates?after={lastSeen}") ?? [];
+        if (updates.Length > 0) lastSeen = updates[^1].Id;
+        // The first check only finds where the feed is up to. Updates count after that.
+        if (checks++ > 0 && updates.Length > 0)
+            (count, latest) = (count + updates.Length, updates[^1]);
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,149 @@
+@page "/learn/server-initiated-circuit-pause"
+@layout LearnLayout
+
+<PageTitle>Pause circuits from the server · Field Guide</PageTitle>
+
+<article class="l-article" data-learn>
+    <h1 class="l-title">Pause circuits from the server</h1>
+    <p class="l-sub">You need to restart for a deploy. Can server code ask each tab to save its form first?</p>
+    <p class="l-meta">.NET 11 · Interactive Server · about 5 minutes</p>
+    <p class="l-new">
+        <b>What's new in .NET 11:</b> <code>Circuit.RequestCircuitPauseAsync()</code>, a server API that asks a tab
+        to pause and answers at once. Pausing itself isn't new: in .NET 10 a tab could already pause, save its
+        <code>[PersistentState]</code> values, and resume later on a new server. What was missing was a clean way for
+        the server to ask.
+    </p>
+
+    <p>
+        Below is a <i>New order</i> draft. It runs on a circuit, and its customer, product and quantity are
+        <code>[PersistentState]</code>, so a pause keeps them. Its button stands in for a deploy script: server code
+        asks this tab, and only this tab, to pause.
+    </p>
+    <p>
+        In .NET 10 there was no server API for that, so this page asks the only way it could: it calls the browser's
+        own pause function through JS interop.
+    </p>
+
+    <DemoFigure Number="1" Title="Asking through JS interop" Url="demo/server-pause/new-order/net10"
+                Label=".NET 10: JS interop" Side="before">
+        <Caption>
+            Change the <b>Quantity</b> and press <b>Pause this tab from the server</b>. A dialog says <i>The session
+            has been paused by the server</i>; press its <b>Resume</b> button. The order comes back on a new circuit,
+            still filled in: pausing worked. The panel at the top now has a third row, <b>The server's request</b>. It
+            says the server is still waiting for an answer, and it always will be.
+        </Caption>
+    </DemoFigure>
+
+    <h2><small>The problem</small>The answer needs the connection the pause closes</h2>
+    <p>A JS interop call is a round trip over the circuit's connection:</p>
+    <div class="fig">
+        <span class="fig-title">What happens to the awaited call</span>
+        <pre class="snip"><span class="dim">server</span>   await js.InvokeVoidAsync("Blazor.pauseCircuit")  ──▶ <span class="dim">browser</span>
+<span class="dim">browser</span>  saves the state, closes the circuit
+<span class="dim">browser</span>  the reply ──▶ <span class="err">no connection left to carry it</span>
+<span class="dim">server</span>   the await <span class="err">never returns</span>; the code after it never runs</pre>
+    </div>
+    <p>
+        A drain that awaits each tab in turn stops at the first one. You can avoid the hang by not awaiting the
+        pause: wrap <code>Blazor.pauseCircuit</code> in a script of your own that returns straight away (the third
+        option under <i>The .NET 10 way</i>, below). That works, but it's JavaScript you have to ship in every app, and
+        it can't tell you whether the circuit was still there to ask.
+    </p>
+
+    <h2><small>The fix</small>Ask through the Circuit</h2>
+    <p>
+        Keep each tab's <code>Circuit</code> in a scoped circuit handler, and ask it. Capturing it isn't new: in
+        .NET 10 you'd have captured the circuit's <code>IJSRuntime</code> the same way. What's new is the method.
+    </p>
+    <div class="fig">
+        <span class="fig-title">The whole fix</span>
+        <pre class="snip"><span class="dim">// A scoped CircuitHandler is handed its circuit when it opens</span>
+public override Task OnCircuitOpenedAsync(Circuit circuit, CancellationToken cancel)
+{
+    Circuit = circuit;
+    return Task.CompletedTask;
+}
+
+<span class="dim">// Anywhere on the server</span>
+<span class="hl">bool asked = await Tracker.Circuit.RequestCircuitPauseAsync();</span></pre>
+    </div>
+    <p>
+        It sends the browser the request and returns. <code>true</code> means the request went out, not that the tab
+        has paused yet. <code>false</code> means it didn't ask: the circuit had closed, hadn't finished starting, or
+        had lost its connection. The browser then pauses as if it had decided to itself. Here's the same draft, asking this way.
+    </p>
+
+    <DemoFigure Number="2" Title="The same draft, asking through the Circuit" Url="demo/server-pause/new-order"
+                Label=".NET 11: RequestCircuitPauseAsync">
+        <Caption>
+            Change the <b>Quantity</b>, press <b>Pause this tab from the server</b>, then <b>Resume</b> in the dialog.
+            The order comes back as before. This time the panel's <b>The server's request</b> row says it answered
+            <code>true</code> within a few milliseconds, so server code could move on to the next tab.
+        </Caption>
+    </DemoFigure>
+
+    <p>Both demos share one draft component. A parameter picks the way it asks:</p>
+
+    <CodeFigure Number="3" Path="Components/Guide/Demos/CircuitPause/OrderDraft.razor" Feature="server-initiated-circuit-pause">
+        <Caption>
+            Three blocks are highlighted, and only the last is the fix. The <code>[PersistentState]</code> properties
+            are what both demos keep across the pause; they work the same since .NET 10. The
+            <code>ViaJavaScript</code> branch is Fig. 1's .NET 10 call that never returns. The
+            <code>else</code> branch is the new line: <code>RequestCircuitPauseAsync</code>.
+        </Caption>
+    </CodeFigure>
+
+    <CodeFigure Number="4" Path="Components/Guide/Demos/CircuitPause/CircuitTracker.cs" Feature="server-initiated-circuit-pause">
+        <Caption>
+            Where Fig. 2's circuit comes from. Nothing highlighted here is new: circuit handlers have always been handed
+            their <code>Circuit</code>. It's registered scoped in <code>Program.cs</code>, as itself and as a
+            <code>CircuitHandler</code>, so each circuit gets its own tracker and never another visitor's.
+        </Caption>
+    </CodeFigure>
+
+    <h2><small>The .NET 10 way</small>Restart anyway, or call into the browser</h2>
+    <p>A .NET 10 build of the same order form tried each option against a real restart:</p>
+    <div class="fig">
+        <span class="fig-title">Three ways to restart in .NET 10, and what the tab did</span>
+        <div class="flow">
+            <div class="box">
+                <pre class="snip"><span class="dim">// no pause: stop the process</span></pre>
+                <span class="why">"Rejoining the server…", then "Rejoin failed", then a reload on the new process</span>
+                <div class="verdict bad">✗ the form comes back empty</div>
+            </div>
+            <div class="box">
+                <pre class="snip">await js.InvokeVoidAsync(
+    "Blazor.pauseCircuit");</pre>
+                <span class="why">the tab pauses and resumes with its data</span>
+                <div class="verdict bad">✗ the await never returns</div>
+            </div>
+            <div class="box">
+                <pre class="snip"><span class="dim">// in App.razor, by hand</span>
+window.remotePause =
+    () =&gt; { Blazor.pauseCircuit(); };</pre>
+                <span class="why">called from server code, it returns before the circuit closes, and the tab pauses with its data</span>
+                <div class="verdict bad">✗ works, but it's a script to ship, and no answer about whether the tab was asked</div>
+            </div>
+        </div>
+    </div>
+    <p>
+        So the server could already ask, and the third option is a real workaround: it needs the circuit's
+        <code>IJSRuntime</code>, captured the same way Fig. 4 captures the <code>Circuit</code>, plus JavaScript you
+        wrote. <code>RequestCircuitPauseAsync</code> didn't exist: the build fails with CS1061.
+    </p>
+
+    <h2><small>.NET 11</small>A server API that answers</h2>
+    <p>
+        In .NET 11 the <code>Circuit</code> asks for you. The gain is modest but real: no script to ship, a call that
+        returns, and a <code>bool</code> that says whether the request went out. A drain can ask every open tab, then give the browsers a few seconds to save
+        before the process exits. That's what Fig. 2 runs, one tab at a time.
+    </p>
+
+    <h2><small>Good to know</small></h2>
+    <ul class="gk">
+        <li><b><code>true</code> isn't "paused".</b> It means the request went out, not that the tab has finished saving. To know when it has, watch for the circuit to close, as Fig. 4's <code>OnCircuitClosedAsync</code> does.</li>
+        <li><b>Draining a whole server?</b> That's the real deploy case; the demo asks one tab only so that it never pauses another visitor's. Have a singleton keep every open <code>Circuit</code> (added in <code>OnCircuitOpenedAsync</code>, removed in <code>OnCircuitClosedAsync</code>), call <code>RequestCircuitPauseAsync</code> on each when <code>IHostApplicationLifetime.ApplicationStopping</code> fires, then wait a few seconds, with a timeout, before letting the process exit.</li>
+        <li><b>Keep your Data Protection keys.</b> The paused state waits in the browser, encrypted. The new server can only read it with the same keys.</li>
+        <li><b>The browser can hold it back.</b> A JavaScript circuit handler's <code>onCircuitPausing</code> runs first, so a page can finish a save before it pauses.</li>
+    </ul>
+</article>

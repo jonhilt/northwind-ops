@@ -1,41 +1,19 @@
 @*
-    A slow report. The page wraps it in a CacheView, so it only runs when the cache misses.
+    The slow report, with no caching code of its own: the page wraps it in a CacheView.
 *@
 @inject IDbContextFactory<NorthwindDb> DbFactory
 
-<table class="quickgrid">
-    <thead><tr><th>Category</th><th>Products</th><th>Stock value</th></tr></thead>
-    <tbody>
-        @foreach (var row in rows)
-        {
-            <tr>
-                <td>@row.Category</td>
-                <td>@row.Products</td>
-                <td>@row.Value.ToString("C0")</td>
-            </tr>
-        }
-    </tbody>
-</table>
-<p class="stamp">Figures calculated at <b>@calculatedAt.ToString("HH:mm:ss")</b></p>
+<StockTable Rows="rows" CalculatedAt="calculatedAt" />
 
 @code {
-    record CategoryStock(string Category, int Products, decimal Value);
-
     List<CategoryStock> rows = [];
     DateTime calculatedAt;
 
+    // An ordinary component, with no caching code. On a cache hit it isn't created.
     protected override async Task OnInitializedAsync()
     {
-        // xray:cacheview
-        // On a cache hit none of this runs: the component isn't created at all.
-        await Task.Delay(1500); // stands in for a slow reporting query
-        // /xray:cacheview
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var products = await db.Products.Include(p => p.Category).ToListAsync();
-        rows = [.. products.GroupBy(p => p.Category.Name)
-            .Select(g => new CategoryStock(
-                g.Key, g.Count(), g.Sum(p => p.UnitPrice * p.UnitsInStock)))
-            .OrderByDescending(r => r.Value)];
+        Interlocked.Increment(ref ReportTally.Net11.Queries);
+        rows = await StockQuery.RunAsync(DbFactory);
         calculatedAt = DateTime.Now;
     }
 }

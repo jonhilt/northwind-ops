@@ -1,0 +1,13 @@
+@page "/demo/static-content/low-stock/net10"
+@layout DemoLayout
+
+<h1>Warehouse</h1>
+
+@* The .NET 11 demo page, unchanged, as a .NET 10 app ran it. *@
+<Net10Recording Sdk="10.0.102" Request="GET /warehouse" Status="500"
+                Repro="renderfragment-across-render-modes" Note="/warehouse is the repro's copy of the .NET 11 demo page.">
+    <div class="crash" data-crash>
+        <b>HTTP 500: the whole page failed, before any of it rendered</b>
+        <code>InvalidOperationException: Cannot pass the parameter 'ChildContent' to component 'Collapsible' with rendermode 'InteractiveServerRenderMode'. This is because the parameter is of the delegate type 'Microsoft.AspNetCore.Components.RenderFragment', which is arbitrary code and cannot be serialized.</code>
+    </div>
+</Net10Recording>

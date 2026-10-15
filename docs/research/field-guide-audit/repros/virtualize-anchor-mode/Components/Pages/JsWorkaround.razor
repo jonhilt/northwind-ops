@@ -1,0 +1,23 @@
+@page "/js-workaround"
+@inject IJSRuntime JS
+@* .NET 10 workaround 1: ask JS "at bottom?", add, then ask JS to scroll down. Rows have mixed heights. *@
+<h1>JS workaround, mixed heights (.NET 10)</h1>
+<button id="add" @onclick="Add">Add message</button> <span id="count">@messages.Count messages</span>
+<div class="feed" id="feed" @ref="scroller">
+    <Virtualize Items="messages" Context="m">
+        <div class="msg" data-n="@m.N">@m.Text</div>
+    </Virtualize>
+</div>
+
+@code {
+    ElementReference scroller;
+    List<Message> messages = [.. Enumerable.Range(0, 300).Select(n => Message.Make(n, true))];
+
+    async Task Add()
+    {
+        var atBottom = await JS.InvokeAsync<bool>("chat.isAtBottom", scroller);
+        messages.Add(Message.Make(messages.Count, true));
+        StateHasChanged();
+        if (atBottom) await JS.InvokeVoidAsync("chat.scrollToBottom", scroller);
+    }
+}

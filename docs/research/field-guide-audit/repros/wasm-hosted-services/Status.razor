@@ -1,0 +1,14 @@
+@implements IDisposable
+@inject HostedWatcher Hosted
+@inject ManualWatcher Manual
+
+<ul>
+    <li id="hosted">AddHostedService watcher: started=@Hosted.Started ticks=@Hosted.Ticks</li>
+    <li id="manual">Hand-started singleton watcher: started=@Manual.Started ticks=@Manual.Ticks</li>
+</ul>
+
+@code {
+    protected override void OnInitialized() { Hosted.Changed += Refresh; Manual.Changed += Refresh; }
+    void Refresh() => InvokeAsync(StateHasChanged);
+    public void Dispose() { Hosted.Changed -= Refresh; Manual.Changed -= Refresh; }
+}

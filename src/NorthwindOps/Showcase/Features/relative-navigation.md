@@ -48,7 +48,7 @@ Navigation.NavigateTo(folder + "review");
 
 `NavigationOptions.RelativeToCurrentUri` and `NavLink.RelativeToCurrentUri` are both `bool`, and both default to `false`, so existing links behave as before.
 
-- **It resolves like a link on a page with no `<base>`.** Everything after the last `/` of the current path is dropped, and your path is added. From `/purchasing/new/lines`, `review` becomes `/purchasing/new/review`. From `/purchasing/new` (no trailing slash) it would be `/purchasing/review`, which is why the resume redirect uses `new/lines`.
+- **It resolves against the current URL's folder.** Everything after the last `/` of the current path is dropped, and your path is added as written (NavLink renders `./` and `../` as they are, for the browser to resolve). From `/purchasing/new/lines`, `review` becomes `/purchasing/new/review`. From `/purchasing/new` (no trailing slash) it would be `/purchasing/review`, which is why the resume redirect uses `new/lines`.
 - **Query and fragment links keep the page.** A value that starts with `?` replaces the current URL's query (and drops any fragment); one that starts with `#` replaces just the fragment.
 - **Relative only.** With the option on, an absolute URL or a path starting with `/` throws `ArgumentException`.
 - **NavLink resolves it while rendering**, so it works on static SSR pages like this one. It renders the resolved, absolute URL as the `href`, and matches that for its `active` class.

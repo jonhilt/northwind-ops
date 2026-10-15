@@ -1,6 +1,7 @@
 @using NorthwindOps.Features.Support
 @inject SupportDesk Desk
 
+@* ScrollToItemAsync throws until the circuit starts, so the buttons wait for it. *@
 <form class="tools" @onsubmit="() => GoToAsync(jumpTo ?? 1)">
     <label for="jump">Jump to message #</label>
     <input id="jump" type="number" @bind="jumpTo" />
@@ -9,12 +10,13 @@
             @onclick="() => GoToAsync(messages.Count)">Latest</button>
 </form>
 
-@* Wait for the messages, so the list opens knowing how many there are. *@
+@* InitialItemIndex applies once, so the list waits until it has its messages. *@
 @if (messages.Count > 0)
 {
-    <div class="thread">
+    <div class="thread" data-asked="@(target ?? Message)" data-count="@messages.Count">
         @* xray:virtualize-scroll-to-item *@
-        @* Opens at the linked message. Even the prerendered HTML starts around it. *@
+        @* New in .NET 11: open at the linked message (zero-based, so #300 is index 299).
+           Even the prerendered HTML starts around it. *@
         <Virtualize @ref="list" Items="messages" Context="m"
                     InitialItemIndex="(Message ?? 1) - 1">
         @* /xray:virtualize-scroll-to-item *@
@@ -31,7 +33,7 @@
     List<TicketMessage> messages = [];
     int? jumpTo, target;
 
-    [SupplyParameterFromQuery] public int? Message { get; set; } // like ?message=240
+    [SupplyParameterFromQuery] public int? Message { get; set; } // like ?message=300
 
     protected override async Task OnInitializedAsync()
     {
@@ -40,12 +42,12 @@
         messages = (await Desk.GetAsync(longest.Id))!.Messages;
     }
 
-    // xray:virtualize-scroll-to-item
     async Task GoToAsync(int number)
     {
-        target = Math.Clamp(number, 1, messages.Count);
-        // Renders the messages around it if need be, then aligns it to the top.
+        target = Math.Clamp(number, 1, messages.Count); // the app's own highlight
+        // xray:virtualize-scroll-to-item
+        // New in .NET 11: renders the messages around it, then aligns it to the top.
         await list!.ScrollToItemAsync(target.Value - 1);
+        // /xray:virtualize-scroll-to-item
     }
-    // /xray:virtualize-scroll-to-item
 }

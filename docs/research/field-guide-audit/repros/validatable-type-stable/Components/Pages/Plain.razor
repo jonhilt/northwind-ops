@@ -1,0 +1,22 @@
+@page "/plain"
+<h1>Plain model (no [ValidatableType])</h1>
+<EditForm Model="Input" FormName="plain" OnValidSubmit="Save">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <InputText @bind-Value="Input!.Company" />
+    <InputText @bind-Value="Input!.Address.City" />
+    @for (var i = 0; i < Input.Contacts.Count; i++)
+    {
+        var n = i;
+        <InputText @bind-Value="Input.Contacts[n].Name" />
+        <InputText @bind-Value="Input.Contacts[n].Email" />
+    }
+    <button>Save</button>
+</EditForm>
+<p id="result">@result</p>
+@code {
+    [SupplyParameterFromForm] public PlainSupplierForm? Input { get; set; }
+    string? result;
+    protected override void OnInitialized() => Input ??= new();
+    void Save() => result = $"SAVED company={Input!.Company} city='{Input.Address.City}' contactEmail='{Input.Contacts.FirstOrDefault()?.Email}'";
+}

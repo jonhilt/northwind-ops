@@ -1,0 +1,22 @@
+/* QuickGrid's .NET 10 look, without its scoped styles: plain headers and an arrow pager. */
+.net10-grid button {
+    font: inherit;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+}
+.net10-grid .col-title { font-weight: 600; }
+.net10-grid .col-sort-asc .sort-indicator::before { content: " ▲"; font-size: 10px; }
+.net10-grid .sort-indicator { display: inline; }
+.net10-grid .col-title-text { display: inline; }
+.net10-grid .paginator { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 13px; }
+.net10-grid nav { display: flex; gap: 10px; align-items: center; }
+.net10-grid nav button { width: 26px; height: 26px; border: 1px solid var(--line); border-radius: 6px; }
+.net10-grid nav button:disabled { opacity: 0.35; cursor: default; }
+.net10-grid .go-first::before { content: "«"; }
+.net10-grid .go-previous::before { content: "‹"; }
+.net10-grid .go-next::before { content: "›"; }
+.net10-grid .go-last::before { content: "»"; }

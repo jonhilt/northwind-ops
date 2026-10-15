@@ -1,0 +1,6 @@
+<StockTable Rows="rows" CalculatedAt="at" />
+@code {
+    List<CategoryStock> rows = []; DateTime at;
+    public StockSummary() => Interlocked.Increment(ref Stats.ComponentsCreated);
+    protected override async Task OnInitializedAsync() { rows = await SlowStock.LoadAsync(); at = DateTime.Now; }
+}

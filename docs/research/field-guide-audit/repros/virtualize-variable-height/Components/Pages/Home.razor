@@ -1,0 +1,42 @@
+@page "/"
+
+@* .NET 10: the same markup the guide's .NET 11 demo uses. 420 messages: two one-line log
+   entries, then one long email, repeated. ItemSize is a rough guess (80px). *@
+<p>
+    @messages.Count messages
+    <button id="expand-all" @onclick="ToggleAll">@(expandAll ? "Collapse all" : "Expand all")</button>
+</p>
+
+<div class="thread" id="thread">
+    <Virtualize Items="messages" Context="m" ItemSize="80">
+        <article class="@(IsLong(m) && !IsOpen(m) ? "msg clamped" : "msg")" data-n="@m.Number">
+            <header><b>@m.Author</b> #@m.Number</header>
+            <p>@m.Body</p>
+            @if (IsLong(m))
+            {
+                <button class="more" @onclick="() => Toggle(m)">@(IsOpen(m) ? "Show less" : "Show more")</button>
+            }
+        </article>
+    </Virtualize>
+</div>
+
+@code {
+    record Message(int Number, string Author, string Body);
+
+    static readonly string Para =
+        "Hi team, following up on the order-sync failure from last night. The nightly job picked up the batch, " +
+        "posted the first 1,200 orders to the warehouse API and then started getting 429s. Our retry policy backed off " +
+        "but the window closed before it finished, so roughly 300 orders were never sent. ";
+
+    readonly List<Message> messages = Enumerable.Range(1, 420).Select(i => i % 3 == 0
+        ? new Message(i, "Dana (customer)", string.Concat(Enumerable.Repeat(Para, 3 + i % 5)))
+        : new Message(i, "sync-bot", $"[02:{i % 60:00}] batch {i}: 50 orders posted, 0 failed")).ToList();
+
+    readonly HashSet<int> toggled = [];
+    bool expandAll;
+
+    static bool IsLong(Message m) => m.Body.Length > 300;
+    bool IsOpen(Message m) => expandAll != toggled.Contains(m.Number);
+    void Toggle(Message m) { if (!toggled.Add(m.Number)) toggled.Remove(m.Number); }
+    void ToggleAll() { expandAll = !expandAll; toggled.Clear(); }
+}

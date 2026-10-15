@@ -1,0 +1,28 @@
+@* A numbered figure that is a live demo: the real /demo page running in a browser-like frame (wired by guide.js).
+   The caption says what to do in it and what to watch for. *@
+<figure class="fig demo" data-demo data-side="@Side">
+    <figcaption class="fig-title">Fig. @Number · @Title</figcaption>
+    <div class="browser">
+        <div class="bar">
+            <span class="side @Side">@Label</span>
+            <a class="addr" data-demo-address href="@Url" target="_blank" rel="noopener" title="Open this demo in its own tab">&lrm;/@Url</a>
+            <button type="button" data-demo-refresh title="Refresh the demo, like pressing F5">⟳</button>
+            <button type="button" data-demo-reset title="Start the demo again">Start over</button>
+        </div>
+        <iframe src="@Url" data-demo-frame title="@Label"></iframe>
+    </div>
+    @if (Caption is not null)
+    {
+        <div class="fig-cap">@Caption</div>
+    }
+</figure>
+
+@code {
+    [Parameter, EditorRequired] public int Number { get; set; }
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter, EditorRequired] public string Url { get; set; } = "";
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    /// <summary>"before" (the old way, labelled red) or "after" (the new way, labelled green).</summary>
+    [Parameter] public string Side { get; set; } = "after";
+    [Parameter] public RenderFragment? Caption { get; set; }
+}

@@ -1,0 +1,44 @@
+@page "/demo/tempdata/orders/net10/{Id:int}"
+@using System.ComponentModel.DataAnnotations
+@layout DemoLayout
+@inject IDbContextFactory<NorthwindDb> DbFactory
+@inject NavigationManager Navigation
+
+<a href="demo/tempdata/orders/net10">← Orders</a>
+<h1>Order @Id</h1>
+
+@if (Input is not null)
+{
+    <EditForm Model="Input" FormName="edit-order" OnValidSubmit="SaveAsync" Enhance>
+        <DataAnnotationsValidator />
+        <label for="notes">Internal note</label>
+        <InputText id="notes" @bind-Value="Input.Notes" maxlength="500" />
+        <ValidationMessage For="() => Input.Notes" />
+        <button type="submit">Save changes</button>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    [SupplyParameterFromForm] public NoteForm? Input { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        Input ??= new() { Notes = (await db.Orders.FindAsync(Id))?.Notes };
+    }
+
+    async Task SaveAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        if (await db.Orders.FindAsync(Id) is not { } order) return;
+        order.Notes = Input!.Notes;
+        await db.SaveChangesAsync();
+
+        // .NET 10: nowhere to keep a message across the redirect, so it rides in the URL.
+        Navigation.NavigateTo($"demo/tempdata/orders/net10?saved={Id}");
+    }
+
+    public sealed class NoteForm { [StringLength(500)] public string? Notes { get; set; } }
+}

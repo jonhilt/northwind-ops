@@ -12,9 +12,11 @@ summary: The WebAssembly host now starts the IHostedService and BackgroundServic
 ## Try it
 
 1. Open the orders demo at `/demo/hosted-services/orders`, or step through it in the Field Guide. The page is static SSR. Only the bell at the top runs in the browser, with `@rendermode` `InteractiveWebAssembly` and no prerendering.
-2. Wait a few seconds. The bell's time updates every 3 seconds, and its count goes up as the warehouse's simulated feed places, packs and ships orders.
-3. Click **Customers**. It's another static page with its own bell. Enhanced navigation keeps WebAssembly running, so the new bell picks up the same count: the watcher behind it never stopped.
+2. Wait a few seconds. The bell's "checked" count goes up every 3 seconds, and its order count goes up as the warehouse's simulated feed places, packs and ships orders.
+3. Click **Customers**, a static page with no bell, wait a few seconds, and click **Orders**. Enhanced navigation keeps WebAssembly running, so the watcher kept checking while you were away: the bell's count and its "since" time carry on.
 4. Reload the page. WebAssembly starts again, and so does the watcher, from 0.
+
+In the Field Guide, the same pages run beside a .NET 10 bell that polls by itself (`/demo/hosted-services/orders/net10`). Its count starts again from 0 each time you come back to Orders.
 
 ## The .NET 10 way
 
@@ -29,7 +31,7 @@ _ = host.Services.GetRequiredService<OrderWatcher>().StartAsync(CancellationToke
 await host.RunAsync();
 ```
 
-That's start-up code every app had to remember. Libraries that rely on hosted services, like some telemetry exporters, didn't start either.
+That's start-up code every app had to remember. Hosted services that libraries register, like OpenTelemetry's, didn't start either. In .NET 11 the WebAssembly SDK brings the hosting abstractions, so there's no package to add.
 
 ## How it works
 
@@ -42,7 +44,7 @@ That's start-up code every app had to remember. Libraries that rely on hosted se
 
 So a slow `StartAsync` delays the first render. `BackgroundService.StartAsync` returns as soon as `ExecuteAsync` reaches its first incomplete `await`, which makes it the easy choice. When the host is disposed, it calls `StopAsync` on each service and logs any failures. In a browser that rarely happens: the app ends when the page unloads, so don't rely on `StopAsync` to save anything.
 
-The demo registers the watcher twice: once as a singleton, so components can inject it, and once as a hosted service that resolves that same instance. `OrderWatcher` is a `BackgroundService` with a `PeriodicTimer`. Each tick it calls `demo/hosted-services/api/updates?after={id}` on the server and raises `Changed`. The bell subscribes in `OnInitialized`, calls `InvokeAsync(StateHasChanged)` when it fires, and unsubscribes in `Dispose`. The watcher skips the call when no bell is listening, because every WebAssembly demo in this app shares the one client, and the others don't need it.
+The demo registers the watcher twice: once as a singleton, so components can inject it, and once as a hosted service that resolves that same instance. `AddHostedService<OrderWatcher>()` would create a second instance, so the host would run one watcher and the bells would listen to another that never runs. `OrderWatcher` is a `BackgroundService` with a `PeriodicTimer`. Each tick it calls `demo/hosted-services/api/updates?after={id}` on the server and raises `Changed`. The bell subscribes in `OnInitialized`, calls `InvokeAsync(StateHasChanged)` when it fires, and unsubscribes in `Dispose`. Every WebAssembly demo in this app shares the one client, so the watcher waits for the first bell to subscribe before it calls the server. After that it checks on every tick, bell or no bell.
 
 Gotchas:
 

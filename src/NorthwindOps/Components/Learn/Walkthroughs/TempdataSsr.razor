@@ -1,0 +1,149 @@
+@page "/learn/tempdata-ssr"
+@layout LearnLayout
+
+<PageTitle>TempData · Field Guide</PageTitle>
+
+<article class="l-article" data-learn>
+    <h1 class="l-title">TempData</h1>
+    <p class="l-sub">You save an order and redirect back to the list. How does the list know to say "saved"?</p>
+    <p class="l-meta">.NET 11 · Pages &amp; navigation · Static SSR · about 5 minutes</p>
+    <p class="l-new">
+        <b>What's new in .NET 11:</b> TempData for Blazor components, the one-time message MVC and Razor Pages always
+        had. In .NET 10 components had no TempData: a message that had to survive a redirect went in the URL or in a
+        cookie you wrote yourself.
+    </p>
+
+    <p>
+        Below is an <i>Orders</i> list. Click an order, write an internal note, save, and you're redirected back to
+        the list, which should say "Order … saved" once.
+    </p>
+    <p>
+        This one does it the quick .NET 10 way: the edit page redirects to the list with <code>?saved=…</code> in the
+        address. Under the list, <b>Carried by</b> says what brought the message.
+    </p>
+
+    <DemoFigure Number="1" Title="The list, with a flag in the URL" Url="demo/tempdata/orders/net10"
+                Label=".NET 10: a flag in the URL" Side="before">
+        <Caption>
+            Start with the link under the list, the kind someone could send you: click
+            <code>…/net10?saved=99999</code>. The list says "Order 99999 saved", for an order that doesn't exist. Then
+            do it for real: click an order number, type a note and press <b>Save changes</b>. The list says "Order …
+            saved", and <b>Carried by</b> shows the address ending <code>?saved=…</code>. Now press the <b>⟳</b>
+            refresh button in the frame's address bar (not <b>Start over</b>): it says "saved" again.
+        </Caption>
+    </DemoFigure>
+
+    <h2><small>The problem</small>The message is whatever the address says</h2>
+    <p>The flag isn't a message from the save. It's part of the page's address:</p>
+    <div class="fig">
+        <span class="fig-title">What the list sees</span>
+        <pre class="snip">POST /orders/11078   <span class="dim">→ 302 Location: /orders?saved=11078</span>
+GET  /orders?saved=11078   <span class="ok">✓ "Order 11078 saved"</span>
+GET  /orders?saved=11078   <span class="dim">(refresh)</span>   <span class="err">"Order 11078 saved" again</span>
+GET  /orders?saved=99999   <span class="dim">(a shared link)</span>   <span class="err">"Order 99999 saved", nothing saved</span></pre>
+    </div>
+    <p>
+        The list can't tell a redirect from a refresh, a bookmark or a link someone typed. Anything in the address
+        is replayed every time the address is opened.
+    </p>
+
+    <h2><small>The fix</small>Set the message as you redirect, read it once</h2>
+    <p>
+        The edit page writes the message through a <code>[SupplyParameterFromTempData]</code> property. The list
+        reads it a different way, with <code>ITempData.Get</code>, and that difference matters: the attribute writes
+        its property back to TempData when the request ends, so a list that read through it would keep the message
+        and show it again on the next visit. <code>Get</code> reads it once and lets it go.
+    </p>
+    <div class="fig">
+        <span class="fig-title">The whole fix</span>
+        <pre class="snip"><span class="dim">// The edit page</span>
+<span class="hl">[SupplyParameterFromTempData(Name = "flash")]</span> public string? Flash { get; set; }
+
+<span class="hl">Flash = $"Order {Id} saved";</span>
+Navigation.NavigateTo("orders");
+
+<span class="dim">// The list</span>
+<span class="hl">[CascadingParameter] public ITempData? TempData { get; set; }</span>
+
+message = <span class="hl">TempData?.Get("flash")</span> as string;</pre>
+    </div>
+    <p>
+        The redirect sets a cookie holding the message, encrypted and signed, so an edited cookie is ignored.
+        <code>Get</code> reads the value and marks it for deletion, so the list's response deletes the cookie. There's
+        nothing to set up in <code>Program.cs</code>: <code>AddRazorComponents()</code> already includes TempData.
+        Here's the same list, with TempData.
+    </p>
+
+    <DemoFigure Number="2" Title="The same list, with TempData" Url="demo/tempdata/orders"
+                Label=".NET 11: TempData">
+        <Caption>
+            Click an order number, type a note and press <b>Save changes</b>. The list says "Order … saved", the
+            address has no flag, and <b>Carried by</b> shows an encrypted TempData cookie. Press the <b>⟳</b> refresh
+            button in the frame's address bar: the message has gone, and <b>Carried by</b> says "no TempData
+            cookie".
+        </Caption>
+    </DemoFigure>
+
+    <p>Here are the two pages behind Fig. 2:</p>
+
+    <CodeFigure Number="3" Path="Components/Guide/Demos/TempData/EditOrder.razor" Feature="tempdata-ssr">
+        <Caption>
+            The edit page. Where Fig. 1's page put <code>?saved=</code> on the redirect, this one sets
+            <code>Flash</code>, and the redirect carries it in the cookie. (Its hand-typed
+            <code>label for</code>/<code>id</code> pair predates the guide's Labels page; it isn't part of this
+            technique.)
+        </Caption>
+    </CodeFigure>
+
+    <CodeFigure Number="4" Path="Components/Guide/Demos/TempData/OrderList.razor" Feature="tempdata-ssr">
+        <Caption>
+            The list. <code>Get</code> reads the message once, which is why Fig. 2's refresh shows nothing.
+        </Caption>
+    </CodeFigure>
+
+    <h2><small>The .NET 10 way</small>A flag in the URL, or a cookie you write yourself</h2>
+    <p>A .NET 10 build of both workarounds, driven with curl. The cookie copies the Identity template's own pattern, 5-second lifetime included:</p>
+    <div class="fig">
+        <span class="fig-title">Two ways to say "saved" in .NET 10, and what happened</span>
+        <div class="flow">
+            <div class="box">
+                <pre class="snip">NavigateTo($"orders?saved={Id}");</pre>
+                <span class="why">the list shows a banner when <code>?saved=</code> is there</span>
+                <div class="verdict bad">✗ a refresh shows it again; <code>?saved=99999</code> shows it with nothing saved</div>
+            </div>
+            <div class="box">
+                <pre class="snip">Response.Cookies.Append("Status",
+    $"Order {Id} saved",
+    new() { MaxAge = <span class="err">TimeSpan.FromSeconds(5)</span> });</pre>
+                <span class="why">the list reads it and deletes it, as the Identity template's <code>IdentityRedirectManager</code> does for <code>StatusMessage</code></span>
+                <div class="verdict ok">✓ shows once; but as written it's plain text a forged cookie can replace, and the template's 5-second lifetime drops it on a slow redirect</div>
+            </div>
+            <div class="box">
+                <pre class="snip">[CascadingParameter] ITempData? TempData
+[SupplyParameterFromTempData]</pre>
+                <div class="verdict bad">✗ CS0246: neither type exists in .NET 10</div>
+            </div>
+        </div>
+    </div>
+    <p>
+        The cookie works. Drop the <code>MaxAge</code> and protect the value with Data Protection, and it's sound.
+        But that's plumbing every app wrote and copied by hand. An app that also registered MVC could borrow MVC's
+        TempData through <code>ITempDataDictionaryFactory</code> and the <code>HttpContext</code>, but loading and
+        saving it was still code you wrote: nothing in Blazor wired it to a component.
+    </p>
+
+    <h2><small>.NET 11</small>TempData, built in</h2>
+    <p>
+        That plumbing is now part of Blazor: statically rendered components get the request's
+        <code>ITempData</code> as a cascading parameter, an encrypted cookie carries it, and
+        <code>[SupplyParameterFromTempData]</code> binds a value to a property. That's what Fig. 2 runs.
+    </p>
+
+    <h2><small>Good to know</small></h2>
+    <ul class="gk">
+        <li><b>Reading through the attribute?</b> If you must, set the property to null after reading it, or the message is written back and shows again; <code>Get</code>, as above, is simpler.</li>
+        <li><b>Simple values only.</b> Strings, ints, bools, Guids, <code>DateTime</code>s and int enums, plus arrays, lists and dictionaries of those. Anything else throws when TempData is saved, even a <code>decimal</code>: an order total of <code>42.50m</code> won't go in as a number. Format it into the message string, or store the order id and look the rest up.</li>
+        <li><b>Static SSR pages only.</b> An interactive component has no HTTP request, so <code>ITempData</code> cascades as null there and <code>TempData?.Get</code> gives nothing.</li>
+        <li><b>An encrypted cookie, by default.</b> It lasts for the browser session and is deleted by the response that reads it. To keep values in server session instead, set <code>TempDataProviderType.SessionStorage</code> in <code>AddRazorComponents</code> options, and add <code>AddDistributedMemoryCache()</code>, <code>AddSession()</code> and <code>UseSession()</code>.</li>
+    </ul>
+</article>

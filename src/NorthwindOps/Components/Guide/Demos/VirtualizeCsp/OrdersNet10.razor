@@ -1,0 +1,49 @@
+@page "/demo/virtualize-csp/orders/net10"
+@layout DemoLayout
+
+<h1>Order history</h1>
+
+@* The list a .NET 10 Virtualize rendered, replayed under the same policy as the .NET 11 page.
+   Its spacers hold their height in style="…", so this browser refuses them, as it did on .NET 10. *@
+<Net10Recording Sdk="10.0.102" Request="GET / (1,000 orders, style-src 'self')" Status="200"
+                Repro="virtualize-csp" Note="This is its markup, replayed: your browser refuses the spacers live, under the same policy.">
+<p class="count">1,000 orders in the list</p>
+<div class="list" data-net10-list>
+@* xray:virtualize-csp *@
+@* .NET 10's spacers: their height is an inline style, which style-src 'self' refuses. *@
+<div style="height: 0px; flex-shrink: 0;" aria-hidden="true"></div>
+@* /xray:virtualize-csp *@
+<div class="row">Order #1</div>
+<div class="row">Order #2</div>
+<div class="row">Order #3</div>
+<div class="row">Order #4</div>
+<div class="row">Order #5</div>
+<div class="row">Order #6</div>
+<div class="row">Order #7</div>
+<div class="row">Order #8</div>
+<div class="row">Order #9</div>
+<div class="row">Order #10</div>
+<div class="row">Order #11</div>
+<div class="row">Order #12</div>
+<div class="row">Order #13</div>
+<div class="row">Order #14</div>
+<div class="row">Order #15</div>
+<div class="row">Order #16</div>
+<div class="row">Order #17</div>
+<div class="row">Order #18</div>
+<div class="row">Order #19</div>
+@* xray:virtualize-csp *@
+@* Refused, so it collapses to 0px: the 981 orders it stands for can't be scrolled to. *@
+<div aria-hidden="true" style="height: 39240px; flex-shrink: 0;"></div>
+@* /xray:virtualize-csp *@
+</div>
+<p class="measured" data-measured>Measured on .NET 10: a 760px scroll range for 1,000 rows of 40px, which need 40,000px.</p>
+</Net10Recording>
+
+@code {
+    [CascadingParameter] HttpContext HttpContext { get; set; } = default!;
+
+    // The same policy as the .NET 11 page: no 'unsafe-inline'.
+    protected override void OnInitialized() =>
+        HttpContext.Response.Headers.ContentSecurityPolicy = "style-src 'self'; frame-ancestors 'self'";
+}

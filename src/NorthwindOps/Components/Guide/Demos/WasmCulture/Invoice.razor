@@ -16,7 +16,8 @@
 <h1>Invoice @orderId</h1>
 
 @* xray:wasm-culture-from-server *@
-@* Prerendered in the request's culture, then run on WebAssembly in that same culture. *@
+@* Prerendered in the request's culture, then run on WebAssembly in that same culture.
+   The prerender is what carries it: with prerender: false, WebAssembly uses the browser's language. *@
 <InvoiceSummary Lines="lines" Due="due" @rendermode="InteractiveWebAssembly" />
 @* /xray:wasm-culture-from-server *@
 

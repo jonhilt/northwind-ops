@@ -58,34 +58,54 @@
             break;
 
         case 1:
-            <h2 class="q">@((MarkupString)entry.Try.Question)</h2>
-            <div class="lead">@((MarkupString)entry.Try.LeadHtml)</div>
-            <div class="try">
-                <div class="browser" data-demo>
-                    <div class="bar">
-                        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-                        <span class="addr" data-demo-address>/@entry.DemoUrl</span>
-                        <button type="button" data-demo-refresh title="Refresh the demo, like pressing F5">⟳</button>
-                        <button type="button" data-demo-reset title="Start the demo again">Start over</button>
-                    </div>
-                    <iframe src="@entry.DemoUrl" data-demo-frame title="@entry.Title demo"></iframe>
+            @if (entry.Before is { } before)
+            {
+                @* The reader guesses first, then runs the old way and the new way side by side. *@
+                <div class="predict">
+                    <span class="tag">Predict</span>
+                    <h2 class="q">@((MarkupString)entry.Try.Question)</h2>
                 </div>
-                <div class="watch">
-                    <ol>
-                        @foreach (var item in entry.Try.WatchHtml)
-                        {
-                            <li><span>@((MarkupString)item)</span></li>
-                        }
-                    </ol>
-                    <div class="links">
-                        @if (entry.AppUrl is not null)
-                        {
-                            <a href="@entry.AppUrl">▶ See it in the full Northwind Ops app</a>
-                        }
-                        <a href="@entry.DemoUrl" target="_blank" rel="noopener">↗ Open this demo in its own tab</a>
+                <div class="lead">@((MarkupString)entry.Try.LeadHtml)</div>
+                <div class="pair" data-compare>
+                    @Browser(before.Url, before.Label, "before")
+                    @Browser(entry.DemoUrl, before.AfterLabel, "after")
+                </div>
+                <div class="pwe">
+                    <div class="watch">
+                        <span class="lbl">Watch</span>
+                        @WatchList(entry.Try)
+                    </div>
+                    @if (entry.Try.ExplainHtml is { } explain)
+                    {
+                        <details class="explain">
+                            <summary>Check your guess</summary>
+                            <p>@((MarkupString)explain)</p>
+                        </details>
+                    }
+                    @if (entry.AppUrl is not null)
+                    {
+                        <div class="links"><a href="@entry.AppUrl">▶ See it in the full Northwind Ops app</a></div>
+                    }
+                </div>
+            }
+            else
+            {
+                <h2 class="q">@((MarkupString)entry.Try.Question)</h2>
+                <div class="lead">@((MarkupString)entry.Try.LeadHtml)</div>
+                <div class="try">
+                    @Browser(entry.DemoUrl, null, null)
+                    <div class="watch">
+                        @WatchList(entry.Try)
+                        <div class="links">
+                            @if (entry.AppUrl is not null)
+                            {
+                                <a href="@entry.AppUrl">▶ See it in the full Northwind Ops app</a>
+                            }
+                            <a href="@entry.DemoUrl" target="_blank" rel="noopener">↗ Open this demo in its own tab</a>
+                        </div>
                     </div>
                 </div>
-            </div>
+            }
             break;
 
         case 2:
@@ -178,6 +198,33 @@
     }
 
     static string StepUrl(GuideEntry entry, int index) => index == 0 ? $"guide/{entry.Id}" : $"guide/{entry.Id}/{Steps[index].Slug}";
+
+    /// <summary>A demo in a browser-like frame. A side ("before" or "after") gets a label naming it.</summary>
+    RenderFragment Browser(string url, string? label, string? side) =>
+        @<div class="browser" data-demo data-side="@side">
+            <div class="bar">
+                @if (label is null)
+                {
+                    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                }
+                else
+                {
+                    <span class="side @side">@label</span>
+                }
+                <a class="addr" data-demo-address href="@url" target="_blank" rel="noopener" title="Open this demo in its own tab">&lrm;/@url</a>
+                <button type="button" data-demo-refresh title="Refresh the demo, like pressing F5">⟳</button>
+                <button type="button" data-demo-reset title="Start the demo again">Start over</button>
+            </div>
+            <iframe src="@url" data-demo-frame title="@(label ?? entry!.Title + " demo")"></iframe>
+        </div>;
+
+    static RenderFragment WatchList(GuideTry tryIt) =>
+        @<ol>
+            @foreach (var item in tryIt.WatchHtml)
+            {
+                <li><span>@((MarkupString)item)</span></li>
+            }
+        </ol>;
 
     string StepClass(int index) => index == step ? "on" : index < step ? "done" : "";
 }

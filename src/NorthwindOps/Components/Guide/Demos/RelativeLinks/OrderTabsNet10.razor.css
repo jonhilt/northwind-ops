@@ -1,0 +1,13 @@
+.tabs { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+
+.tabs ::deep a {
+    padding: 8px 14px;
+    margin-bottom: -1px;
+    border-bottom: 2px solid transparent;
+    color: var(--ink-soft);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+/* NavLink adds "active" to the tab that matches the current URL. */
+.tabs ::deep a.active { color: var(--brand); border-bottom-color: var(--brand); }

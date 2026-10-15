@@ -1,0 +1,3 @@
+<table>@foreach (var r in Rows){<tr><td>@r.Category</td><td>@r.Products</td><td>@r.Value</td></tr>}</table>
+<p>Figures calculated at <b>@CalculatedAt.ToString("HH:mm:ss.fff")</b></p>
+@code { [Parameter] public List<CategoryStock> Rows { get; set; } = []; [Parameter] public DateTime CalculatedAt { get; set; } }

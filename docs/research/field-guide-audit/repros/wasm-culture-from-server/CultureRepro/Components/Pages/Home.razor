@@ -1,0 +1,11 @@
+@page "/"
+@using System.Globalization
+@using CultureRepro.Client
+
+<p>Server request culture: <b id="server-culture">@CultureInfo.CurrentCulture.Name</b></p>
+
+@* Plain component: formats with the current culture, no culture passed in. *@
+<Invoice @rendermode="InteractiveWebAssembly" />
+
+@* .NET 10 workaround 2: pass the culture in and use it in every ToString. *@
+<InvoiceWithCulture Culture="@CultureInfo.CurrentCulture.Name" @rendermode="InteractiveWebAssembly" />

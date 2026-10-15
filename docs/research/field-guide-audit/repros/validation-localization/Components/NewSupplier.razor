@@ -1,0 +1,24 @@
+@page "/suppliers/new"
+<p>Culture: @System.Globalization.CultureInfo.CurrentUICulture.Name</p>
+
+<h2>A: plain attributes + IStringLocalizer with RequiredAttribute_Error</h2>
+<EditForm Model="A" FormName="plain" id="plain">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <InputText @bind-Value="A!.Company" /> <InputText @bind-Value="A!.Email" />
+    <button type="submit">Speichern A</button>
+</EditForm>
+
+<h2>B: .NET 10 workaround, ErrorMessageResource* per attribute (one missed)</h2>
+<EditForm Model="B" FormName="resource" id="resource">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <InputText @bind-Value="B!.Company" /> <InputText @bind-Value="B!.Email" />
+    <button type="submit">Speichern B</button>
+</EditForm>
+
+@code {
+    [SupplyParameterFromForm(FormName = "plain")] public PlainForm? A { get; set; }
+    [SupplyParameterFromForm(FormName = "resource")] public ResourceForm? B { get; set; }
+    protected override void OnInitialized() { A ??= new(); B ??= new(); }
+}

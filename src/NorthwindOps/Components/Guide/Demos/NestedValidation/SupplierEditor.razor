@@ -1,0 +1,85 @@
+@* The New supplier form, for either model: the pages beside it pick which one it posts. *@
+@typeparam TForm where TForm : class, ISupplierForm, new()
+
+@if (saved is not null)
+{
+    <div class="flash" role="status" data-saved>✓ Saved @saved</div>
+}
+
+<EditForm Model="Input" FormName="new-supplier" OnSubmit="Submit" Enhance>
+    @* Checks what the model's validation reaches. Server only here, so both forms post. *@
+    @* xray:validatable-type-stable *@
+    <DataAnnotationsValidator DisableClientValidation="true" />
+    @* /xray:validatable-type-stable *@
+    <Label For="() => Input!.Company" />
+    <InputText @bind-Value="Input!.Company" />
+    <ValidationMessage For="() => Input!.Company" />
+
+    <fieldset>
+        <legend>Address</legend>
+        <Label For="() => Input!.Address.City" />
+        <InputText @bind-Value="Input!.Address.City" />
+        <ValidationMessage For="() => Input!.Address.City" />
+    </fieldset>
+
+    <fieldset data-contacts>
+        <legend>Contacts</legend>
+        @for (var i = 0; i < Input.Contacts.Count; i++)
+        {
+            var n = i; // so the fields post as Input.Contacts[0].Name and so on
+            <div class="contact" data-contact>
+                <div>
+                    <Label For="() => Input.Contacts[n].Name" />
+                    <InputText @bind-Value="Input.Contacts[n].Name" />
+                    <ValidationMessage For="() => Input.Contacts[n].Name" />
+                </div>
+                <div>
+                    <Label For="() => Input.Contacts[n].Email" />
+                    <InputText @bind-Value="Input.Contacts[n].Email" />
+                    <ValidationMessage For="() => Input.Contacts[n].Email" />
+                </div>
+                <button type="submit" name="Intent" value="remove:@n" class="ghost">Remove</button>
+            </div>
+        }
+        <button type="submit" name="Intent" value="add" class="ghost">+ Add contact</button>
+    </fieldset>
+
+    <button type="submit">Save supplier</button>
+</EditForm>
+
+@code {
+    string? saved;
+
+    [SupplyParameterFromForm] public TForm? Input { get; set; }
+
+    // Which button posted the form: "add", "remove:{row}", or nothing for Save.
+    [SupplyParameterFromForm] public string? Intent { get; set; }
+
+    // Starts with mistakes in it: no city, a bad email and a missing one.
+    protected override void OnInitialized() => Input ??= Sample();
+
+    static TForm Sample() => new()
+    {
+        Company = "Acme",
+        Contacts = [new() { Name = "Ann", Email = "sales@" }, new() { Name = "Bo" }],
+    };
+
+    async Task Submit(EditContext form)
+    {
+        if (Intent == "add")
+        {
+            Input!.Contacts.Add(new());
+        }
+        else if (Intent?.StartsWith("remove:") == true)
+        {
+            Input!.Contacts.RemoveAt(int.Parse(Intent[7..]));
+        }
+        // Runs the validator on everything it reaches, and saves if that's all valid.
+        else if (await form.ValidateAsync())
+        {
+            var contacts = Input!.Contacts.Select(c => $"{c.Name} <{c.Email}>");
+            saved = $"{Input.Company}, city “{Input.Address.City}”, contacts: {string.Join(", ", contacts)}";
+            Input = Sample();
+        }
+    }
+}

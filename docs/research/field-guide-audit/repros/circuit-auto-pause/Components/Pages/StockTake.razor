@@ -1,0 +1,17 @@
+@page "/"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject CountingHandler Handler
+
+<h1>Stock take</h1>
+<p>Circuit <code id="circuit">@Handler.Id?[..6]</code></p>
+<p>Chai counted: <b id="counted">@Counted</b> <button id="plus" @onclick="() => Counted++">+</button></p>
+<label for="note">Note</label>
+<input id="note" @bind="Note" />
+<p>Note the server has: "<span id="saved">@Note</span>"</p>
+<p>Plain field, not [PersistentState]: <span id="plain">@plain</span></p>
+
+@code {
+    [PersistentState] public int Counted { get; set; }
+    [PersistentState] public string? Note { get; set; }
+    string plain = "created " + DateTime.Now.ToString("HH:mm:ss.fff");
+}

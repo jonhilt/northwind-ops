@@ -6,7 +6,7 @@ release: Preview 6 (renamed in Preview 7)
 mode: Interactive Server
 sources: Components/Pages/Support/TicketThread.razor, Features/Support/SupportDesk.cs
 docs: https://learn.microsoft.com/aspnet/core/blazor/components/virtualization?view=aspnetcore-11.0#scroll-to-a-specific-item
-summary: Virtualize can now open at any item and scroll to any item from code, even one that isn't in the DOM yet. Long threads open at your first unread message, and "Jump to message #" lands exactly on the message.
+summary: In .NET 11, Virtualize can open at any item and scroll to any item from code, even one that isn't in the DOM yet. Long threads open at your first unread message, and "Jump to message #" lands exactly on the message.
 ---
 
 ## Try it
@@ -18,7 +18,7 @@ summary: Virtualize can now open at any item and scroll to any item from code, e
 
 ## The .NET 10 way
 
-`Virtualize` had no way to start anywhere but the top, or to scroll from code. You worked out a pixel offset from `ItemSize` and scrolled the container with JavaScript:
+Before .NET 11, `Virtualize` had no way to start anywhere but the top, or to scroll from code. You worked out a pixel offset from `ItemSize` and scrolled the container with JavaScript:
 
 ```razor
 <div class="thread-scroll" @ref="scroller">
@@ -39,7 +39,9 @@ summary: Virtualize can now open at any item and scroll to any item from code, e
 }
 ```
 
-With messages of different heights the offset was a guess, so you landed somewhere near the message, and the page flashed message 1 before jumping. The target wasn't in the DOM until Virtualize caught up with the scroll, so you couldn't scroll it into view or highlight it without polling for it.
+With messages of different heights the offset was a guess, so you landed a message or more off: our .NET 10 repro opened `?message=240` on #241, with #240 above the top, and a jump to #35 landed on #46. The list was blank until the circuit started (the prerendered HTML held only an empty spacer), then showed message 1 before jumping. The target wasn't in the DOM until Virtualize caught up with the scroll, so you couldn't scroll it into view or highlight it without polling for it.
+
+Asked for since 2020 in [dotnet/aspnetcore#26943](https://github.com/dotnet/aspnetcore/issues/26943).
 
 ## How it works
 

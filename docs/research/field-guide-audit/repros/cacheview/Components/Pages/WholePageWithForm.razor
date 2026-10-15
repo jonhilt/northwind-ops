@@ -1,0 +1,7 @@
+@page "/wholepage-form"
+@attribute [OutputCache(Duration = 20)]
+<h1>Workaround 2 with a per-visitor form on the page</h1>
+<p>Page rendered at <b>@DateTime.Now.ToString("HH:mm:ss.fff")</b></p>
+<StockSummary />
+<form method="post" @formname="note" @onsubmit="() => { }"><AntiforgeryToken /><button>Save</button></form>
+<StatsLine />

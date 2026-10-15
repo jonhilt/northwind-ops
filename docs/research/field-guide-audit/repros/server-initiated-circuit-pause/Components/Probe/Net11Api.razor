@@ -1,0 +1,5 @@
+@* Compiled only with -p:TryNet11Api=true: the .NET 11 API, to see what .NET 10 says about it. *@
+@inject PauseRepro.CircuitTracker Tracker
+@code {
+    async Task<bool> Ask() => await Tracker.Circuit!.RequestCircuitPauseAsync();
+}

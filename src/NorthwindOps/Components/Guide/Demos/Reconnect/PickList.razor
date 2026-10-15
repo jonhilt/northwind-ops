@@ -2,29 +2,31 @@
 @layout DemoLayout
 
 @* xray:browser-options *@
-@* Written into the page as it renders. blazor.web.js applies it as it starts. *@
+@* New in .NET 11: written into the page as it renders. blazor.web.js applies it as it starts. *@
 <ConfigureBrowser Options="warehouseWifi" />
 @* /xray:browser-options *@
 
 <h1>Pick list · order 10950</h1>
 
-@* The page is static. Only the pick list runs on the server, over a connection. *@
-<PickLines @rendermode="InteractiveServer" />
-
-@* xray:browser-options *@
-@* blazor.web.js fills these in while it retries, from the options it was given. *@
+@* Not new: blazor.web.js fills these in while it retries, from the options it was given. *@
 <p class="rejoin">
     Rejoin attempt <b id="components-reconnect-current-attempt"></b>
     of <b id="components-reconnect-max-retries"></b>
+    <RetryGaps />
 </p>
-@* /xray:browser-options *@
+
+@* The page is static. Only the pick list runs on the server, over a connection. *@
+<PickLines @rendermode="InteractiveServer" />
 
 <WifiDropout />
+<SentToBrowser />
 
 @code {
     // xray:browser-options
-    // Warehouse Wi-Fi drops out for a few seconds at a time:
-    // retry every 2 seconds, 20 times.
+    // New in .NET 11: typed settings in C#. Warehouse Wi-Fi drops out for a few seconds
+    // at a time: retry every 2 seconds, 20 times. (Blazor's default is 30 tries: 10 at
+    // once, with no wait, then 10 five seconds apart, then 10 thirty seconds apart.)
+    // static readonly: built once, and every request for this page passes the same one.
     static readonly BrowserOptions warehouseWifi = new()
     {
         InteractiveServer =

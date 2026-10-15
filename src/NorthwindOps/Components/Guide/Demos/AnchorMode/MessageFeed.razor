@@ -1,25 +1,23 @@
 @implements IDisposable
 
+<p class="count" data-newest="@messages[^1].N">@messages.Count messages</p>
 @* xray:virtualize-anchor-mode *@
+@* Not new: the box that scrolls. AnchorMode follows its end, so give it a height. *@
 <div class="feed" style="height: 300px; overflow-y: auto">
+@* /xray:virtualize-anchor-mode *@
+    @* xray:virtualize-anchor-mode *@
+    @* New in .NET 11: follow the end of the list while the reader is at its bottom. *@
     <Virtualize Items="messages" AnchorMode="VirtualizeAnchorMode.End" Context="m">
-        <div class="msg">
+    @* /xray:virtualize-anchor-mode *@
+        <div class="msg" data-n="@m.N">
             <b>@m.From</b> <span>@m.Text</span> <time>@m.At.ToString("HH:mm:ss")</time>
         </div>
     </Virtualize>
 </div>
-@* /xray:virtualize-anchor-mode *@
 
 @code {
-    record Message(string From, string Text, DateTime At);
-
-    static readonly string[] Customers = ["Ana Trujillo", "Thomas Hardy", "Hanna Moos"];
-    static readonly string[] Asks = [
-        "Has order {0} shipped?", "Order {0} arrived, thanks!",
-        "Can I change the address on {0}?", "Please add 6 more chai to {0}."];
-
-    // Thirty earlier messages, so there's something to scroll up and read.
-    List<Message> messages = [.. Enumerable.Range(0, 30).Select(n => Make(n, 30 - n))];
+    // 300 earlier messages, some long, so there's something to scroll up and read.
+    List<InboxMessage> messages = InboxMessage.Earlier();
     Timer? timer;
 
     protected override void OnAfterRender(bool firstRender)
@@ -30,16 +28,13 @@
 
     void Arrive()
     {
-        if (messages.Count == 200) return; // keep the demo small
+        if (messages.Count == 400) return; // keep the demo small
         // xray:virtualize-anchor-mode
-        // Just add it. If you're at the bottom, Virtualize scrolls down to show it.
-        messages.Add(Make(messages.Count, 0));
+        // Not new: just add it. If you're at the bottom, AnchorMode scrolls to it.
+        messages.Add(InboxMessage.Make(messages.Count));
         StateHasChanged();
         // /xray:virtualize-anchor-mode
     }
-
-    static Message Make(int n, int minutesAgo) => new(Customers[n % 3],
-        string.Format(Asks[n % 4], 10900 + n), DateTime.Now.AddMinutes(-minutesAgo));
 
     public void Dispose() => timer?.Dispose();
 }

@@ -1,0 +1,6 @@
+@page "/wholepage"
+@attribute [OutputCache(Duration = 20)]
+<h1>Workaround 2: [OutputCache] on the whole page</h1>
+<p>Page rendered at <b>@DateTime.Now.ToString("HH:mm:ss.fff")</b></p>
+<StockSummary />
+<StatsLine />

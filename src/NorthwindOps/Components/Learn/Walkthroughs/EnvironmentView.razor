@@ -1,0 +1,145 @@
+@page "/learn/environment-view"
+@layout LearnLayout
+
+<PageTitle>Content for some environments only · Field Guide</PageTitle>
+
+<article class="l-article" data-learn>
+    <h1 class="l-title">Content for some environments only</h1>
+    <p class="l-sub">Your debug panel runs in the browser, but the server renders it first. Which environment is it in?</p>
+    <p class="l-meta">.NET 11 · Rendering · Any render mode · about 5 minutes</p>
+    <p class="l-new">
+        <b>What's new in .NET 11:</b> <code>IHostEnvironment</code> is now registered in WebAssembly too, and
+        <code>&lt;EnvironmentView&gt;</code> renders its content only in the environments you name. In .NET 10 a
+        server-only check already worked; one that ran on both the server and in the browser didn't.
+    </p>
+
+    <p>
+        Below is a <i>Recent orders</i> page. Outside Production it shows a test-data banner and a small debug panel
+        that names the environment. The page is static, but the debug panel runs on WebAssembly.
+    </p>
+    <p>
+        A WebAssembly component is prerendered on the server first, then starts again in the browser. This version
+        asks <code>IWebAssemblyHostEnvironment</code> for the environment, the way .NET 10 apps did.
+    </p>
+
+    <DemoFigure Number="1" Title="The page, with the .NET 10 debug panel" Url="demo/environment-view/orders/net10"
+                Label=".NET 10: IWebAssemblyHostEnvironment" Side="before">
+        <Caption>
+            There's nothing to press: the page fails before anything reaches the browser. The server answers with a 500,
+            with no banner and no orders. The error names the panel's <code>Env</code> property: the server has no
+            <code>IWebAssemblyHostEnvironment</code> to give it.
+        </Caption>
+    </DemoFigure>
+
+    <h2><small>The problem</small>No one service answered in both places</h2>
+    <p>The panel is rendered twice, by two different hosts, and each host registers a different service:</p>
+    <div class="fig">
+        <span class="fig-title">Who could answer "which environment?" in .NET 10</span>
+        <pre class="snip">                          <span class="dim">server prerender</span>    <span class="dim">browser (WebAssembly)</span>
+IWebAssemblyHostEnvironment   <span class="err">✗ not registered</span>    <span class="ok">✓</span>
+IHostEnvironment              <span class="ok">✓</span>                   <span class="err">✗ not registered</span></pre>
+    </div>
+    <p>
+        The panel injects WebAssembly's service, so the server's prerender can't create it. The exception isn't
+        caught, so the request fails with a 500. The orders and the banner never get sent.
+    </p>
+
+    <h2><small>The fix</small>Ask the service that's now on both sides</h2>
+    <p>
+        In .NET 11, WebAssembly registers <code>IHostEnvironment</code> too, carrying the server's environment name,
+        with no extra package. Ask for that service instead, and the crash is gone. Then let
+        <code>&lt;EnvironmentView&gt;</code> do the check in place of the <code>if</code>.
+    </p>
+    <div class="fig">
+        <span class="fig-title">The whole fix</span>
+        <pre class="snip"><span class="dim">@@* was: @@inject IWebAssemblyHostEnvironment Env *@@</span>
+<span class="hl">@@inject IHostEnvironment Env</span>
+
+<span class="hl">&lt;EnvironmentView Exclude="Production"&gt;</span>
+    &lt;aside class="debug"&gt;Environment: @@Env.EnvironmentName&lt;/aside&gt;
+<span class="hl">&lt;/EnvironmentView&gt;</span></pre>
+    </div>
+    <p>
+        The <code>@@inject</code> line is what removes the crash. <code>&lt;EnvironmentView&gt;</code> asks the same
+        service for you, so a component that only needs the check can drop the <code>@@inject</code>. This panel keeps
+        it to print the name. Here's the same page with the panel built that way.
+    </p>
+
+    <DemoFigure Number="2" Title="The same page, with EnvironmentView" Url="demo/environment-view/orders"
+                Label=".NET 11: EnvironmentView">
+        <Caption>
+            Nothing to press: the fix is that the page loads at all. The banner at the top and the debug panel at the
+            bottom both name the environment the app runs in (<b>Development</b> on a local run, <b>Demo</b> on the
+            public site). The panel's <b>Renderer</b> says WebAssembly: it's running in your browser, after the server
+            prerendered it with the same service.
+        </Caption>
+    </DemoFigure>
+
+    <p>The fix is in the panel, and the page uses the same tag for its banner. Here's the panel:</p>
+
+    <CodeFigure Number="3" Path="Client/Environments/DebugPanel.razor" Feature="environment-view">
+        <Caption>
+            Fig. 2's panel: the fix above, in full. The <code>@@inject</code> is the line that stops the 500 (its
+            comment's "workaround 2" is the second .NET 10 option below); the tag does the check.
+        </Caption>
+    </CodeFigure>
+
+    <CodeFigure Number="4" Path="Client/Environments/DebugPanelNet10.razor" Feature="environment-view">
+        <Caption>
+            Fig. 1's panel. The highlighted line is the 500: the server can't provide that service. WebAssembly's
+            service calls the name <code>Environment</code>; <code>IHostEnvironment</code> calls it
+            <code>EnvironmentName</code>.
+        </Caption>
+    </CodeFigure>
+
+    <CodeFigure Number="5" Path="Components/Guide/Demos/Environments/RecentOrders.razor" Feature="environment-view">
+        <Caption>
+            Fig. 2's page: a banner everywhere but Production, and a warning in Production only. The highlighted lines
+            are the same tag again, not part of the fix: this page runs on the server, where an <code>if</code> on
+            <code>IHostEnvironment</code> already worked in .NET 10. The tag just makes it shorter.
+        </Caption>
+    </CodeFigure>
+
+    <h2><small>The .NET 10 way</small>Every choice broke one side</h2>
+    <p>You had three options for a component that renders on both sides, and none of them worked cleanly:</p>
+    <div class="fig">
+        <span class="fig-title">Three ways to write it in .NET 10, and what happened</span>
+        <div class="flow">
+            <div class="box">
+                <pre class="snip">@@inject IWebAssemblyHostEnvironment Env</pre>
+                <span class="why">the server can't provide it while prerendering</span>
+                <div class="verdict bad">✗ HTTP 500 for the whole page</div>
+            </div>
+            <div class="box">
+                <pre class="snip"><span class="dim">&lt;!-- + Microsoft.Extensions.Hosting.Abstractions --&gt;</span>
+@@inject IHostEnvironment Env</pre>
+                <span class="why">won't compile in the client project without the package (CS0234)</span>
+                <div class="verdict bad">✗ prerenders, then crashes when WebAssembly starts: the Blazor error bar appears</div>
+            </div>
+            <div class="box">
+                <pre class="snip">&lt;DebugPanel @@rendermode="new
+    InteractiveWebAssemblyRenderMode(
+        <span class="err">prerender: false</span>)" /&gt;</pre>
+                <div class="verdict bad">✗ no crash, but the panel only appears once WebAssembly has downloaded</div>
+            </div>
+        </div>
+    </div>
+    <p>
+        A component that ran only on the server could inject <code>IHostEnvironment</code> and check it with an
+        <code>if</code>. A shared one needed two code paths, or an abstraction of your own.
+    </p>
+
+    <h2><small>.NET 11</small>One service, and a tag on top</h2>
+    <p>
+        The second option is the one that works now, without the package: one <code>@@inject</code> line that both
+        hosts can satisfy. <code>&lt;EnvironmentView&gt;</code> wraps the <code>if</code>: name the environments in
+        <code>Include</code> or <code>Exclude</code>, and Fig. 2 uses both.
+    </p>
+
+    <h2><small>Good to know</small></h2>
+    <ul class="gk">
+        <li><b>It isn't a secret keeper.</b> A WebAssembly component's markup ships to the browser in its DLL, whatever the environment. Keep secrets on the server.</li>
+        <li><b>Names are comma-separated.</b> <code>Include="Development,Staging"</code>. Case doesn't matter, and if a name is in both lists, <code>Exclude</code> wins.</li>
+        <li><b>It was called <code>EnvironmentBoundary</code>.</b> It was renamed in Preview 6, so older posts use the old name.</li>
+    </ul>
+</article>

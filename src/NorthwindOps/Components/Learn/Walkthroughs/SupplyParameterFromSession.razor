@@ -1,0 +1,163 @@
+@page "/learn/supply-parameter-from-session"
+@layout LearnLayout
+
+<PageTitle>Session state · Field Guide</PageTitle>
+
+<article class="l-article" data-learn>
+    <h1 class="l-title">Session state</h1>
+    <p class="l-sub">A form takes two steps. Where do you keep what they typed in step 1?</p>
+    <p class="l-meta">.NET 11 · Pages &amp; navigation · Static SSR · about 6 minutes</p>
+    <p class="l-new">
+        <b>What's new in .NET 11:</b> <code>[SupplyParameterFromSession]</code> binds a property to the user's
+        session. Session itself isn't new: .NET 10 could read and write it by hand, through <code>HttpContext</code>.
+        What's new is the attribute, which does the loading and saving for you.
+    </p>
+
+    <p>
+        Below is a two-step restock order. Step 1 asks how many packs of each product to order. Step 2 lists the
+        order and sends it to the supplier.
+    </p>
+    <p>
+        The page is static SSR, so the server forgets everything between requests. The quick .NET 10 answer is to
+        carry step 1's answers into step 2 as hidden fields. That's what this page does, with both steps on one URL.
+        The grey strip at the top shows what the server holds in session.
+    </p>
+
+    <DemoFigure Number="1" Title="Two steps, carried in hidden fields" Url="demo/session/restock/net10"
+                Label=".NET 10: hidden fields" Side="before">
+        <Caption>
+            Type a few quantities and press <b>Review order →</b>: step 2 lists your order, and the strip says
+            nothing is in session. Now press <b>⟳</b> on the frame's bar (a refresh): you're back to an empty
+            step 1, and your quantities are gone. That's the first problem. The second needs DevTools: review again,
+            Inspect a line, change its hidden field to <code>9999</code>, and press <b>Send to supplier</b>. It
+            sends 9999 packs, and a red line says that's over step 1's 99-pack cap.
+        </Caption>
+    </DemoFigure>
+
+    <h2><small>The problem</small>The draft only lives in the page</h2>
+    <p>Here's what step 2 sends back to the server:</p>
+    <div class="fig">
+        <span class="fig-title">Step 2's form, as the browser holds it</span>
+        <pre class="snip">&lt;form method="post"&gt;
+  &lt;input type="hidden" name="Draft[31]" value="7" /&gt;   <span class="dim">Gorgonzola</span>  <span class="err">editable in DevTools</span>
+  &lt;input type="hidden" name="Draft[21]" value="12" /&gt;  <span class="dim">Scones</span>
+  &lt;button&gt;Send to supplier&lt;/button&gt;
+&lt;/form&gt;</pre>
+    </div>
+    <p>
+        The draft exists only in that one page. A refresh, a link or Back is a fresh GET, with nothing posted, so
+        the draft is gone. And Send reads the quantities back from the form. It trusts whatever the browser sends,
+        so the cap step 1 applied means nothing.
+    </p>
+
+    <h2><small>The fix</small>Keep the draft on the server, in one property</h2>
+    <p>Set up session once, as in .NET 10. Then bind the same property on both steps, and assign to it.</p>
+    <div class="fig">
+        <span class="fig-title">The whole fix</span>
+        <pre class="snip"><span class="dim">// Program.cs, unchanged from .NET 10</span>
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession();
+app.UseSession();
+
+<span class="dim">// Step 1 and step 2</span>
+<span class="hl">[SupplyParameterFromSession(Name = "restock-draft")]</span>
+public Dictionary&lt;string, int&gt;? Draft { get; set; }
+
+<span class="dim">// Step 1's handler. Keys must be strings, so product 31 goes in as "31"</span>
+<span class="hl">Draft = packs.ToDictionary(p =&gt; $"{p.Key}", p =&gt; p.Value);</span>
+Navigation.NavigateTo("demo/session/restock/review");</pre>
+    </div>
+    <p>
+        The attribute loads the property from session as the page renders, and saves it when the request ends,
+        even after a redirect. The data stays on the server; the browser holds only a cookie,
+        <code>.AspNetCore.Session</code>, naming its session, so every later request finds the draft. The one
+        catch is the type: session takes simple types, and a dictionary only with string keys. Here's the same
+        order, with step 1 and step 2 as two pages bound to one session key.
+    </p>
+
+    <DemoFigure Number="2" Title="The same order, kept in session" Url="demo/session/restock"
+                Label=".NET 11: [SupplyParameterFromSession]" Side="after">
+        <Caption>
+            Type a few quantities and press <b>Review order →</b>. The address moves on to <code>…/restock/review</code>,
+            and the strip shows <code>restock-draft</code> holding your quantities. Press <b>⟳</b>: your order is
+            still there. Press <b>← Change quantities</b>: your numbers are filled in. Review again and press
+            <b>Send to supplier</b>. The strip says nothing now: the key is gone. At no point is there a hidden
+            field to edit.
+        </Caption>
+    </DemoFigure>
+
+    <p>Here are the two pages behind Fig. 2:</p>
+
+    <CodeFigure Number="3" Path="Components/Guide/Demos/SessionDraft/RestockLines.razor" Feature="supply-parameter-from-session">
+        <Caption>
+            Step 1 binds <code>Draft</code>, assigns it in the handler, and redirects. Product ids go in as strings,
+            because session only takes dictionaries with string keys.
+        </Caption>
+    </CodeFigure>
+
+    <CodeFigure Number="4" Path="Components/Guide/Demos/SessionDraft/RestockReview.razor" Feature="supply-parameter-from-session">
+        <Caption>
+            Step 2 binds the same key. Sending sets <code>Draft</code> to <code>null</code>, which removes the key
+            from session. Fig. 1 does the same job with hidden fields, on one page.
+        </Caption>
+    </CodeFigure>
+
+    <h2><small>The .NET 10 way</small>Hidden fields, or session by hand</h2>
+    <p>
+        In .NET 10 the attribute doesn't exist: adding it fails with CS0246. You had two ways to carry a draft:
+        hidden fields, or session read and written by hand. A .NET 10 build showed what each one does, and what
+        happens to the second when one line is missing:
+    </p>
+    <div class="fig">
+        <span class="fig-title">The two .NET 10 ways, and what a .NET 10 build did</span>
+        <div class="flow">
+            <div class="box">
+                <pre class="snip"><span class="dim">// 1. hidden fields</span>
+&lt;input type="hidden"
+  name="Draft[31]" value="7" /&gt;</pre>
+                <span class="why">a refresh shows an empty step 1, and a value edited to 9999 is accepted</span>
+                <div class="verdict bad">✗ sends 9999 packs of Gorgonzola Telino</div>
+            </div>
+            <div class="box">
+                <pre class="snip"><span class="dim">// 2. session by hand</span>
+Http.Session.SetString("draft",
+  JsonSerializer.Serialize(draft));</pre>
+                <span class="why">every handler saves, every page loads and parses</span>
+                <div class="verdict ok">✓ the next page finds the draft: {"31":7}</div>
+            </div>
+            <div class="box">
+                <pre class="snip"><span class="dim">// 2 again: the same handler,</span>
+<span class="err">// minus the line that saves</span></pre>
+                <span class="why">not a third way, but the easy mistake in the second: the handler still redirects, with no exception and no warning in the log</span>
+                <div class="verdict bad">✗ the next page says "There's no draft in session."</div>
+            </div>
+        </div>
+    </div>
+    <p>
+        Session by hand works, and it still works in .NET 11. But every page repeats the load and save code, and a
+        handler that forgets to save loses the user's work in silence. Here's that way in this app:
+    </p>
+
+    <CodeFigure Number="5" Path="Components/Guide/Demos/SessionDraft/RestockLinesByHand.razor" Feature="supply-parameter-from-session">
+        <Caption>
+            Step 1 again, the .NET 10 way: it loads and parses the draft itself, and saves it in the handler. Its
+            <b>Save draft</b> button saves and comes back to this same page, which fills the boxes in from session;
+            there's no step 2 here. Fig. 3 does the same with one attribute and an assignment.
+        </Caption>
+    </CodeFigure>
+
+    <h2><small>.NET 11</small>One attribute does the loading and saving</h2>
+    <p>
+        In .NET 11 there's no load or save line to forget: you declare the property and assign to it. It's read
+        once, when the component gets its parameters, and written back after all rendering, so a handler that
+        redirects still saves. Set it to <code>null</code> and the key is removed. That's what Fig. 2 runs.
+    </p>
+
+    <h2><small>Good to know</small></h2>
+    <ul class="gk">
+        <li><b>Simple types, string keys.</b> Strings, ints, bools, Guids, <code>DateTime</code>s and int enums, plus arrays, lists and dictionaries of those. A dictionary counts only if its keys are strings. A <code>Dictionary&lt;int, int&gt;</code>, a <code>decimal</code> or your own class throws <code>InvalidOperationException</code> as soon as the page binds the property, before any of your code runs. For a big draft, keep an id in session and the draft in your database.</li>
+        <li><b>Static SSR pages only.</b> Interactive components have no HTTP request, so the property stays <code>null</code>.</li>
+        <li><b>Tied to the browser by a cookie.</b> Another browser, or a private window, has its own session. Idle past the timeout (20 minutes by default, 30 here) and the draft is gone.</li>
+        <li><b>One server's memory.</b> <code>AddDistributedMemoryCache</code> empties on a restart. Behind a load balancer, use sticky sessions or a shared cache such as Redis.</li>
+    </ul>
+</article>

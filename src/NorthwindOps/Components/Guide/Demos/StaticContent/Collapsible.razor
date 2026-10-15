@@ -10,13 +10,14 @@
         <span>@(RendererInfo.IsInteractive ? "Interactive" : "Connecting…")</span>
     </header>
 
-    @* xray:renderfragment-across-render-modes *@
-    @* Render it on the first pass: the static page captures it while prerendering. *@
+    @* Starts open: the static page only records ChildContent if it renders on the first pass. *@
     @if (open)
     {
+        @* xray:renderfragment-across-render-modes *@
+        @* Replays the markup the static page recorded. Its code doesn't run again here. *@
         @ChildContent
+        @* /xray:renderfragment-across-render-modes *@
     }
-    @* /xray:renderfragment-across-render-modes *@
 </section>
 
 @code {
@@ -25,7 +26,8 @@
     [Parameter] public string Title { get; set; } = "";
 
     // xray:renderfragment-across-render-modes
-    // Markup from the static page. In .NET 10 this threw: it couldn't be serialized.
+    // Markup from the static page. .NET 10 refused to send this delegate and failed the page;
+    // .NET 11 sends what it rendered instead.
     [Parameter] public RenderFragment? ChildContent { get; set; }
     // /xray:renderfragment-across-render-modes
 

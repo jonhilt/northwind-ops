@@ -1,0 +1,43 @@
+@page "/demo/tempdata/orders/net10"
+@layout DemoLayout
+@inject IDbContextFactory<NorthwindDb> DbFactory
+@inject NavigationManager Navigation
+
+@* .NET 10: the message is whatever the address says. *@
+@if (Saved is not null)
+{
+    <div class="flash" role="status">✓ Order @Saved saved</div>
+}
+
+@* Not part of the workaround: shows what this request carried, and a link to forge one. *@
+<p class="carrier" data-carrier>Carried by: @(Saved is null ? "nothing in the address"
+    : $"the address, /{Navigation.ToBaseRelativePath(Navigation.Uri)}")</p>
+<p class="carrier">A link someone could send:
+    <a data-forged href="demo/tempdata/orders/net10?saved=99999">…/net10?saved=99999</a></p>
+
+<h1>Orders</h1>
+<table class="quickgrid">
+    <thead><tr><th>Order</th><th>Customer</th><th>Internal note</th></tr></thead>
+    @foreach (var order in orders)
+    {
+        <tr><td><a href="demo/tempdata/orders/net10/@order.Id">@order.Id</a></td>
+            <td>@order.Customer.Company</td><td>@order.Notes</td></tr>
+    }
+</table>
+
+@code {
+    List<Order> orders = [];
+
+    // xray:tempdata-ssr
+    // .NET 10: EditOrderNet10 redirects here with ?saved=11078. The flag stays in the
+    // address, so a refresh, a bookmark or a shared link shows "saved" again.
+    [SupplyParameterFromQuery] public int? Saved { get; set; }
+    // /xray:tempdata-ssr
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        orders = await db.Orders.Include(o => o.Customer)
+            .OrderByDescending(o => o.Id).Take(6).ToListAsync();
+    }
+}

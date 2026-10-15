@@ -1,0 +1,56 @@
+@page "/"
+@inject SupplierDirectory Directory
+
+@* The .NET 10 workaround from the guide's step 1: an async void OnFieldChanged handler. *@
+<h1>New supplier (.NET 10, OnFieldChanged workaround)</h1>
+
+<p>Codes in the database: <span id="codes">@string.Join(", ", Directory.Codes)</span></p>
+
+<EditForm EditContext="form" OnValidSubmit="Save">
+    <DataAnnotationsValidator />
+    <label>Supplier code <InputText id="code" @bind-Value="Input.Code" /></label>
+    <ValidationMessage For="() => Input.Code" />
+    <button id="save" type="submit">Save supplier</button>
+</EditForm>
+
+<ul id="log">@foreach (var line in log) { <li>@line</li> }</ul>
+
+@code {
+    public sealed class Form
+    {
+        [Required, RegularExpression("^[A-Z]{4}-[0-9]{2}$")]
+        public string? Code { get; set; }
+    }
+
+    readonly Form Input = new();
+    EditContext form = default!;
+    ValidationMessageStore messages = default!;
+    readonly List<string> log = [];
+    readonly System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
+    void Log(string s) => log.Add($"{clock.ElapsedMilliseconds,6} ms  {s}");
+
+    protected override void OnInitialized()
+    {
+        form = new(Input);
+        messages = new(form);
+        form.OnFieldChanged += async (_, e) =>          // async void
+        {
+            if (e.FieldIdentifier.FieldName != nameof(Form.Code)) return;
+            messages.Clear(e.FieldIdentifier);
+            var code = Input.Code!;
+            Log($"lookup started for {code}");
+            if (await Directory.IsCodeTakenAsync(code))   // no cancellation, no pending state
+                messages.Add(e.FieldIdentifier, "That code is already used.");
+            Log($"lookup for {code} finished");
+            form.NotifyValidationStateChanged();
+            await InvokeAsync(StateHasChanged);
+        };
+    }
+
+    void Save()
+    {
+        // EditForm called form.Validate(), which is synchronous: the lookup above is still running, and nothing waits for it.
+        Directory.Add(Input.Code!);
+        Log($"OnValidSubmit ran: SAVED {Input.Code}");
+    }
+}

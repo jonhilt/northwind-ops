@@ -1,0 +1,38 @@
+@page "/"
+
+<h2>1. The form (DataAnnotations reads [Display])</h2>
+<EditForm Model="Input" FormName="supplier" method="post">
+    <DataAnnotationsValidator />
+    <InputText @bind-Value="Input.Code" />
+    <InputText @bind-Value="Input.Company" />
+    <InputText @bind-Value="Input.Contact" />
+    <button type="submit">Save</button>
+    <ValidationSummary />
+</EditForm>
+
+<h2>2. Headers typed by hand (written before the rename)</h2>
+<table id="typed"><tr><th>Supplier code</th><th>Company name</th><th>Main contact</th></tr></table>
+
+<h2>3. QuickGrid PropertyColumn with no Title</h2>
+<div id="quickgrid">
+<QuickGrid Items="rows">
+    <PropertyColumn Property="s => s.Code" />
+    <PropertyColumn Property="s => s.Company" />
+    <PropertyColumn Property="s => s.Contact" />
+</QuickGrid>
+</div>
+
+<h2>4. The .NET 11 way, tried on .NET 10</h2>
+<table id="dn"><tr>
+    <th><DisplayName For="() => names.Code" /></th>
+    <th><DisplayName For="() => names.Company" /></th>
+    <th><DisplayName For="() => names.Contact" /></th>
+</tr></table>
+
+@code {
+    [SupplyParameterFromForm] SupplierForm Input { get; set; } = default!;
+    protected override void OnInitialized() => Input ??= new();
+
+    static readonly SupplierForm names = new();
+    IQueryable<SupplierForm> rows = new[] { new SupplierForm { Code = "EXO", Company = "Exotic Liquids", Contact = "Charlotte Cooper" } }.AsQueryable();
+}

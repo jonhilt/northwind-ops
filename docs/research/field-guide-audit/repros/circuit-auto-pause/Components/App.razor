@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="/" />
+    <HeadOutlet />
+</head>
+<body>
+    <Routes />
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+    @* ?diy=1 adds the .NET 10 workaround: your own visibilitychange script (3 s delay so the repro is quick; the guide uses 120 s). *@
+    @if (Diy) { <script src="diy-pause.js"></script> }
+</body>
+</html>
+@code {
+    [CascadingParameter] HttpContext? Http { get; set; }
+    bool Diy => Http?.Request.Query.ContainsKey("diy") == true;
+}

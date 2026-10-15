@@ -1,0 +1,7 @@
+@page "/manual-review"
+<h1>Step 2</h1>
+<p id="review">@(Http.Session.GetString("draft") is { } json ? $"Draft in session: {json}" : "There's no draft in session.")</p>
+
+@code {
+    [CascadingParameter] HttpContext Http { get; set; } = default!;
+}

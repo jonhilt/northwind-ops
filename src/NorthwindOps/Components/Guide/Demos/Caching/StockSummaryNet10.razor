@@ -1,0 +1,27 @@
+@*
+    The same report the .NET 10 way: it caches its own data in IMemoryCache.
+*@
+@using Microsoft.Extensions.Caching.Memory
+@inject IMemoryCache Cache
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+<StockTable Rows="report.Rows" CalculatedAt="report.CalculatedAt" />
+
+@code {
+    record Report(List<CategoryStock> Rows, DateTime CalculatedAt);
+    Report report = new([], default);
+
+    protected override async Task OnInitializedAsync()
+    {
+        // xray:cacheview
+        // .NET 10: each visitor who finds no entry runs the factory. Nothing makes the others
+        // wait for the first, so five visitors at once run the query five times.
+        report = (await Cache.GetOrCreateAsync("stock-report", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(10);
+            Interlocked.Increment(ref ReportTally.Net10.Queries);
+            return new Report(await StockQuery.RunAsync(DbFactory), DateTime.Now);
+        }))!;
+        // /xray:cacheview
+    }
+}

@@ -1,0 +1,18 @@
+/* The demo's own control: dashed, so it reads as "not part of the app". */
+.visitors {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 10px 12px;
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    font-size: 13px;
+    color: var(--muted);
+}
+.visitors p { margin: 0; }
+.visitors b { font-family: var(--mono); color: var(--ink); }
+.visitors button { margin: 0; padding: 5px 12px; font-size: 13px; background: #fff; color: var(--brand); }
+.visitors button:disabled { opacity: .5; cursor: default; }
+.visitors .status { font-family: var(--mono); font-size: 12px; color: var(--ink); }

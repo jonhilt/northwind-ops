@@ -3,5 +3,8 @@
 
 <h1>Support inbox</h1>
 
-@* The page is static. Only the message list runs interactively. *@
+@* xray:virtualize-anchor-mode *@
+@* Not new: the page is static SSR. Only the list runs live, where AnchorMode can follow. *@
 <MessageFeed @rendermode="InteractiveServer" />
+@* /xray:virtualize-anchor-mode *@
+<FeedReadout />

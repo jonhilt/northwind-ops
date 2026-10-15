@@ -1,0 +1,14 @@
+@page "/try-onrowclick"
+<h1>.NET 10: try OnRowClick</h1>
+
+<QuickGrid TGridItem="TicketRow" Items="Tickets.All" OnRowClick="Open">
+    <PropertyColumn Title="Ticket" Property="t => t.Id" />
+    <PropertyColumn Title="Subject" Property="t => t.Subject" />
+</QuickGrid>
+
+<p id="open">@(open is null ? "Nothing open" : $"Open: #{open.Id}")</p>
+
+@code {
+    TicketRow? open;
+    void Open(TicketRow t) => open = t;
+}

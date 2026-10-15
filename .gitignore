@@ -490,3 +490,6 @@ $RECYCLE.BIN/
 *.db
 *.db-shm
 *.db-wal
+
+# Throwaway output from Field Guide conversion agents (screenshots, logs, test databases)
+.guide-work/

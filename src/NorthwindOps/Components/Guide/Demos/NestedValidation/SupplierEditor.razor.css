@@ -1,0 +1,6 @@
+fieldset { align-self: stretch; border: 1px solid var(--line); border-radius: 10px; padding: 4px 14px 12px; margin: 8px 0 0; }
+legend { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding: 0 6px; }
+.contact { display: grid; grid-template-columns: 1fr 1.3fr auto; gap: 10px; align-items: start; padding-bottom: 8px; border-bottom: 1px dashed var(--line); }
+.contact > div { display: flex; flex-direction: column; gap: 4px; }
+button.ghost { background: #fff; color: var(--brand); padding: 6px 12px; margin-top: 8px; }
+.contact button.ghost { border-color: var(--line); margin-top: 22px; }

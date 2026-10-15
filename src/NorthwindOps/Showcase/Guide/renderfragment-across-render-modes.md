@@ -4,9 +4,11 @@ title: Static content in interactive components
 group: Rendering
 order: 26
 hook: An interactive card around a table the static page rendered.
-intro: Put a static page's markup inside an interactive component, like a card you can fold away.
+intro: Put a static page's markup inside an interactive component, like a card you can fold away. New in .NET 11.
 mode: Static SSR · Interactive Server card
 demo: demo/static-content/low-stock
+before: demo/static-content/low-stock/net10
+labels: .NET 10 · recorded | .NET 11 · live
 app:
 ---
 
@@ -14,7 +16,7 @@ app:
 
 You've built an interactive card that folds away. Why can't a static page put a table inside it?
 
-In .NET 10 that threw: `ChildContent` is code, and can't be serialized to an interactive component. Apps used one of two workarounds.
+In .NET 10 it compiled, then failed at run time with a 500: a `RenderFragment` is code, and .NET 10 wouldn't send code to an interactive component. Apps used one of two workarounds.
 
 ### Make the whole page interactive
 
@@ -43,19 +45,21 @@ A new card component for every table, each with its own copy of the folding logi
 
 ## See it work
 
-Fold the card away, then open it again.
+The same page, on .NET 10 and on .NET 11: a static page puts a table inside an interactive card. What does each one show?
 
-This is a static page with one interactive card on it, running for real. The page renders the table, and the card shows it.
+.NET 11 fixed this inside the framework, so the old failure can't run here. The left is what our .NET 10 repro returned, recorded.
 
-1. Wait for **Interactive** in the card's corner. The card is now running on a circuit.
-2. Click **▾ Low stock** to fold the card, and again to open it. The click runs in C# on the server.
-3. The table comes back with the same **Queried at** time. The card replays a copy it was handed, without querying again.
+1. On the left, .NET 10 returned an HTTP 500 for the whole page, before any of it rendered. The code is the page on the right, unchanged.
+2. On the right, wait for **Interactive** in the card's corner, then click **▾ Low stock** to fold the card and again to open it. The click runs in C# on the server.
+3. The table comes back with the same **Queried at** time: the page's query didn't run again.
+
+Explain: .NET 11 doesn't send the code. The static page runs the fragment while it prerenders, records the markup it produced, and sends that to the card, which replays it. So it's a snapshot: the table only changes if the page renders again.
 
 ## How it's built
 
-Pass markup to an interactive component as usual. Blazor captures it while the page prerenders, and replays it inside the component.
+What changed in your code? Nothing: the same page that failed on .NET 10 works on .NET 11.
 
-Nothing to switch on: it works for `ChildContent` and any other plain `RenderFragment` parameter.
+Pass markup to an interactive component as usual. It works for `ChildContent` and any other plain `RenderFragment` parameter, on Server and WebAssembly.
 
 ### The page: a table inside an interactive card
 code: Components/Guide/Demos/StaticContent/LowStock.razor
@@ -65,7 +69,7 @@ code: Components/Guide/Demos/StaticContent/Collapsible.razor
 
 ## Good to know
 
-- **It's a snapshot.** The fragment's code doesn't run again in the circuit. For live data, load it on the interactive side.
-- **Render it on the first pass.** With `prerender: false`, or content hidden behind an `@if` until later, there's nothing to capture, and it throws. That's why the card starts open.
+- **Render it on the first pass.** With `prerender: false`, or content hidden behind an `@if` until later, there's nothing to record, and it throws. That's why the card starts open.
 - **Event handlers don't cross.** `@onclick`, `@ref` and `@formname` inside the fragment are dropped, with a warning in the log. A `RenderFragment<T>` still throws.
-- **Keep it modest.** The captured markup travels in the component's marker, several times bigger than the HTML. The dashboard's two tables went past SignalR's 32 KB limit, so `Program.cs` raises `MaximumReceiveMessageSize`.
+- **Keep it modest.** The recorded markup travels in the component's marker, several times bigger than the HTML. The dashboard's two tables went past SignalR's 32 KB limit, so `Program.cs` raises `MaximumReceiveMessageSize`.
+- **For live data, load it in the card.** The fragment is a snapshot of the static render, so anything that should update belongs on the interactive side.

@@ -1,0 +1,23 @@
+@* A numbered figure showing a real source file from the app, with the feature's xray-marked lines highlighted. *@
+@inject SourceCatalog Sources
+
+<figure class="fig code">
+    <figcaption class="fig-title">Fig. @Number · @view.Path</figcaption>
+    <pre class="line-numbers" data-line="@view.HighlightedLines"><code class="language-@view.Language">@view.Code</code></pre>
+    @if (Caption is not null)
+    {
+        <p class="fig-cap">@Caption</p>
+    }
+</figure>
+
+@code {
+    SourceView view = default!;
+
+    [Parameter, EditorRequired] public int Number { get; set; }
+    [Parameter, EditorRequired] public string Path { get; set; } = "";
+    [Parameter, EditorRequired] public string Feature { get; set; } = "";
+    [Parameter] public RenderFragment? Caption { get; set; }
+
+    protected override void OnParametersSet()
+        => view = Sources.View(Path, Feature) ?? throw new InvalidOperationException($"No embedded source at {Path}.");
+}

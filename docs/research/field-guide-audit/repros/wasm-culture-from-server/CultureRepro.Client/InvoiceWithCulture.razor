@@ -1,0 +1,9 @@
+@using System.Globalization
+<p class="invoice" id="param">[param] runtime=<b>@(OperatingSystem.IsBrowser() ? "WebAssembly" : "server-prerender")</b>
+  culture=<b>@CultureInfo.CurrentCulture.Name</b>
+  total=<b>@(1234.56m.ToString("N2", culture))</b>
+  due=<b>@(new DateTime(2026, 11, 13).ToString("D"))</b> @* <- forgot to pass culture here *@</p>
+@code {
+    [Parameter] public string? Culture { get; set; }
+    CultureInfo culture => CultureInfo.GetCultureInfo(Culture ?? "");
+}

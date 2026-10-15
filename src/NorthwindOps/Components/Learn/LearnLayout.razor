@@ -1,0 +1,22 @@
+@inherits LayoutComponentBase
+
+<HeadContent>
+    <link rel="stylesheet" href="@Assets["css/learn.css"]" />
+</HeadContent>
+
+<div class="learn">
+    <header class="l-top">
+        <a class="brand" href="">Northwind <span>Ops</span></a>
+        <a class="crumb" href="guide">Field Guide</a>
+        <a class="to-app" href="">Open the app ↗</a>
+    </header>
+    <main>
+        @Body
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>

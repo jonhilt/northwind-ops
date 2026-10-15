@@ -1,0 +1,8 @@
+@* .NET 10 "WebAssembly way": the browser's environment service. *@
+@using Microsoft.AspNetCore.Components.WebAssembly.Hosting
+@inject IWebAssemblyHostEnvironment Env
+
+@if (!Env.IsProduction())
+{
+    <div class="env-banner">@Env.Environment · test data (via IWebAssemblyHostEnvironment, @RendererInfo.Name)</div>
+}

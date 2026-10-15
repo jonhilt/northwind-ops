@@ -4,8 +4,11 @@
 
 <div class="orders">
     @* xray:virtualize-csp *@
-    @* Nothing CSP-specific here: Virtualize no longer writes inline styles. *@
+    @* Unchanged code. What changed is the spacers it renders around the visible rows:
+       .NET 10: <div style="height: 39240px">, which the policy refuses.
+       .NET 11: <div data-blazor-virtualize-reserved-height="39240">, sized by Blazor's script. *@
     <Virtualize Items="orders" Context="o" ItemSize="41">
+    @* /xray:virtualize-csp *@
         <div class="order">
             <b>#@o.Id</b>
             <span>@o.Company</span>
@@ -13,7 +16,6 @@
             <span class="total">@o.Total.ToString("C0")</span>
         </div>
     </Virtualize>
-    @* /xray:virtualize-csp *@
 </div>
 
 @code {

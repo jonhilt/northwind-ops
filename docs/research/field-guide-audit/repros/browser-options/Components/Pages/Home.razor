@@ -1,0 +1,10 @@
+@page "/"
+
+<h1>Pick list</h1>
+<Picker @rendermode="InteractiveServer" />
+
+@* blazor.web.js fills these in while it retries, from the options it was started with. *@
+<p class="rejoin">
+    Rejoin attempt <b id="components-reconnect-current-attempt"></b>
+    of <b id="components-reconnect-max-retries"></b>
+</p>

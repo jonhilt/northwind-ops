@@ -6,40 +6,42 @@ namespace NorthwindOps.Client.HostedServices;
 public sealed record OrderUpdate(long Id, string Order, string Detail);
 
 /// <summary>Asks the server for order updates every 3 seconds.</summary>
-// xray:wasm-hosted-services
+// An ordinary BackgroundService, the same class a server app would use.
 public sealed class OrderWatcher(HttpClient http) : BackgroundService
-// /xray:wasm-hosted-services
 {
     long lastSeen;
-    bool started;
 
     public int Count { get; private set; }
+    public int Checks { get; private set; }
+    public DateTime? Since { get; private set; }
     public OrderUpdate? Latest { get; private set; }
-    public DateTime? CheckedAt { get; private set; }
     public event Action? Changed;
 
     // xray:wasm-hosted-services
-    // The host starts this as WebAssembly starts. It runs until the page unloads.
+    // New in .NET 11: the WebAssembly host calls this as it starts. It runs until the tab closes.
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    // /xray:wasm-hosted-services
     {
+        Since = DateTime.Now;
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(3));
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
-            if (Changed is null) continue; // no bell on this page: skip the call
+            // Other demos share this client: wait for a bell. After that, check on every tick.
+            if (Changed is null && Checks == 0) continue;
             // Server unreachable for a moment? Try again on the next tick.
             try { await CheckAsync(stoppingToken); }
             catch (Exception) when (!stoppingToken.IsCancellationRequested) { }
         }
     }
-    // /xray:wasm-hosted-services
 
     async Task CheckAsync(CancellationToken cancel)
     {
         var updates = await http.GetFromJsonAsync<OrderUpdate[]>(
             $"demo/hosted-services/api/updates?after={lastSeen}", cancel) ?? [];
-        if (started) Count += updates.Length; // the first check just finds the newest
-        if (updates.Length > 0) (Latest, lastSeen) = (updates[^1], updates[^1].Id);
-        (started, CheckedAt) = (true, DateTime.Now);
+        if (updates.Length > 0) lastSeen = updates[^1].Id;
+        // The first check only finds where the feed is up to. Updates count after that.
+        if (Checks++ > 0 && updates.Length > 0)
+            (Count, Latest) = (Count + updates.Length, updates[^1]);
         Changed?.Invoke();
     }
 }

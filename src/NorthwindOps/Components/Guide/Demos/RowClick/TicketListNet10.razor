@@ -1,0 +1,54 @@
+@using NorthwindOps.Features.Support
+@inject SupportDesk Desk
+
+@* Every click on the grid is counted, so you can compare it with the tickets it opened. *@
+<p class="tally" data-tally>Clicks on the grid: <b>@clicks</b> · Tickets opened: <b>@opened</b></p>
+<div class="tickets" @onclick="() => clicks++">
+    @* .NET 10: no row events, so a button in every row. Only the button opens a ticket. *@
+    <QuickGrid Items="tickets" RowClass="Highlight">
+        <PropertyColumn Title="Ticket" Property="t => t.Id" Format="'#'0" />
+        <PropertyColumn Title="Subject" Property="t => t.Subject" />
+        <PropertyColumn Title="Customer" Property="t => t.Company" />
+        @* xray:quickgrid-onrowclick *@
+        <TemplateColumn>
+            <button type="button" class="open" @onclick="() => OpenAsync(context)">Open</button>
+        </TemplateColumn>
+        @* /xray:quickgrid-onrowclick *@
+    </QuickGrid>
+</div>
+
+@if (open is null)
+{
+    <p class="hint">Click a ticket to read its latest message.</p>
+}
+else
+{
+    var latest = open.Messages[^1];
+    <section class="preview">
+        <h2>#@open.Id @open.Subject</h2>
+        <p class="from">@latest.Author, @latest.SentOn.ToString("d MMM HH:mm")</p>
+        <p class="body">@latest.Body</p>
+    </section>
+}
+
+@code {
+    IQueryable<TicketRow> tickets = Enumerable.Empty<TicketRow>().AsQueryable();
+    TicketView? open;
+    int clicks, opened;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // The eight tickets with the latest activity, from the Support desk's database.
+        tickets = (await Desk.ListAsync()).Take(8).AsQueryable();
+    }
+
+    // Called by each row's button.
+    async Task OpenAsync(TicketRow row)
+    {
+        open = await Desk.GetAsync(row.Id);
+        opened++;
+    }
+
+    // Not new: RowClass marks the open ticket's row, so you can see which one you're reading.
+    string? Highlight(TicketRow row) => row.Id == open?.Id ? "selected" : null;
+}

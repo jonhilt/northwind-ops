@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="/" />
+    <style>
+        body { font-family: sans-serif; }
+        .feed { height: 300px; overflow-y: auto; width: 420px; border: 1px solid #999; }
+        .msg { border-bottom: 1px solid #ddd; padding: 0 8px; }
+        .fixed .msg { height: 50px; line-height: 50px; white-space: nowrap; }
+    </style>
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+<body>
+    <Routes @rendermode="InteractiveServer" />
+    <script src="_framework/blazor.web.js"></script>
+    <script>
+        window.chat = {
+            isAtBottom: el => el.scrollHeight - el.scrollTop - el.clientHeight < 2,
+            scrollToBottom: el => { el.scrollTop = el.scrollHeight; }
+        };
+    </script>
+</body>
+</html>

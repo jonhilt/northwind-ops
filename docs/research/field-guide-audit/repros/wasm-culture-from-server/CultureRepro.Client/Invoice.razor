@@ -1,0 +1,5 @@
+@using System.Globalization
+<p class="invoice" id="plain">[plain] runtime=<b>@(OperatingSystem.IsBrowser() ? "WebAssembly" : "server-prerender")</b>
+  culture=<b>@CultureInfo.CurrentCulture.Name</b>
+  total=<b>@(1234.56m.ToString("N2"))</b>
+  due=<b>@(new DateTime(2026, 11, 13).ToString("D"))</b></p>

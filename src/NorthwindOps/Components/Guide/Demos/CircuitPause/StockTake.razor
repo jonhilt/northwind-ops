@@ -4,7 +4,8 @@
 <h1>Stock take: Beverages</h1>
 
 @* xray:circuit-auto-pause *@
-@* Auto-pause for this page only. Most apps turn it on for every page in Program.cs. *@
+@* New in .NET 11: <ConfigureBrowser> writes browser settings into this page. blazor.web.js
+   reads them as it starts, so they apply to the circuit it opens for the sheet below. *@
 <ConfigureBrowser Options="autoPause" />
 @* /xray:circuit-auto-pause *@
 
@@ -13,7 +14,9 @@
 
 @code {
     // xray:circuit-auto-pause
-    // Pause once the tab has been hidden for 10 seconds. The default is 2 minutes.
+    // New in .NET 11, from the AutoPause package: pause once the tab has been hidden for
+    // 10 seconds (default 2 minutes). While the browser is still waiting on the server, as
+    // during the post below, it holds off and checks again every half second.
     static readonly BrowserOptions autoPause = new BrowserOptions()
         .AddAutoPause(o => o.HiddenDelay = TimeSpan.FromSeconds(10));
     // /xray:circuit-auto-pause

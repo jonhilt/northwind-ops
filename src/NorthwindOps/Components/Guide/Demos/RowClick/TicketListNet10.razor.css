@@ -1,0 +1,31 @@
+.tickets ::deep table.quickgrid { width: 100%; table-layout: fixed; }
+.tickets ::deep th:first-child { width: 104px; }
+.tickets ::deep th:nth-child(3) { width: 30%; }
+.tickets ::deep th:last-child { width: 76px; }
+.tickets ::deep td { padding: 10px 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tickets ::deep td:last-child { color: var(--ink-soft); }
+.tickets ::deep tr.selected td { background: #efe9ff; }
+.tickets ::deep tr.selected td:first-child { box-shadow: inset 3px 0 0 var(--brand); }
+
+.hint { margin: 16px 2px 0; color: var(--muted); }
+
+.preview {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fcfcfe;
+}
+.preview h2 { margin: 0 0 4px; font-size: 15px; }
+.preview .from { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+.preview .body {
+    margin: 0;
+    white-space: pre-line;
+    color: var(--ink-soft);
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.tally { margin: 0 0 8px; font-size: 13px; color: var(--ink-soft); }
+button.open { margin: 0; padding: 3px 10px; font-size: 12px; }

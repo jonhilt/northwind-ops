@@ -4,34 +4,21 @@ title: Content for some environments only
 group: Rendering
 order: 27
 hook: A test-data banner that never reaches Production.
-intro: Render a banner or a debug panel only in the environments you name, on the server or in the browser.
+intro: Render a banner or a debug panel only in the environments you name, on the server or in the browser. New in .NET 11.
 mode: Any render mode
 demo: demo/environment-view/orders
+before: demo/environment-view/orders/net10
+labels: .NET 10: IWebAssemblyHostEnvironment | .NET 11: EnvironmentView
 app:
 ---
 
 ## The problem
 
-A "test data" banner must never show in Production. How do you keep it out?
+A debug panel runs in the browser on WebAssembly, but the server prerenders it first. How does it know the environment?
 
-Blazor in .NET 10 had no component for this, so apps asked the host environment themselves, with a different service in each render mode.
+In .NET 10, no one service answered in both places, so every choice broke one of them.
 
-### On the server
-
-```razor
-@inject IWebHostEnvironment Env
-
-@if (!Env.IsProduction())
-{
-    <div class="env-banner">
-        @Env.EnvironmentName · test data
-    </div>
-}
-```
-
-Fine on the server, but that service doesn't exist in the browser, so this can't run on WebAssembly. {.bad}
-
-### And again in WebAssembly
+### Ask WebAssembly's own service
 
 ```razor
 @inject IWebAssemblyHostEnvironment Env
@@ -42,33 +29,57 @@ Fine on the server, but that service doesn't exist in the browser, so this can't
 }
 ```
 
-A different service, so a component used in both render modes needs two code paths, or an abstraction of your own. {.bad}
+The server prerenders the panel first, and it has no such service: the whole page fails with a 500. {.bad}
+
+### Ask IHostEnvironment instead
+
+```razor
+@* needs Microsoft.Extensions.Hosting
+   .Abstractions in the client project *@
+@inject IHostEnvironment Env
+```
+
+It prerenders, then WebAssembly starts and has no such service: the panel crashes in the browser. {.bad}
+
+### Don't prerender the panel
+
+```razor
+<DebugPanel @rendermode="new
+    InteractiveWebAssemblyRenderMode(
+        prerender: false)" />
+```
+
+No crash, but the panel only appears once WebAssembly has downloaded. {.bad}
 
 ## See it work
 
-Look at the banner, then the debug panel.
+Each panel is prerendered on the server, then runs in your browser. Which page survives that, and what will its panel say?
 
-This is a small orders page, running for real. It's static, with a debug panel that runs in your browser on WebAssembly.
+On the left, the panel asks `IWebAssemblyHostEnvironment`, the .NET 10 way. On the right, it's wrapped in `<EnvironmentView>`.
 
-1. The striped banner names this server's environment: **Demo** on the live site, **Development** if you run the app yourself. Neither is Production, so `Exclude="Production"` lets it render.
-2. The debug panel's **Renderer** says WebAssembly, so it's running in your browser. It names the same environment as the banner.
-3. The page also has a warning for Production only. Open the demo in its own tab and view its source: the warning isn't hidden, it was never rendered.
+1. The left page is an HTTP 500. The server prerendered the panel, and the server has no `IWebAssemblyHostEnvironment`.
+2. The right page loads. The banner and the panel both name this server's environment: **Demo** on the live site, **Development** if you run the app yourself.
+3. The panel's **Renderer** says WebAssembly: it's running in your browser. The server rendered it first, as Static, and asked the same service without failing.
+
+Explain: .NET 11 registers `IHostEnvironment` in WebAssembly too, carrying the server's environment name, with no extra package. That's what fixes the crash: one service, on both sides. `<EnvironmentView>` is the shorthand that asks it for you.
 
 ## How it's built
 
-Wrap the content in `<EnvironmentView>`, and name the environments to `Include` or `Exclude`.
+What's different about the right-hand panel? Two .NET 11 changes, working together.
 
-It reads `IHostEnvironment`, which .NET 11 registers in WebAssembly too, so it works in every render mode.
+First, `IHostEnvironment` is now registered in WebAssembly: that line removes the crash. Then `<EnvironmentView>` is the shorthand on top: one tag, with `Include` or `Exclude`, no `@inject` and no `if`.
+
+### The panel, the .NET 11 way: works on the server and in the browser
+code: Client/Environments/DebugPanel.razor
+
+### The same panel, the .NET 10 way: the highlighted line is the 500
+code: Client/Environments/DebugPanelNet10.razor
 
 ### The page: a banner, and a warning for Production only
 code: Components/Guide/Demos/Environments/RecentOrders.razor
 
-### The debug panel, running on WebAssembly
-code: Client/Environments/DebugPanel.razor
-
 ## Good to know
 
-- **Comma-separated names.** `Include="Development,Staging"`. Case doesn't matter, and if a name is in both lists, `Exclude` wins.
-- **The browser gets the server's environment.** A Blazor Web App passes its environment name to WebAssembly, so both sides agree.
 - **Not a secret keeper.** A WebAssembly component's markup ships to the browser in its DLL, whatever the environment. Keep secrets on the server.
+- **Comma-separated names.** `Include="Development,Staging"`. Case doesn't matter, and if a name is in both lists, `Exclude` wins.
 - **Was EnvironmentBoundary.** It was renamed in Preview 6, so older posts use the old name.

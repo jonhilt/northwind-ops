@@ -1,0 +1,82 @@
+@page "/demo/async-validation/suppliers/new/net10"
+@layout DemoLayout
+@rendermode InteractiveServer
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+@if (rejected is not null)
+{
+    <div class="rejected" role="alert" data-rejected>✕ Validation passed, so Save went ahead. Only the database's
+        unique index stopped a second @rejected: @error</div>
+}
+@if (added is not null)
+{
+    <div class="flash" role="status" data-saved>✓ @added saved. Suppliers using @savedCode now: <b>@owners</b></div>
+}
+
+<h1>New supplier</h1>
+
+@* The same form, checked the .NET 10 way: a field-changed handler Save doesn't wait for. *@
+<EditForm EditContext="form" OnValidSubmit="SaveAsync">
+    <DataAnnotationsValidator />
+    <Label For="() => Input.Company" />
+    <InputText @bind-Value="Input.Company" />
+    <ValidationMessage For="() => Input.Company" />
+
+    <Label For="() => Input.Code" />
+    <InputText @bind-Value="Input.Code" placeholder="ABCD-01" />
+    <ValidationMessage For="() => Input.Code" />
+
+    <button type="submit">Save supplier</button>
+</EditForm>
+
+@code {
+    readonly NewSupplierFormNet10 Input = new();
+    EditContext form = default!;
+    ValidationMessageStore messages = default!;
+    string? added, savedCode, owners, rejected, error;
+
+    protected override void OnInitialized()
+    {
+        form = new(Input);
+        messages = new(form);
+        // xray:async-form-validation
+        // .NET 10: validation can't await, so check in an async void handler. Nothing waits for it:
+        // not Save, and not the next edit, whose own check can finish first.
+        form.OnFieldChanged += async (_, e) =>
+        {
+            if (e.FieldIdentifier.FieldName != nameof(Input.Code)) return;
+            messages.Clear(e.FieldIdentifier);
+            if (await IsTakenAsync(Input.Code))
+                messages.Add(e.FieldIdentifier, "Supplier code is already used by another supplier.");
+            form.NotifyValidationStateChanged();
+            StateHasChanged();
+        };
+        // /xray:async-form-validation
+    }
+
+    // The same lookup as the .NET 11 attribute: 1.5 seconds, then the database.
+    async Task<bool> IsTakenAsync(string? code)
+    {
+        await Task.Delay(1500);
+        await using var db = await DbFactory.CreateDbContextAsync();
+        return await db.Set<Supplier>().AnyAsync(s => s.Code == code);
+    }
+
+    async Task SaveAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        db.Add(new Supplier { Company = Input.Company!, Code = Input.Code });
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException e) // the check hadn't answered yet, so nothing stopped Save
+        {
+            (rejected, error, added) = (Input.Code, e.InnerException?.Message ?? e.Message, null);
+            return;
+        }
+        added = $"{Input.Company} ({Input.Code})";
+        (savedCode, owners) = (Input.Code, string.Join(", ", await db.Set<Supplier>()
+            .Where(s => s.Code == Input.Code).Select(s => s.Company).ToListAsync()));
+    }
+}

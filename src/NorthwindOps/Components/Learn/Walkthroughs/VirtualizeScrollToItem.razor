@@ -1,0 +1,151 @@
+@page "/learn/virtualize-scroll-to-item"
+@layout LearnLayout
+
+<PageTitle>Open a list at any item · Field Guide</PageTitle>
+
+<article class="l-article" data-learn>
+    <h1 class="l-title">Open a list at any item</h1>
+    <p class="l-sub">A link points to message #300 of a long thread. How do you open the list right there?</p>
+    <p class="l-meta">.NET 11 · Grids &amp; lists · Interactive Server · about 6 minutes</p>
+    <p class="l-new">
+        <b>What's new in .NET 11:</b> <code>Virtualize</code> can open at a chosen item, with
+        <code>InitialItemIndex</code>, and scroll to any item from code, with <code>ScrollToItemAsync</code>. In .NET 10
+        it always opened at the top, and the only way to move it was to scroll its box to a pixel offset.
+    </p>
+
+    <p>
+        Below is a support thread of 420 messages, in a <code>Virtualize</code>. Some messages are one-line log
+        entries. Others are long emails. A link has asked for message #300.
+    </p>
+    <p>
+        This is the .NET 10 way: work out a pixel offset from a guessed height, and scroll to it with a line of
+        JavaScript. The message you asked for is yellow, with a tag at its end. The dark readout under the list says
+        where it is.
+    </p>
+
+    <DemoFigure Number="1" Title="The thread, scrolled to an offset" Url="demo/scroll-to-item/incident/net10?message=300"
+                Label=".NET 10: scroll to an offset" Side="before">
+        <Caption>
+            It has already missed: the readout says #300's header is above the top of the box, out of sight. To watch
+            it happen, press <b>⟳</b> to reload: the list sits at message #1 until the circuit starts, then jumps.
+            Then type <code>35</code> into <b>Jump to message #</b> and press <b>Go</b>: the box lands several messages
+            late, with #35 above it.
+        </Caption>
+    </DemoFigure>
+
+    <h2><small>The problem</small>An offset is only as good as its guess</h2>
+    <p>
+        <code>Virtualize</code> only renders the messages near the scroll position. It holds the space for the rest
+        with spacers, sized from <code>ItemSize</code>: your guess at each item's height. So the page sets
+        <code>ItemSize="120"</code> and scrolls to <i>(number − 1) × 120</i>. Real messages aren't 120px:
+    </p>
+    <div class="fig">
+        <span class="fig-title">Where "Jump to #35" scrolls, and where #35 is</span>
+        <pre class="snip">scrollTop = (35 − 1) × 120  = <span class="err">4,080px</span>   <span class="dim">every message 120px, the guess</span>
+#35 really starts near      = <span class="ok">3,480px</span>   <span class="dim">the first 34 average about 100px</span>
+                              <span class="err">600px too far: the box opens in the #40s</span></pre>
+    </div>
+    <p>
+        Near #300 it's worse. <code>Virtualize</code> places the messages it hasn't rendered by its own estimate,
+        which doesn't match the guess either. And you can't fix it up afterwards: the message you want isn't on the
+        page until <code>Virtualize</code> catches up with the scroll, so there's nothing to scroll into view.
+    </p>
+
+    <h2><small>The fix</small>Ask for the item, not a pixel</h2>
+    <p>Give <code>Virtualize</code> the index to open at, and call <code>ScrollToItemAsync</code> to go to one later.</p>
+    <div class="fig">
+        <span class="fig-title">The whole fix</span>
+        <pre class="snip">@@if (messages.Count &gt; 0)   <span class="dim">// InitialItemIndex applies once, so wait for the items</span>
+{
+    &lt;Virtualize @@ref="list" Items="messages" <span class="hl">InitialItemIndex="(Message ?? 1) - 1"</span>&gt;
+        ...
+    &lt;/Virtualize&gt;
+}
+
+<span class="dim">// Later, from a button, once the circuit has started (number is 1-based, like #35)</span>
+<span class="hl">await list!.ScrollToItemAsync(number - 1);</span></pre>
+    </div>
+    <p>
+        <code>Message</code> is the <code>?message=300</code> from the link. Both take a zero-based index, so
+        message #300 is index 299. <code>Virtualize</code> renders the messages
+        around that item, then lines the element itself up with the top of the box. It measures the real item, so it
+        doesn't matter how tall the messages are. Here's the same thread, with the same link.
+    </p>
+
+    <DemoFigure Number="2" Title="The same thread, with InitialItemIndex" Url="demo/scroll-to-item/incident?message=300"
+                Label=".NET 11: InitialItemIndex">
+        <Caption>
+            Press <b>⟳</b>. The first HTML already holds the messages around #300, and #300 is at the top, yellow.
+            Type <code>35</code> into <b>Jump to message #</b> and press <b>Go</b>: #35 is at the top. Check
+            <b>On the page</b> in the readout: about 30 of the 420 messages, so it's still virtualized.
+        </Caption>
+    </DemoFigure>
+
+    <p>
+        Here are both lists, in the same order as the demos. The highlighting differs: in Fig. 3 it marks the old
+        offset workaround, and in Fig. 4 it marks the new API that replaces it.
+    </p>
+
+    <CodeFigure Number="3" Path="Components/Guide/Demos/ScrollToItem/LinkedThreadNet10.razor" Feature="virtualize-scroll-to-item">
+        <Caption>
+            Fig. 1's list, the .NET 10 way. Highlighted: the old workaround. There's no <code>InitialItemIndex</code>,
+            so it opens at the top. Once it has rendered, it scrolls by the guessed offset, and every jump uses the
+            same maths. <code>scrollToOffset</code> is the page's own JavaScript: it waits a frame until the spacers
+            have a height, then sets <code>box.scrollTop = top</code>.
+        </Caption>
+    </CodeFigure>
+
+    <CodeFigure Number="4" Path="Components/Guide/Demos/ScrollToItem/LinkedThread.razor" Feature="virtualize-scroll-to-item">
+        <Caption>
+            Fig. 2's list, the .NET 11 way. Highlighted: the new API. The <code>@@if</code> on line 14 waits for the
+            messages, because <code>InitialItemIndex</code> applies once. The buttons on lines 8 and 9 stay disabled
+            until the circuit starts, because <code>ScrollToItemAsync</code> throws before then.
+        </Caption>
+    </CodeFigure>
+
+    <h2><small>The .NET 10 way</small>Guess the offset, or stop virtualizing</h2>
+    <p>
+        .NET 10's <code>Virtualize</code> had no way to start anywhere but the top, and no way to scroll to an item.
+        We tried each workaround in a .NET 10 app with a thread like this one:
+    </p>
+    <div class="fig">
+        <span class="fig-title">Three ways to open a .NET 10 list at a linked message, and what happened</span>
+        <div class="flow">
+            <div class="box">
+                <pre class="snip">scrollTop = (n - 1) * 120</pre>
+                <span class="why">scroll the box to a calculated offset</span>
+                <div class="verdict bad">✗ lands a few messages late, as in Fig. 1: right only if every message is 120px</div>
+            </div>
+            <div class="box">
+                <pre class="snip">el.scrollIntoView()</pre>
+                <span class="why">find the message by id and scroll it into view</span>
+                <div class="verdict bad">✗ finds nothing: only the first dozen messages are on the page</div>
+            </div>
+            <div class="box">
+                <pre class="snip">@@foreach (var m in messages)</pre>
+                <span class="why">drop <code>Virtualize</code>, then scroll into view</span>
+                <div class="verdict bad">✗ lands exactly, with every message in the thread on the page</div>
+            </div>
+        </div>
+    </div>
+    <p>
+        The list was also blank before the circuit started: .NET 10's prerendered HTML held no messages at all, only
+        a spacer. So the reader saw nothing, then the top of the thread, then a jump to roughly the right place.
+    </p>
+
+    <h2><small>.NET 11</small>The list finds the item itself</h2>
+    <p>
+        In .NET 11, <code>InitialItemIndex</code> opens the list at an item, even in the prerendered HTML.
+        <code>ScrollToItemAsync</code> goes to one later, rendered or not. Both land exactly, whatever the heights,
+        and the list stays virtualized. That's what Fig. 2 runs.
+    </p>
+
+    <h2><small>Good to know</small></h2>
+    <ul class="gk">
+        <li><b><code>InitialItemIndex</code> applies once.</b> Changing it later does nothing. To open another thread at its own place, give each thread's <code>Virtualize</code> a <code>@@key</code>.</li>
+        <li><b><code>ScrollToItemAsync</code> throws before the circuit starts.</b> It throws <code>InvalidOperationException</code> until the first interactive render. Use <code>InitialItemIndex</code> for where the list opens.</li>
+        <li><b>The last call wins.</b> A new <code>ScrollToItemAsync</code> cancels one still in flight, and the user scrolling beats both. Pass a <code>CancellationToken</code> to cancel one yourself.</li>
+        <li><b>QuickGrid has the same pair,</b> <code>InitialItemIndex</code> and <code>ScrollToItemAsync</code>, for grids with <code>Virtualize="true"</code>.</li>
+        <li><b>Early previews used other names.</b> Code written against Preview 6 says <code>InitialIndex</code> and <code>ScrollToIndexAsync</code>; rename them.</li>
+    </ul>
+</article>

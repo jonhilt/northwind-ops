@@ -14,6 +14,7 @@ public sealed record GuideEntry(
     string Intro,
     string Mode,
     string DemoUrl,
+    GuideBefore? Before,
     string? AppUrl,
     GuideProblem Problem,
     GuideTry Try,
@@ -26,8 +27,17 @@ public sealed record GuideProblem(string Question, string LeadHtml, IReadOnlyLis
 /// <summary>A .NET 10 workaround: its name, and markdown with the code and why it hurts.</summary>
 public sealed record GuideOption(string Title, string Html);
 
-/// <summary>Step 2: what to do in the demo, and what to watch for.</summary>
-public sealed record GuideTry(string Question, string LeadHtml, IReadOnlyList<string> WatchHtml);
+/// <summary>
+/// The same demo without the feature, shown beside it so the reader watches the old way fail.
+/// The labels name each side, like "Without [ValidatableType]" and "With [ValidatableType]".
+/// </summary>
+public sealed record GuideBefore(string Url, string Label, string AfterLabel);
+
+/// <summary>
+/// Step 2: the question is the reader's prediction, then what to watch for, then (optionally) the
+/// explanation they check their guess against.
+/// </summary>
+public sealed record GuideTry(string Question, string LeadHtml, IReadOnlyList<string> WatchHtml, string? ExplainHtml);
 
 /// <summary>Step 3: the demo's own source files, each with a caption.</summary>
 public sealed record GuideCode(string Question, string LeadHtml, IReadOnlyList<GuideCodeCard> Cards);
@@ -45,6 +55,7 @@ public sealed record GuideNote(string Title, string Html);
 public sealed partial class GuideRegistry
 {
     const string ResourcePrefix = "guide/";
+    const string ExplainPrefix = "Explain:";
 
     static readonly MarkdownPipeline Markdown = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 
@@ -98,11 +109,16 @@ public sealed partial class GuideRegistry
         var (tryQuestion, tryLeadAndSteps) = QuestionAndLead(tryIt);
         var watch = new List<string>();
         var tryLead = new List<string>();
+        string? explain = null;
         foreach (var line in tryLeadAndSteps.Split('\n'))
         {
             if (Step().Match(line) is { Success: true } step)
             {
                 watch.Add(Inline(step.Groups[1].Value));
+            }
+            else if (line.StartsWith(ExplainPrefix, StringComparison.Ordinal))
+            {
+                explain = Inline(line[ExplainPrefix.Length..].Trim());
             }
             else
             {
@@ -128,15 +144,29 @@ public sealed partial class GuideRegistry
             Intro: Required("intro"),
             Mode: Required("mode"),
             DemoUrl: Required("demo"),
-            AppUrl: meta.GetValueOrDefault("app"),
+            Before: Before(meta, resourceName),
+            AppUrl: meta.GetValueOrDefault("app") is { Length: > 0 } app ? app : null,
             Problem: new GuideProblem(Inline(problemQuestion), Html(problemLead),
                 Split(problem.Body.Split('\n'), "### ").Where(s => s.Heading.Length > 0)
                     .Select(s => new GuideOption(s.Heading, Html(s.Body))).ToList()),
-            Try: new GuideTry(Inline(tryQuestion), Html(string.Join('\n', tryLead)), watch),
+            Try: new GuideTry(Inline(tryQuestion), Html(string.Join('\n', tryLead)), watch, explain),
             Code: new GuideCode(Inline(codeQuestion), Html(codeLead),
                 Split(code.Body.Split('\n'), "### ").Where(s => s.Heading.Length > 0)
                     .Select(s => CodeCard(resourceName, s)).ToList()),
             GoodToKnow: notes);
+    }
+
+    /// <summary>"before: demo/x/without" and "labels: Without it | With it", or neither.</summary>
+    static GuideBefore? Before(Dictionary<string, string> meta, string resourceName)
+    {
+        if (!meta.TryGetValue("before", out var url))
+        {
+            return null;
+        }
+        var labels = meta.GetValueOrDefault("labels")?.Split('|', StringSplitOptions.TrimEntries);
+        return labels is [{ Length: > 0 } before, { Length: > 0 } after]
+            ? new GuideBefore(url, before, after)
+            : throw new InvalidDataException($"{resourceName} has 'before' but no 'labels: Without … | With …'.");
     }
 
     static GuideCodeCard CodeCard(string resourceName, Section section)

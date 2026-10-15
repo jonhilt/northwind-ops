@@ -1,0 +1,8 @@
+@page "/warehouse-interactive"
+@rendermode InteractiveServer
+@* Workaround 1: make the whole page interactive, so ChildContent never crosses a boundary. *@
+<h1>Warehouse (whole page interactive)</h1>
+<Collapsible Title="Low stock">
+    <p>Queried at <b>@DateTime.Now.ToString("HH:mm:ss")</b></p>
+    <table><tr><td>Chai</td><td>3</td></tr></table>
+</Collapsible>

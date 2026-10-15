@@ -1,0 +1,40 @@
+@* The New supplier form, for either model: the pages beside it pick which one it posts. *@
+@typeparam TForm where TForm : class, ISupplierForm, new()
+@inject SupplierMessages T
+
+@if (added is not null)
+{
+    <div class="flash" role="status">✓ @T["Saved"]: @added</div>
+}
+
+<h1>@T["New supplier"]</h1>
+
+@* The server formats each message in the request's culture as it renders the form. *@
+<EditForm Model="Input" FormName="new-supplier" OnValidSubmit="Save" Enhance>
+    @* Server only here, so both forms post and you see the server's messages. *@
+    <DataAnnotationsValidator DisableClientValidation="true" />
+    <label for="company">@T["Company"]</label>
+    <InputText id="company" @bind-Value="Input!.Company" />
+    <ValidationMessage For="() => Input!.Company" />
+
+    <label for="email">@T["Email"]</label>
+    <InputText id="email" @bind-Value="Input!.Email" />
+    <ValidationMessage For="() => Input!.Email" />
+
+    <button type="submit">@T["Save supplier"]</button>
+</EditForm>
+
+@code {
+    string? added;
+
+    // Starts with a bad email, so one press of Save shows both kinds of message.
+    [SupplyParameterFromForm] public TForm? Input { get; set; }
+
+    protected override void OnInitialized() => Input ??= new();
+
+    void Save()
+    {
+        added = Input!.Company;
+        Input = new();
+    }
+}

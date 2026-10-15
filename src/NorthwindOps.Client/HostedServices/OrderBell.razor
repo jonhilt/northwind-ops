@@ -1,24 +1,22 @@
 @implements IDisposable
-@* xray:wasm-hosted-services *@
 @inject OrderWatcher Watcher
-@* /xray:wasm-hosted-services *@
 
 @* Shows what the watcher found. It doesn't poll or time anything itself. *@
 <div class="bell" role="status">
     <span class="count">@Watcher.Count</span>
-    <span>order updates since WebAssembly started</span>
+    <span>new order updates since WebAssembly started</span>
     @if (Watcher.Latest is { } update)
     {
         <span class="latest">Latest: <b>@update.Order</b> · @update.Detail</span>
     }
-    <span class="checked">
-        @(Watcher.CheckedAt is { } at ? $"checked {at:HH:mm:ss}" : "first check soon…")
+    <span class="checked" data-checks>
+        checked the server @(Watcher.Checks)× since @Watcher.Since?.ToString("HH:mm:ss")
     </span>
 </div>
 
 @code {
     // xray:wasm-hosted-services
-    // Listen while this page shows the bell. The watcher carries on after it's gone.
+    // Not new: listen while this page shows the bell. The watcher carries on after it's gone.
     protected override void OnInitialized() => Watcher.Changed += Refresh;
 
     void Refresh() => InvokeAsync(StateHasChanged);

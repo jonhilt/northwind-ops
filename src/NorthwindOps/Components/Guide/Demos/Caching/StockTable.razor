@@ -1,0 +1,16 @@
+@* The report's table and its "Figures calculated at" stamp, the same on both demo pages. *@
+<table class="quickgrid">
+    <thead><tr><th>Category</th><th>Products</th><th>Stock value</th></tr></thead>
+    <tbody>
+        @foreach (var row in Rows)
+        {
+            <tr><td>@row.Category</td><td>@row.Products</td><td>@row.Value.ToString("C0")</td></tr>
+        }
+    </tbody>
+</table>
+<p class="stamp">Figures calculated at <b>@CalculatedAt.ToString("HH:mm:ss")</b></p>
+
+@code {
+    [Parameter] public List<CategoryStock> Rows { get; set; } = [];
+    [Parameter] public DateTime CalculatedAt { get; set; }
+}

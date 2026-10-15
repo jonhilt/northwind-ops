@@ -8,12 +8,17 @@
 }
 
 <h1>New supplier</h1>
-<p class="server-time">Server rendered at <b>@DateTime.Now.ToString("HH:mm:ss")</b></p>
+@* Counted in a hidden field, so it only goes up when a post reaches the server. *@
+<p class="server-time" data-tally>Posts to the server: <b>@Posts</b></p>
 
-@* xray:ssr-client-validation *@
 <EditForm Model="Input" FormName="new-supplier" OnValidSubmit="SaveAsync" Enhance>
+    @* xray:ssr-client-validation *@
+    @* Not new code: .NET 10 had this line too. New in .NET 11 is what it does here:
+       it also writes the model's rules into the page, and blazor.web.js (already on
+       every Blazor Web App page) checks them before the form can post. *@
     <DataAnnotationsValidator />
     @* /xray:ssr-client-validation *@
+    <input type="hidden" name="Posts" value="@(Posts + 1)" />
     <label for="company">Company</label>
     <InputText id="company" @bind-Value="Input!.Company" />
     <ValidationMessage For="() => Input!.Company" />
@@ -29,6 +34,7 @@
     string? added;
 
     [SupplyParameterFromForm] public NewSupplierForm? Input { get; set; }
+    [SupplyParameterFromForm] public int Posts { get; set; } // counted in a hidden field
 
     protected override void OnInitialized() => Input ??= new();
 
@@ -38,7 +44,6 @@
         await using var db = await DbFactory.CreateDbContextAsync();
         db.Add(new Supplier { Company = Input!.Company!, Email = Input.Email });
         await db.SaveChangesAsync();
-
         added = Input.Company;
         Input = new(); // a blank form for the next supplier
     }

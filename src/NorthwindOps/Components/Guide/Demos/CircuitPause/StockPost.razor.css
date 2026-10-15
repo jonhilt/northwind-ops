@@ -1,0 +1,3 @@
+.post { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+.post button { margin: 0; }
+.ledger { color: var(--muted); font-size: 13px; margin: 6px 0 0; }

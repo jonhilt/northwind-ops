@@ -1,0 +1,5 @@
+@* Only compiled with -p:TryNet11Api=true: the .NET 11 TempData API, to show it doesn't exist in .NET 10. *@
+@code {
+    [CascadingParameter] public ITempData? TempData { get; set; }
+    [SupplyParameterFromTempData(Name = "flash")] public string? Flash { get; set; }
+}

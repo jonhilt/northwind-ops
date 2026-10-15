@@ -1,0 +1,60 @@
+@inject IConfiguration Config
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="/" />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["BrowserOptionsRepro.styles.css"]" />
+    <ImportMap />
+</head>
+<body>
+    <Routes />
+    <ReconnectModal />
+
+    @* The .NET 10 way: reconnection settings exist only as Blazor.start() options in JavaScript. *@
+    @if (Mode == "default")
+    {
+        @* No settings: Blazor's defaults. *@
+        <script src="@Assets["_framework/blazor.web.js"]"></script>
+    }
+    else
+    {
+        <script src="@Assets["_framework/blazor.web.js"]" autostart="false"></script>
+        @if (Mode == "correct")
+        {
+            <script>
+                Blazor.start({ circuit: { reconnectionOptions: {
+                    maxRetries: 20,
+                    retryIntervalMilliseconds: 2000
+                } } });
+            </script>
+        }
+        else if (Mode == "typo")
+        {
+            @* Workaround 1, with a typo: "maxRetry" and "retryIntervalMs" are not option names. Nothing complains. *@
+            <script>
+                Blazor.start({ circuit: { reconnectionOptions: {
+                    maxRetry: 20,
+                    retryIntervalMs: 2000
+                } } });
+            </script>
+        }
+        else if (Mode == "config")
+        {
+            @* Workaround 2: C# config values pasted into the script. appsettings.json has Reconnect:IntervalMs but no Reconnect:Tries. *@
+            <script>
+                Blazor.start({ circuit: { reconnectionOptions: {
+                    maxRetries: @Config["Reconnect:Tries"],
+                    retryIntervalMilliseconds: @Config["Reconnect:IntervalMs"]
+                } } });
+            </script>
+        }
+    }
+</body>
+</html>
+
+@code {
+    [CascadingParameter] HttpContext HttpContext { get; set; } = default!;
+    string Mode => HttpContext.Request.Query["mode"].FirstOrDefault() ?? "default";
+}

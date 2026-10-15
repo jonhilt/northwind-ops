@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="/" />
+    <ImportMap />
+    <HeadOutlet />
+</head>
+<body>
+    <Routes />
+    @* .NET 10: the server has no C# way to hand WebAssembly a variable.
+       The only route is a hand-written start script. ?variable=off skips it. *@
+    <script src="@Assets["_framework/blazor.web.js"]" autostart="false"></script>
+    <script>
+      Blazor.start({
+        webAssembly: {
+          configureRuntime: dotnet => {
+            @if (!VariableOff)
+            {
+              @((MarkupString)$"dotnet.withEnvironmentVariable(\"Orders__ApiUrl\", \"{Config["Orders:ApiUrl"]}\");")
+            }
+          }
+        }
+      });
+    </script>
+</body>
+</html>
+
+@code {
+    [Inject] IConfiguration Config { get; set; } = default!;
+    [CascadingParameter] HttpContext? HttpContext { get; set; }
+    bool VariableOff => HttpContext?.Request.Query["variable"].ToString() == "off";
+}

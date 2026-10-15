@@ -1,0 +1,37 @@
+@page "/demo/environment-view/orders/net10"
+@layout DemoLayout
+@using NorthwindOps.Client.Environments
+@inject IHostEnvironment Env
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+@if (!Env.IsProduction())
+{
+    <div class="env-banner">@Env.EnvironmentName · test data, not real customers</div>
+}
+
+<h1>Recent orders</h1>
+<table class="quickgrid">
+    <thead><tr><th>Order</th><th>Customer</th><th>Total</th></tr></thead>
+    <tbody>
+        @foreach (var o in orders)
+        {
+            <tr>
+                <td>@o.Id</td><td>@o.Customer.Company</td><td>@o.Total.ToString("C")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@* The debug panel, the .NET 10 way. The server prerenders it, and that fails the whole page. *@
+<DebugPanelNet10 @rendermode="InteractiveWebAssembly" />
+
+@code {
+    List<Order> orders = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        orders = await db.Orders.Include(o => o.Customer)
+            .OrderByDescending(o => o.Id).Take(4).ToListAsync();
+    }
+}

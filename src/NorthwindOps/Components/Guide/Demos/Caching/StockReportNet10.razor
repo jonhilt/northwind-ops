@@ -1,0 +1,12 @@
+@page "/demo/cacheview/stock/net10"
+@layout DemoLayout
+
+<h1>Stock by category</h1>
+<p class="stamp">Page rendered at <b>@DateTime.Now.ToString("HH:mm:ss")</b></p>
+
+@* The same page the .NET 10 way: no CacheView, so the summary caches its own data. *@
+<div class="cached" data-label="Cached for 10 seconds by its own code">
+    <StockSummaryNet10 />
+</div>
+
+<Visitors Tally="ReportTally.Net10" />

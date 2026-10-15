@@ -1,0 +1,10 @@
+.readout {
+    margin: 10px 0 0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #1d1b2e;
+    color: #fff;
+    font-size: 13px;
+}
+.readout span { display: block; }
+.readout span + span { margin-top: 4px; color: #c9c4ef; }

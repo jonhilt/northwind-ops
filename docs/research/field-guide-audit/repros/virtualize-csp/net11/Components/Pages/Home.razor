@@ -1,0 +1,14 @@
+@page "/"
+@rendermode InteractiveServer
+
+<h1>@orders.Count orders, virtualized (.NET @Environment.Version)</h1>
+
+<div id="list" class="list">
+    <Virtualize Items="orders" Context="o" ItemSize="40">
+        <div class="row">Order #@o</div>
+    </Virtualize>
+</div>
+
+@code {
+    List<int> orders = Enumerable.Range(1, 1000).ToList();
+}

@@ -1,0 +1,35 @@
+@page "/orders/{Id:int}/{Tab?}"
+@inject NavigationManager Navigation
+
+<h1>Order @Id: @Tab</h1>
+
+@* The tabs, written the "natural" way: a bare relative href, like on any static website. *@
+<nav id="naive">
+    <NavLink href="summary">Summary</NavLink>
+    <NavLink href="lines">Lines</NavLink>
+    <NavLink href="customer">Customer</NavLink>
+</nav>
+
+@* Workaround: spell out the full path, so the tabs need the id. *@
+<nav id="fullpath">
+    <NavLink href="@($"orders/{Id}/summary")">Summary</NavLink>
+    <NavLink href="@($"orders/{Id}/lines")">Lines</NavLink>
+    <NavLink href="@($"orders/{Id}/customer")">Customer</NavLink>
+</nav>
+
+@* Looks like the .NET 11 API, but .NET 10's NavLink has no such parameter: it is
+   captured by AdditionalAttributes and rendered as a plain HTML attribute. *@
+<nav id="lookalike">
+    <NavLink href="lines" RelativeToCurrentUri="true">Lines</NavLink>
+</nav>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    [Parameter] public string? Tab { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        // /orders/11077 with no tab: send the user on to a tab with a relative path.
+        if (Tab is null) Navigation.NavigateTo("summary");
+    }
+}

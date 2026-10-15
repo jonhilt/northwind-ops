@@ -1,0 +1,11 @@
+@page "/demo/scroll-to-item/incident/net10"
+@layout DemoLayout
+
+<h1>Order sync incident</h1>
+
+@* The same page the .NET 10 way: no InitialItemIndex or ScrollToItemAsync, so it scrolls by offset. *@
+<LinkedThreadNet10 @rendermode="InteractiveServer" />
+
+@* The readout under the .NET 11 list too: where the message you asked for is, and what's on the page. *@
+<ThreadReadout />
+<script type="module" src="@Assets["Components/Guide/Demos/ScrollToItem/IncidentNet10.razor.js"]"></script>

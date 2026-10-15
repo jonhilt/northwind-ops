@@ -1,0 +1,29 @@
+@page "/demo/displayname/suppliers/net10"
+@layout DemoLayout
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+@* Deutsch adds ?culture=de-DE, which request localization reads (see Program.cs) *@
+<nav class="languages">
+    <a href="demo/displayname/suppliers/net10">English</a>
+    <a href="demo/displayname/suppliers/net10?culture=de-DE">Deutsch</a>
+</nav>
+
+<h1>Suppliers</h1>
+<FormLabels />
+
+<QuickGrid Items="suppliers">
+    @* xray:displayname-component *@
+    @* .NET 10: the form's names typed again, in English, as each column's Title *@
+    <PropertyColumn Title="Supplier code" Property="s => s.Code" />
+    <PropertyColumn Title="Company name" Property="s => s.Company" />
+    @* .NET 10: no Title, so QuickGrid prints the property's own name, Contact *@
+    <PropertyColumn Property="s => s.Contact" />
+    @* /xray:displayname-component *@
+</QuickGrid>
+
+@code {
+    IQueryable<Supplier> suppliers = Enumerable.Empty<Supplier>().AsQueryable();
+
+    protected override async Task OnInitializedAsync()
+        => suppliers = await SupplierRows.LoadAsync(DbFactory);
+}

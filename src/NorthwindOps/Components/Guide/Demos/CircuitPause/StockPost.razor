@@ -1,0 +1,46 @@
+@* Posts the count to the warehouse, which takes 20 seconds. *@
+@implements IDisposable
+
+<div class="post">
+    <button @onclick="PostAsync" disabled="@posting">@(posting ? "Posting…" : "Post count")</button>
+    <span data-posted>@(posting ? "Posting…" : Posted is null ? "Not posted" : $"Posted at {Posted}")</span>
+</div>
+<p class="ledger" data-ledger>The warehouse has this count @Times(StockLedger.Posts(Sheet))</p>
+
+@code {
+    // Kept across a pause, like the counts.
+    [PersistentState] public Guid Sheet { get; set; }
+    [PersistentState] public string? Posted { get; set; }
+
+    bool posting;
+
+    protected override void OnInitialized()
+    {
+        if (Sheet == Guid.Empty) Sheet = Guid.NewGuid();
+        StockLedger.Changed += Refresh;
+    }
+
+    // xray:circuit-auto-pause
+    // Look here (not new): a plain click handler. Posted is set only when it returns.
+    // Pause before then and the state is saved without it. Until it returns, the browser is
+    // still waiting on the server: AutoPause sees that and waits; a pause script doesn't look.
+    async Task PostAsync()
+    {
+        posting = true;
+        await StockLedger.PostAsync(Sheet);
+        Posted = DateTime.Now.ToString("HH:mm:ss");
+        posting = false;
+    }
+    // /xray:circuit-auto-pause
+
+    static string Times(int n) => n switch { 0 => "0 times", 1 => "once", 2 => "twice", _ => $"{n} times" };
+
+    // Raised from other circuits' threads. If this circuit has gone, there's nothing to redraw.
+    async void Refresh()
+    {
+        try { await InvokeAsync(StateHasChanged); }
+        catch { }
+    }
+
+    public void Dispose() => StockLedger.Changed -= Refresh;
+}

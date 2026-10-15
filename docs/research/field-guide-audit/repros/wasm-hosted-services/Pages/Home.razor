@@ -1,0 +1,19 @@
+@page "/"
+@implements IDisposable
+
+<h1>Orders</h1>
+<Status />
+<p id="component">Component-owned PeriodicTimer: ticks=@ticks</p>
+
+@code {
+    // .NET 10 workaround 1: the polling belongs to this page.
+    readonly PeriodicTimer timer = new(TimeSpan.FromSeconds(1));
+    int ticks;
+
+    protected override async Task OnInitializedAsync()
+    {
+        while (await timer.WaitForNextTickAsync()) { ticks++; StateHasChanged(); }
+    }
+
+    public void Dispose() => timer.Dispose(); // leaving the page stops (and loses) the count
+}

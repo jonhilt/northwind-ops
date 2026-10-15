@@ -1,0 +1,20 @@
+@page "/"
+<h1>.NET 10: a button in every row</h1>
+
+<QuickGrid Items="Tickets.All">
+    <PropertyColumn Title="Ticket" Property="t => t.Id" />
+    <PropertyColumn Title="Subject" Property="t => t.Subject" />
+    <PropertyColumn Title="Customer" Property="t => t.Company" />
+    <TemplateColumn>
+        <button @onclick="() => Open(context)">Open</button>
+    </TemplateColumn>
+</QuickGrid>
+
+<p id="open">@(open is null ? "Nothing open" : $"Open: #{open.Id} {open.Subject}")</p>
+<p id="clicks">Handler calls: @calls</p>
+
+@code {
+    TicketRow? open;
+    int calls;
+    void Open(TicketRow t) { calls++; open = t; }
+}

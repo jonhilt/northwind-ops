@@ -1,0 +1,26 @@
+@*
+    What a .NET 10 app returned for the same code, recorded from its repro in
+    docs/research/field-guide-audit/repros. .NET 11 fixed the bug, so it can't fail live here.
+*@
+<div class="recording" data-recording>
+    <p class="meta">
+        <span class="tag">Recorded on .NET @Sdk</span>
+        <code>@Request</code>
+        @if (Status is { } status)
+        {
+            <span>→ <b>HTTP @status</b></span>
+        }
+    </p>
+    @ChildContent
+    <p class="source">From the repro in <code>repros/@Repro</code>. @Note</p>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Sdk { get; set; } = "";
+    [Parameter, EditorRequired] public string Request { get; set; } = "";
+    // The response's status, for a recorded request. Leave it out for a recorded interaction.
+    [Parameter] public int? Status { get; set; }
+    [Parameter, EditorRequired] public string Repro { get; set; } = "";
+    [Parameter] public string? Note { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

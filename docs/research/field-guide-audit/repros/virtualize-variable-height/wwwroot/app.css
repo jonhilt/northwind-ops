@@ -1,0 +1,5 @@
+body { font: 14px/1.4 system-ui, sans-serif; margin: 1rem; width: 600px; }
+.thread { height: 440px; overflow-y: auto; border: 1px solid #999; }
+.msg { border-bottom: 1px solid #ddd; padding: 6px 10px; }
+.msg p { margin: 4px 0; }
+.msg.clamped p { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }

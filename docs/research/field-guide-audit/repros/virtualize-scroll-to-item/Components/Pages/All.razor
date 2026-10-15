@@ -1,0 +1,25 @@
+@page "/all"
+@inject IJSRuntime JS
+<p id="status">@status</p>
+<div class="thread">
+    @foreach (var m in Thread.Messages)
+    {
+        <article id="msg-@m.Number" class="@(m.Number == Message ? "msg target" : "msg")">
+            <b>@m.Author</b> #@m.Number <p>@m.Body</p>
+        </article>
+    }
+</div>
+@code {
+    string status = "not scrolled yet";
+    [SupplyParameterFromQuery] public int? Message { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && Message is int n)
+        {
+            var found = await JS.InvokeAsync<bool>("scrollToId", $"msg-{n}");
+            status = found ? $"scrolled msg-{n} into view" : "not found";
+            StateHasChanged();
+        }
+    }
+}

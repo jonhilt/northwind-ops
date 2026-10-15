@@ -1,0 +1,157 @@
+@page "/learn/virtualize-anchor-mode"
+@layout LearnLayout
+
+<PageTitle>Lists that follow the newest item · Field Guide</PageTitle>
+
+<article class="l-article" data-learn>
+    <h1 class="l-title">Lists that follow the newest item</h1>
+    <p class="l-sub">New messages arrive at the bottom. Does your list show them, or leave them out of sight?</p>
+    <p class="l-meta">.NET 11 · Grids &amp; lists · Interactive Server · about 5 minutes</p>
+    <p class="l-new">
+        <b>What's new in .NET 11:</b> <code>Virtualize</code> has an <code>AnchorMode</code> parameter.
+        <code>VirtualizeAnchorMode.End</code> follows new items at the end while you're at the bottom, and stops
+        when you scroll up. .NET 10's <code>Virtualize</code> could show a long list, but never followed its end.
+    </p>
+
+    <p>
+        Below is a support inbox. It loads 300 messages, #10900 to #11199, some of them long. From then on a new one
+        arrives every 2.5 seconds, so by the time you look the count is already past 300. The list is a plain
+        <code>Virtualize</code> in a 300px box, as .NET 10 had it.
+    </p>
+    <p>
+        Under the list, a readout's first line says where you are. The second tallies each new message by where you
+        were when it arrived: <b>At the bottom</b> (did it follow?) or <b>Scrolled up</b> (did it pull you down?).
+    </p>
+
+    <DemoFigure Number="1" Title="The inbox, with a plain Virtualize" Url="demo/anchor-mode/inbox/net10"
+                Label=".NET 10: plain Virtualize" Side="before">
+        <Caption>
+            It opens at the top, so nothing has failed yet: the messages counted under <b>Scrolled up</b> arrived
+            while you were up there. To see it fail, click in the list and press <b>End</b> (press it again if it stops
+            short, or drag the list's scrollbar to the bottom) until the readout says <b>at the bottom</b>. Then wait
+            for two or three messages. <b>At the bottom</b> says <b>0 followed</b>: the first new message lands below
+            the fold, and <b>newer out of sight</b> climbs from there. The diagram below shows the same thing.
+        </Caption>
+    </DemoFigure>
+
+    <h2><small>The problem</small>Virtualize keeps your scroll position</h2>
+    <p>When a message is added, the list gets taller below you, and the scroll position stays where it was:</p>
+    <div class="fig">
+        <span class="fig-title">Adding a message to a list you've scrolled to the bottom</span>
+        <pre class="snip">┌ the box, 300px ───────────┐
+│ #11197                    │
+│ #11198                    │
+│ #11199                    │  <span class="ok">at the bottom</span>
+└───────────────────────────┘
+  #11200  <span class="dim">messages.Add(...)</span>        <span class="err">below the fold</span>
+  #11201  <span class="dim">messages.Add(...)</span>        <span class="err">below the fold</span></pre>
+    </div>
+    <p>
+        That suits someone reading older messages, but not someone waiting for the next one.
+        <code>Virtualize</code> can't tell them apart, so it never scrolls. In our .NET 10 repro, the gap under the
+        view grew by one row with every message: 0, then 51, 102, 153px.
+    </p>
+    <p>
+        Fig. 1 runs on .NET 11, and a <code>Virtualize</code> without <code>AnchorMode</code> still does this. Upgrading
+        doesn't make an existing list follow its end; you opt in.
+    </p>
+
+    <h2><small>The fix</small>Anchor the list to its end</h2>
+    <p>Add one parameter to the same <code>Virtualize</code>. You add items exactly as before.</p>
+    <div class="fig">
+        <span class="fig-title">The whole fix</span>
+        <pre class="snip">&lt;div class="feed" style="height: 300px; overflow-y: auto"&gt;
+    &lt;Virtualize Items="messages" Context="m"
+                <span class="hl">AnchorMode="VirtualizeAnchorMode.End"</span>&gt;
+        ...
+    &lt;/Virtualize&gt;
+&lt;/div&gt;</pre>
+    </div>
+    <p>
+        With <code>End</code>, the list follows new items only while you're at the bottom, within 2px. Scroll away
+        and it stops, so it never pulls a reader back down. Blazor's own script does the scrolling: no JavaScript of
+        yours, and no round trip per message. Here's the same inbox with it.
+    </p>
+
+    <DemoFigure Number="2" Title="The same inbox, anchored to the end" Url="demo/anchor-mode/inbox"
+                Label=".NET 11: AnchorMode.End">
+        <Caption>
+            It opens on the newest message. Wait for two or three: <b>At the bottom</b> counts every one as
+            <b>followed</b>. Now scroll up a little, even one wheel notch, and wait again: <b>Scrolled up</b> says
+            <b>0 pulled you down</b>, and the message you're reading doesn't move. Scroll back to the very bottom, and
+            it follows again.
+        </Caption>
+    </DemoFigure>
+
+    <p>The two lists differ by one parameter. Here's the anchored one, then its page, then the .NET 10 one:</p>
+
+    <CodeFigure Number="3" Path="Components/Guide/Demos/AnchorMode/MessageFeed.razor" Feature="virtualize-anchor-mode">
+        <Caption>
+            Fig. 2's list. Only the <code>AnchorMode</code> line is new. The other highlighted lines are marked
+            <i>Not new</i> in their comments: they show what you keep as it was, the box with a height and the plain
+            <code>Add</code>.
+        </Caption>
+    </CodeFigure>
+
+    <CodeFigure Number="4" Path="Components/Guide/Demos/AnchorMode/SupportInbox.razor" Feature="virtualize-anchor-mode">
+        <Caption>
+            The page is static. Only the list runs interactively, because following happens live. The highlighted
+            render mode line isn't new either.
+        </Caption>
+    </CodeFigure>
+
+    <CodeFigure Number="5" Path="Components/Guide/Demos/AnchorMode/MessageFeedNet10.razor" Feature="virtualize-anchor-mode">
+        <Caption>
+            Fig. 1's list: the same messages and the same timer, without <code>AnchorMode</code>.
+        </Caption>
+    </CodeFigure>
+
+    <h2><small>The .NET 10 way</small>Your own JavaScript, or no virtualizing</h2>
+    <p>
+        Apps tracked the bottom themselves: ask JavaScript whether the reader is at the bottom, add the message, then
+        scroll down if they were.
+    </p>
+    <div class="fig">
+        <span class="fig-title">Two ways to follow the end in .NET 10, and what they cost</span>
+        <div class="flow">
+            <div class="box">
+                <pre class="snip">var atBottom = await JS.InvokeAsync&lt;bool&gt;(
+    <span class="err">"chat.isAtBottom"</span>, scroller);
+messages.Add(message);
+StateHasChanged();
+if (atBottom) await JS.InvokeVoidAsync(
+    <span class="err">"chat.scrollToBottom"</span>, scroller);</pre>
+                <span class="why">in our repro, it followed three messages; then a tall one landed 72px short, <code>isAtBottom</code> said no, and it stopped following for good</span>
+                <div class="verdict bad">✗ a JS round trip per message, and it breaks on mixed heights</div>
+            </div>
+            <div class="box">
+                <pre class="snip">@@foreach (var message in messages)
+{
+    &lt;ChatMessage Message="message" /&gt;
+}</pre>
+                <span class="why">every message stays on the page, with the same JavaScript to scroll down</span>
+                <div class="verdict bad">✗ a busy feed gets slower as the day goes on</div>
+            </div>
+        </div>
+    </div>
+    <p>
+        <b>If your app has the first one, delete it when you upgrade.</b> In our test on .NET 11, the
+        <code>isAtBottom</code>/<code>scrollToBottom</code> workaround stopped following at the first new message.
+        Set <code>AnchorMode</code> instead.
+    </p>
+
+    <h2><small>.NET 11</small>One parameter, and the list does the scrolling</h2>
+    <p>
+        Fig. 2 sets <code>End</code>, which follows a list that grows at the bottom. <code>VirtualizeAnchorMode</code>
+        is a set of flags, so there are three other values. <code>Start</code>, the default, keeps a newest-first list
+        at its top when items are inserted there; it doesn't follow appended items, which is why Fig. 1 doesn't
+        follow. <code>Start | End</code> pins both, and <code>None</code> turns anchoring off.
+    </p>
+
+    <h2><small>Good to know</small></h2>
+    <ul class="gk">
+        <li><b>On .NET 10, <code>AnchorMode</code> builds, then the page returns a 500.</b> Razor passes the unknown attribute through with no warning, and at runtime <code>Virtualize</code> "does not have a property matching the name 'AnchorMode'".</li>
+        <li><b>Write <code>VirtualizeAnchorMode.End</code>, not <code>End</code>.</b> A bare <code>AnchorMode="End"</code> doesn't compile.</li>
+        <li><b>Loading rows with <code>ItemsProvider</code>? Set <code>ItemComparer</code> too.</b> Compare by id, or fresh objects from each query look like rows inserted above, and the list stops following. Analyzer BL0011 warns you.</li>
+    </ul>
+</article>

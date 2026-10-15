@@ -1,0 +1,32 @@
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Config
+@inject HttpClient Http
+
+<ul id="probe">
+    <li id="runtime">Running on: @(OperatingSystem.IsBrowser() ? "WebAssembly" : "server")</li>
+    @* What the guide's client code does: plain IConfiguration. *@
+    <li id="config">Config["Orders:ApiUrl"] = @Config["Orders:ApiUrl"]</li>
+    <li id="pagesize">Config["Orders:PageSize"] = @Config["Orders:PageSize"]</li>
+    @* The variable did arrive, just not in configuration. *@
+    <li id="envvar">Environment.GetEnvironmentVariable("Orders__ApiUrl") = @(Environment.GetEnvironmentVariable("Orders__ApiUrl") ?? "(null)")</li>
+    @* What the guide's list then does: call the API it found in configuration. *@
+    <li id="fetch">GET @Config["Orders:ApiUrl"]?take=@Config["Orders:PageSize"] = @fetch</li>
+    @* The .NET 10 opt-in: one AddEnvironmentVariables() call (normally in Program.cs). *@
+    <li id="optin">With AddEnvironmentVariables() layered on = @optIn</li>
+    <li id="providers">Providers: @string.Join(", ", ((IConfigurationRoot)Config).Providers.Select(p => p.ToString()))</li>
+</ul>
+
+@code {
+    string? optIn, fetch = "...";
+
+    protected override async Task OnInitializedAsync()
+    {
+        optIn = new ConfigurationBuilder().AddConfiguration(Config).AddEnvironmentVariables().Build()["Orders:ApiUrl"];
+        try
+        {
+            var url = $"{Config["Orders:ApiUrl"]}?take={Config["Orders:PageSize"]}";
+            fetch = $"{(await Http.GetFromJsonAsync<object[]>(url))?.Length} orders";
+        }
+        catch (Exception e) { fetch = $"{e.GetType().Name}: {e.Message}"; }
+    }
+}

@@ -23,3 +23,6 @@ form.tools button:disabled { opacity: 0.5; cursor: default; }
 /* The message you asked for. */
 .msg.target { background: #fff6d8; box-shadow: inset 3px 0 0 #f0b400; animation: arrive 1.2s ease-out; }
 @keyframes arrive { from { background: #ffe58a; } }
+
+/* A tag at the end of the message you asked for, so its tail is recognisable when its header is out of sight. */
+.msg.target::after { content: "▲ end of the message you asked for"; display: block; margin-top: 6px; font-size: 12px; font-weight: 600; color: #8a6400; }

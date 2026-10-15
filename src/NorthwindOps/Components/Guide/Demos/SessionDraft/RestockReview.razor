@@ -1,10 +1,12 @@
 @page "/demo/session/restock/review"
 @layout DemoLayout
 @inject IDbContextFactory<NorthwindDb> DbFactory
+@inject NavigationManager Navigation
 
+<SessionStrip />
 <h1>Restock · 2. Review</h1>
 
-@if (sent)
+@if (Sent)
 {
     <div class="flash" role="status">✓ Sent to the supplier. The draft is gone.</div>
 }
@@ -26,14 +28,15 @@ else
 <p><a href="demo/session/restock">← Change quantities</a></p>
 
 @code {
-    bool sent;
     List<(Product, int)> lines = [];
 
     // xray:supply-parameter-from-session
-    // The same key as step 1: session belongs to the browser, not to a page.
+    // New in .NET 11: step 1's key. Session is this browser's (via a cookie), not a page's.
     [SupplyParameterFromSession(Name = "restock-draft")]
     public Dictionary<string, int>? Draft { get; set; }
     // /xray:supply-parameter-from-session
+
+    [SupplyParameterFromQuery] public bool Sent { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -46,8 +49,10 @@ else
     void Send()
     {
         // xray:supply-parameter-from-session
-        Draft = null; // removes the key from session
+        // New in .NET 11: null removes the key from session.
+        Draft = null;
         // /xray:supply-parameter-from-session
-        sent = true; // a real app saves the purchase order too
+        // A real app saves the order too. Then a fresh GET, so the strip is current.
+        Navigation.NavigateTo("demo/session/restock/review?sent=true");
     }
 }

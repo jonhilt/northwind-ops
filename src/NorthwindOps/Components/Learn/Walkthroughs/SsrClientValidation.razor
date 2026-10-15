@@ -1,0 +1,153 @@
+@page "/learn/ssr-client-validation"
+@layout LearnLayout
+
+<PageTitle>Client-side validation · Field Guide</PageTitle>
+
+<article class="l-article" data-learn>
+    <h1 class="l-title">Client-side validation</h1>
+    <p class="l-sub">Someone types a bad email into a static form. Why does it take a trip to the server to say so?</p>
+    <p class="l-meta">.NET 11 · Forms · Static SSR · about 5 minutes</p>
+    <p class="l-new">
+        <b>What's new in .NET 11:</b> a static SSR form checks its rules in the browser, before it posts, and you
+        don't change any code. Static forms arrived in .NET 8, and up to .NET 10 they could only be checked on the
+        server, after a post.
+    </p>
+
+    <p>
+        Below is a <i>New supplier</i> form. It's static SSR: no circuit, no WebAssembly. <b>Company</b> is
+        <code>[Required]</code>, and <b>Email</b> is <code>[Required, EmailAddress]</code>. Under its heading, the form
+        counts the posts that reach the server.
+    </p>
+    <p>
+        This first form behaves the way every .NET 10 static form did. It runs on .NET 11, with the new browser check
+        switched off (Fig. 5 shows the switch). A real .NET 10 build renders the same bare inputs.
+    </p>
+
+    <DemoFigure Number="1" Title="A static form, checked on the server" Url="demo/client-validation/suppliers/new/net10"
+                Label=".NET 10: checked on the server" Side="before">
+        <Caption>
+            Type <code>sales@@</code> into <b>Email</b> and press Tab: no message appears. Leave <b>Company</b> empty
+            and press <b>Save supplier</b>. <b>Posts to the server</b> goes from 0 to 1, and both errors arrive with
+            the page the server sends back.
+        </Caption>
+    </DemoFigure>
+
+    <h2><small>The problem</small>The page carries no rules</h2>
+    <p>Here's the email input the server sends, as a .NET 10 build renders it:</p>
+    <div class="fig">
+        <span class="fig-title">The rendered input</span>
+        <pre class="snip">&lt;input id="email" name="Input.Email" class="valid" /&gt;
+<span class="err">no required, no data-val-*, no rules anywhere in the page</span></pre>
+    </div>
+    <p>
+        (<code>class="valid"</code> isn't a rule. It's the CSS class Blazor gives any field with no errors yet.)
+    </p>
+    <p>
+        <code>&lt;DataAnnotationsValidator /&gt;</code> runs on the server, when the form posts. The HTML it sends
+        says nothing about the rules, so the browser has nothing to check. The user hears nothing as they leave a
+        field, only after they press Save. Then every mistake is a round trip: a request, the rules, a render of the
+        whole page. <code>Enhance</code> makes that cheaper to look at, not cheaper to run, and on a public form or a
+        slow phone connection the wait and the load add up.
+    </p>
+
+    <h2><small>The fix</small>The validator you already have</h2>
+    <p>There's no code to add. The form is the same code you'd write on .NET 10; what changes is what it renders:</p>
+    <div class="fig">
+        <span class="fig-title">The whole fix: no new code, on .NET 11</span>
+        <pre class="snip"><span class="dim">&lt;!-- you write: unchanged from .NET 10 --&gt;</span>
+&lt;EditForm Model="Input" FormName="new-supplier" OnValidSubmit="SaveAsync" Enhance&gt;
+    &lt;DataAnnotationsValidator /&gt;
+    ...
+&lt;/EditForm&gt;
+
+<span class="dim">&lt;!-- .NET 11 renders, for you, at the end of the form --&gt;</span>
+<span class="ok">&lt;blazor-client-validation-data data-rules="…"&gt;</span></pre>
+    </div>
+    <p>
+        In .NET 11, <code>DataAnnotationsValidator</code> on a static form also writes the model's rules into the page.
+        <code>blazor.web.js</code>, the script every Blazor Web App already loads, reads them. It checks each field as
+        you leave it, and stops a submit that has errors. Here's the same form, with .NET 11's default.
+    </p>
+
+    <DemoFigure Number="2" Title="The same form, checked in the browser" Url="demo/client-validation/suppliers/new"
+                Label=".NET 11: checked in the browser">
+        <Caption>
+            Type <code>sales@@</code> into <b>Email</b> and press Tab: "The Email field is not a valid e-mail address."
+            appears at once. Press <b>Save supplier</b> with <b>Company</b> empty: both fields are flagged, and
+            <b>Posts to the server</b> stays at 0. Fix both and save: one post, the one that adds the supplier.
+        </Caption>
+    </DemoFigure>
+
+    <p>
+        The two demos share one model, and their pages differ by one parameter. In Fig. 3 and Fig. 4 the highlighted
+        lines are code you already have, unchanged from .NET 10: they're highlighted because they're where the new
+        behaviour comes from. The only new API is in Fig. 5, and it's the opt-out.
+    </p>
+
+    <CodeFigure Number="3" Path="Components/Guide/Demos/ClientValidation/NewSupplierForm.cs" Feature="ssr-client-validation">
+        <Caption>
+            The model both figures post. The attributes are the rules, for the browser and the server alike.
+        </Caption>
+    </CodeFigure>
+
+    <CodeFigure Number="4" Path="Components/Guide/Demos/ClientValidation/NewSupplier.razor" Feature="ssr-client-validation">
+        <Caption>
+            The page in Fig. 2: a plain static form. The highlighted validator line is unchanged; on .NET 11 it also
+            writes the rules into the page.
+        </Caption>
+    </CodeFigure>
+
+    <CodeFigure Number="5" Path="Components/Guide/Demos/ClientValidation/NewSupplierNet10.razor" Feature="ssr-client-validation">
+        <Caption>
+            The page in Fig. 1: the same form, opted out with <code>DisableClientValidation="true"</code>, new in .NET
+            11, to bring back .NET 10's behaviour. <code>Enhance</code> and the hidden <b>Posts</b> field are on both pages and play no
+            part in it.
+        </Caption>
+    </CodeFigure>
+
+    <h2><small>The .NET 10 way</small>Pick a cost</h2>
+    <p>For feedback before a post, a .NET 10 app had to pick one of four workarounds:</p>
+    <div class="fig">
+        <span class="fig-title">Four ways to check a static form in .NET 10</span>
+        <div class="flow">
+            <div class="box">
+                <pre class="snip">&lt;DataAnnotationsValidator /&gt;</pre>
+                <span class="why">let the server catch it, as Fig. 1 does</span>
+                <div class="verdict bad">✗ every mistake costs a post and a re-render</div>
+            </div>
+            <div class="box">
+                <pre class="snip"><span class="err">@@rendermode InteractiveServer</span></pre>
+                <span class="why">make the form interactive</span>
+                <div class="verdict bad">✗ every visitor holds a circuit open, just to hear "this field is required"</div>
+            </div>
+            <div class="box">
+                <pre class="snip">&lt;InputText ... <span class="err">required type="email"</span> /&gt;</pre>
+                <span class="why">add HTML5 attributes to the inputs by hand</span>
+                <div class="verdict bad">✗ every rule written twice, only the rules HTML has a word for, and the browser's wording instead of yours</div>
+            </div>
+            <div class="box">
+                <pre class="snip">&lt;script src="jquery.validate.unobtrusive.js"&gt;
+&lt;InputText ... <span class="err">data-val-email="Email isn't valid."</span> /&gt;</pre>
+                <span class="why">add jQuery Unobtrusive Validation</span>
+                <div class="verdict bad">✗ three more libraries, and every rule written twice: in C# and in the markup</div>
+            </div>
+        </div>
+    </div>
+
+    <h2><small>.NET 11</small>Rules in the page, checked by blazor.web.js</h2>
+    <p>
+        In .NET 11 every static form with a <code>DataAnnotationsValidator</code> gets browser rules, written from the
+        same attributes, with the same messages. It's on by default. To keep one form server-only, add
+        <code>DisableClientValidation="true"</code> to its validator, as Fig. 5 does.
+        <code>RazorComponentsServiceOptions.DisableClientValidation</code> turns it off for the whole app.
+    </p>
+
+    <h2><small>Good to know</small></h2>
+    <ul class="gk">
+        <li><b>The server still checks every post.</b> The browser check is a convenience. With JavaScript off, or a button marked <code>formnovalidate</code>, the post goes through and the server catches it. Async attributes, like "is this code taken?", only run there.</li>
+        <li><b>Inputs inside your own wrapper components get no browser check at all.</b> If every input sits in a component like <code>&lt;FormField&gt;</code>, as in many line-of-business apps, none of them is checked in the browser. The form writes its rules into the page when it first renders, and the inputs inside a wrapper render after that, so they're left out. The server still checks them on every post.</li>
+        <li><b>A blank optional email passes in the browser but fails on the server.</b> That server failure isn't new: a static form posts an empty field as <code>""</code>, and <code>[EmailAddress]</code>, <code>[Phone]</code> and <code>[Url]</code> have always rejected <code>""</code>. What's new is the browser letting it through first. Turn <code>""</code> into <code>null</code> in the property's setter.</li>
+        <li><b>The browser shows the same messages as the server, translated ones included.</b> The server writes each message into the page, so the localized messages from <a href="learn/validation-localization">Translated validation messages</a> show in the browser too.</li>
+        <li><b>Your own attributes can get browser rules too.</b> Implement <code>IClientValidationRuleProvider</code> on the attribute, then register a matching JS function with <code>Blazor.formValidation.addValidator</code>.</li>
+    </ul>
+</article>

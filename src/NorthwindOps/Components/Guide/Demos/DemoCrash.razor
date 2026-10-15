@@ -1,0 +1,31 @@
+@*
+    The whole response when a demo throws, still with its 500: the .NET 10 side of a before/after
+    pair often fails like this. Only demo pages come here, and their errors are the point of the
+    demo, so it names the exception rather than hiding it.
+*@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>HTTP 500</title>
+    <style>
+        body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #fff; }
+        main { padding: 18px 22px; }
+        [data-crash] { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; border-radius: 10px;
+                       border: 1px solid #fca5a5; background: #fee2e2; color: #b91c1c; }
+        code { font: 12.5px/1.5 ui-monospace, monospace; color: #7f1d1d; white-space: pre-wrap; word-break: break-word; }
+    </style>
+</head>
+<body>
+    <main data-demo-body>
+        <div role="alert" data-crash>
+            <b>HTTP 500: the server couldn't render this page</b>
+            <code>@Error.GetType().Name: @Error.Message</code>
+        </div>
+    </main>
+</body>
+</html>
+
+@code {
+    [Parameter, EditorRequired] public Exception Error { get; set; } = default!;
+}

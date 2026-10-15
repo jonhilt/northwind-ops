@@ -7,6 +7,7 @@
 @* xray:renderfragment-across-render-modes *@
 @* An interactive card, around a table that this static page renders. *@
 <Collapsible @rendermode="InteractiveServer" Title="Low stock">
+@* /xray:renderfragment-across-render-modes *@
     <p class="stamp">Queried at <b>@queriedAt.ToString("HH:mm:ss")</b></p>
     <table class="quickgrid">
         <thead><tr><th>Product</th><th>In stock</th><th>Reorder at</th></tr></thead>
@@ -17,6 +18,7 @@
             }
         </tbody>
     </table>
+@* xray:renderfragment-across-render-modes *@
 </Collapsible>
 @* /xray:renderfragment-across-render-modes *@
 

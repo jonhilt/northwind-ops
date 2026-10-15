@@ -1,0 +1,39 @@
+@page "/"
+@* .NET 10, static SSR. Three ways to label a field, and what each one actually renders. *@
+
+
+
+<EditForm Model="Input" FormName="supplier">
+    <DataAnnotationsValidator />
+
+    @* A: the obvious thing. InputText renders no id, so this label points at nothing. *@
+    <label id="a-label">Company name</label>
+    <InputText @bind-Value="Input!.Company" />
+    <ValidationMessage For="() => Input!.Company" />
+
+    @* B: hand-typed ids, with a one-letter typo. No build warning, no runtime error. *@
+    <label id="b-label" for="supplier-emial">Contact email</label>
+    <InputText id="supplier-email" @bind-Value="Input!.Email" />
+    <ValidationMessage For="() => Input!.Email" />
+
+    @* C: wrapped, so focus works, but the label text is typed again and has drifted from [Display]. *@
+    <label id="c-label">Phone
+        <InputText @bind-Value="Input!.Phone" />
+    </label>
+    <ValidationMessage For="() => Input!.Phone" />
+
+    <button type="submit">Save supplier</button>
+</EditForm>
+
+
+@code {
+    [SupplyParameterFromForm] public SupplierForm? Input { get; set; }
+    protected override void OnInitialized() => Input ??= new();
+
+    public sealed class SupplierForm
+    {
+        [Required, Display(Name = "Company name")] public string? Company { get; set; }
+        [Required, Display(Name = "Contact email")] public string? Email { get; set; }
+        [Required, Display(Name = "Contact phone")] public string? Phone { get; set; }
+    }
+}

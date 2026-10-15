@@ -1,0 +1,8 @@
+@* The "shared" guess: IHostEnvironment, which the server registers. Does WebAssembly? *@
+@using Microsoft.Extensions.Hosting
+@inject IHostEnvironment Env
+
+@if (!Env.IsProduction())
+{
+    <div class="env-banner">@Env.EnvironmentName · test data (via IHostEnvironment, @RendererInfo.Name)</div>
+}

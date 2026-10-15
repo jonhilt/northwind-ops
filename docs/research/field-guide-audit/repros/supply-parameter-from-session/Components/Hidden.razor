@@ -1,0 +1,32 @@
+@page "/hidden"
+@* .NET 10 workaround 1: carry the step-1 draft forward in hidden inputs.
+   Step 1 and step 2 share one URL; the draft exists only in step 2's HTML. *@
+<form method="post" @formname="lines" @onsubmit="Review" style="@(draft is null ? "" : "display:none")">
+    <AntiforgeryToken />
+    <h1>Step 1</h1>
+    <input name="Packs[chai]" type="number" />
+    <button>Review</button>
+</form>
+@if (draft is not null)
+{
+    <h1>Step 2</h1>
+    <p id="review">Ordering @draft.GetValueOrDefault("chai") packs of chai</p>
+}
+<form method="post" @formname="send" @onsubmit="Send">
+    <AntiforgeryToken />
+    @foreach (var (id, packs) in draft ?? [])
+    {
+        <input type="hidden" name="Draft[@id]" value="@packs" />
+    }
+    @if (draft is not null) { <button>Send</button> }
+</form>
+@if (sent is not null) { <p id="sent">SENT: @sent packs of chai</p> }
+
+@code {
+    [SupplyParameterFromForm(FormName = "lines")] public Dictionary<string, int>? Packs { get; set; }
+    [SupplyParameterFromForm(FormName = "send")] public Dictionary<string, int>? Draft { get; set; }
+    Dictionary<string, int>? draft;
+    string? sent;
+    void Review() => draft = Packs;
+    void Send() => sent = $"{Draft!.GetValueOrDefault("chai")}"; // trusts whatever came back in the hidden field
+}

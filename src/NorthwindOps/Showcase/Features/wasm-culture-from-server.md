@@ -4,7 +4,7 @@ title: Prerendered WebAssembly keeps the server's culture
 badge: Culture · server to browser
 release: Preview 5 (configuration key since Preview 7)
 mode: Interactive WebAssembly
-sources: Components/Guide/Demos/WasmCulture/Invoice.razor, Client/WasmCulture/InvoiceSummary.razor, Program.cs
+sources: Components/Guide/Demos/WasmCulture/Invoice.razor, Client/WasmCulture/InvoiceSummary.razor, Components/Guide/Demos/WasmCulture/WasmCultureSetup.cs
 docs: https://github.com/dotnet/core/blob/main/release-notes/11.0/preview/preview7/aspnetcore.md
 summary: When the server prerenders a WebAssembly component, it now saves its culture with the page's state, and WebAssembly applies it as it starts. Numbers and dates keep the format the server rendered them in, instead of switching to the browser's language when the component becomes interactive.
 ---

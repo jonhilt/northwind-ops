@@ -1,0 +1,33 @@
+@page "/orders/{Id:int}"
+@inject NavigationManager Navigation
+
+<h1>Order @Id</h1>
+
+<form method="post" @formname="save-query" @onsubmit="SaveWithQueryFlag">
+    <AntiforgeryToken />
+    <button type="submit">Save (flag in URL)</button>
+</form>
+
+<form method="post" @formname="save-cookie" @onsubmit="SaveWithCookie">
+    <AntiforgeryToken />
+    <button type="submit">Save (hand-rolled cookie)</button>
+</form>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    [CascadingParameter] public HttpContext HttpContext { get; set; } = default!;
+
+    void SaveWithQueryFlag()
+    {
+        // ...save the order...
+        Navigation.NavigateTo($"orders?saved={Id}");
+    }
+
+    void SaveWithCookie()
+    {
+        // ...save the order...
+        HttpContext.Response.Cookies.Append("Status", $"Order {Id} saved",
+            new() { MaxAge = TimeSpan.FromSeconds(5), HttpOnly = true });
+        Navigation.NavigateTo("orders");
+    }
+}

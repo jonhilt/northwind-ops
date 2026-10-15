@@ -1,0 +1,50 @@
+@page "/demo/labels/suppliers/new/net10"
+@layout DemoLayout
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+@if (added is not null)
+{
+    <div class="flash" role="status">✓ @added added to suppliers</div>
+}
+
+<h1>New supplier</h1>
+
+@* The same form and model, labelled the .NET 10 way: inputs rendered no id, and there was no Label. *@
+<EditForm Model="Input" FormName="new-supplier" OnValidSubmit="SaveAsync" Enhance>
+    <DataAnnotationsValidator />
+    @* xray:label-and-input-ids *@
+    @* .NET 10: type an id on both. One letter out, and the label points at nothing. *@
+    <label for="supplier-compnay">Company name</label>
+    <InputText id="supplier-company" @bind-Value="Input!.Company" />
+    @* /xray:label-and-input-ids *@
+    <ValidationMessage For="() => Input!.Company" />
+
+    @* xray:label-and-input-ids *@
+    @* .NET 10: or wrap the input. No id needed, but the text is typed again, *@
+    @* and has drifted from [Display(Name = "Contact email")]. *@
+    <label>Email <InputText @bind-Value="Input!.Email" type="email" /></label>
+    @* /xray:label-and-input-ids *@
+    <ValidationMessage For="() => Input!.Email" />
+
+    <button type="submit">Save supplier</button>
+</EditForm>
+
+<LabelReadout Net10="true" />
+
+@code {
+    string? added;
+
+    [SupplyParameterFromForm] public NewSupplierForm? Input { get; set; }
+
+    protected override void OnInitialized() => Input ??= new();
+
+    async Task SaveAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        db.Add(new Supplier { Company = Input!.Company!, Email = Input.Email });
+        await db.SaveChangesAsync();
+
+        added = Input.Company;
+        Input = new(); // a blank form for the next supplier
+    }
+}

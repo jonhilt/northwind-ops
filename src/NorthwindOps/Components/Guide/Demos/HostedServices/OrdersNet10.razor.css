@@ -1,0 +1,9 @@
+.tabs { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+.tabs a { padding: 6px 14px; border-radius: 8px 8px 0 0; text-decoration: none; font-weight: 600; }
+.tabs a.on { background: var(--brand); color: #fff; }
+.moments { font-size: 13px; }
+.moments tbody th { font-weight: 600; text-align: left; }
+.dead td, .bad { color: var(--bad); font-weight: 600; }
+.moments i { display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
+.note { margin: 0; font-size: 13px; color: var(--muted); }
+h1 { margin-top: 18px; }

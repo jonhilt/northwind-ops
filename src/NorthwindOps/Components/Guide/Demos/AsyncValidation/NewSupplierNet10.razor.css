@@ -1,0 +1,4 @@
+.checking { color: var(--muted); font-size: 13px; }
+button:disabled { opacity: .55; cursor: wait; }
+.rejected { margin-bottom: 14px; padding: 10px 14px; border-radius: 10px; background: var(--bad-soft);
+    border: 1px solid #fca5a5; color: var(--bad); font-weight: 600; font-size: 13px; }

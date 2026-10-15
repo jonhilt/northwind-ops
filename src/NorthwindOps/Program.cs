@@ -65,15 +65,8 @@ builder.Services.AddValidation(options =>
 // ── end Suppliers screen ──
 
 // ── Field Guide, forms entries ──
-// The validation-localization demo's form reads its German messages from SupplierMessages, a plain IStringLocalizer.
-var supplierMessages = new NorthwindOps.Components.Guide.Demos.ValidationLocalization.SupplierMessages();
-builder.Services.AddSingleton(supplierMessages); // the page's labels use it too
-builder.Services.Configure<Microsoft.Extensions.Validation.ValidationOptions>(options =>
-{
-    var fallback = options.LocalizerProvider;
-    options.LocalizerProvider = (type, factory) =>
-        type == typeof(NorthwindOps.Components.Guide.Demos.ValidationLocalization.NewSupplierForm) ? supplierMessages : fallback(type, factory);
-});
+// The validation-localization demo's .NET 11 form reads its German messages from SupplierMessages, a plain IStringLocalizer.
+NorthwindOps.Components.Guide.Demos.ValidationLocalization.ValidationLocalizationSetup.AddSupplierMessages(builder.Services);
 // ── end forms entries ──
 
 // Support screen: tickets, their demo data, and a strict Content-Security-Policy on /support.
@@ -83,15 +76,9 @@ builder.Services.AddSingleton<NorthwindOps.Features.Support.SupportDesk>();
 builder.Services.AddTransient<IStartupFilter, NorthwindOps.Features.Support.SupportContentSecurityPolicy>();
 // /xray:virtualize-csp
 
-// Purchasing screen: the purchase order wizard keeps its draft in session state through [SupplyParameterFromSession].
+// Purchasing screen and the session guide entry: drafts kept in session through [SupplyParameterFromSession].
 // xray:supply-parameter-from-session
-// Where session data lives: this server's memory, capped well below the container's.
-builder.Services.AddDistributedMemoryCache(cache => cache.SizeLimit = 16 * 1024 * 1024);
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
-    options.Cookie.IsEssential = true;
-});
+NorthwindOps.Components.Guide.Demos.SessionDraft.SessionSetup.AddDraftSession(builder);
 // /xray:supply-parameter-from-session
 builder.Services.AddSingleton<IDemoDataSeeder, PurchasingSeeder>();
 
@@ -104,11 +91,12 @@ builder.Services.AddScoped<Microsoft.AspNetCore.Components.Server.Circuits.Circu
     services.GetRequiredService<NorthwindOps.Components.Guide.Demos.CircuitPause.CircuitTracker>());
 // ── end server-pause ──
 
+// ── Field Guide, cacheview: the .NET 10 side of the demo caches its report's data in IMemoryCache ──
+builder.Services.AddMemoryCache();
+// ── end cacheview ──
+
 // ── webassembly: WebAssembly components carry on in the culture the server rendered them in ──
-// xray:wasm-culture-from-server
-// On by default once AddLocalization() is called (the Suppliers block does). This says so outright.
-builder.Configuration.AddInMemoryCollection([new("Components:UseCultureFromServer", "true")]);
-// /xray:wasm-culture-from-server
+NorthwindOps.Components.Guide.Demos.WasmCulture.WasmCultureSetup.UseCultureFromServer(builder);
 // ── end webassembly ──
 
 // ── Security: a year of HSTS, and per-visitor rate limits on what costs the server work ──
@@ -126,6 +114,20 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
+// ── Field Guide: a demo that crashes, like the .NET 10 side of a before/after pair, shows why in its frame ──
+// Inside the app-wide handler, so it catches a demo's error first.
+app.UseWhen(context => context.Request.Path.StartsWithSegments("/demo"), demo => demo.UseExceptionHandler(new ExceptionHandlerOptions
+{
+    ExceptionHandler = async context =>
+    {
+        // A fresh scope, as the failed render has already used the request's.
+        await using var scope = context.RequestServices.CreateAsyncScope();
+        context.RequestServices = scope.ServiceProvider;
+        var error = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()!.Error;
+        await new RazorComponentResult<DemoCrash>(new { Error = error }).ExecuteAsync(context);
+    },
+}));
+// ── end Field Guide ──
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 // ── Security: nosniff, Referrer-Policy and a Content-Security-Policy on every response; rate limits before any work ──
@@ -161,12 +163,12 @@ app.UseWhen(context => context.Request.Path.StartsWithSegments("/demo/validation
 
 // Purchasing screen: session middleware has to run before the request reaches the Razor Components endpoint.
 // xray:supply-parameter-from-session
-app.UseSession();
+NorthwindOps.Components.Guide.Demos.SessionDraft.SessionSetup.UseDraftSession(app);
 // /xray:supply-parameter-from-session
 
-// ── server-options: the browser-options guide demo's "drop my Wi-Fi" button ──
+// ── server-options: the browser-options guide demos: the "drop my Wi-Fi" button, and the .NET 10 page ──
 // While a browser holds the demo's 10-second cookie, its own requests to /_blazor are turned away. Nobody else's are.
-NorthwindOps.Components.Guide.Demos.Reconnect.WifiDropoutMiddleware.Use(app);
+NorthwindOps.Components.Guide.Demos.Reconnect.BrowserOptionsDemo.Use(app);
 // ── end server-options ──
 
 // ── Security: a post the pages can't read is the visitor's mistake, so 400 rather than 500 ──

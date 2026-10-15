@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.2" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- A stock .NET 10 WebAssembly app has no BackgroundService / AddHostedService at all (CS0234/CS0246).
+       You have to add this package yourself; then it compiles, but the WebAssembly host never starts anything.
+       Build with -p:NoHostingPackage=true to see the compile errors. -->
+  <ItemGroup Condition="'$(NoHostingPackage)' != 'true'">
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.2" />
+  </ItemGroup>
+
+</Project>

@@ -4,18 +4,17 @@ title: Auto-pause circuits in hidden tabs
 badge: AutoPause · hidden tabs let go
 release: RC2
 mode: Interactive Server
-sources: Components/Guide/Demos/CircuitPause/StockTake.razor, Components/Guide/Demos/CircuitPause/StockSheet.razor
+sources: Components/Guide/Demos/CircuitPause/StockTake.razor, Components/Guide/Demos/CircuitPause/StockSheet.razor, Components/Guide/Demos/CircuitPause/StockPost.razor, wwwroot/js/auto-pause-net10.js
 docs: https://learn.microsoft.com/aspnet/core/blazor/state-management/server?view=aspnetcore-11.0#automatic-circuit-pause-on-tab-inactivity
 summary: A new opt-in package pauses an Interactive Server circuit once its tab has been hidden for a while, and resumes it when the tab comes back. The circuit's memory is freed on the server, the [PersistentState] values wait in the browser, and it holds off while someone is halfway through typing.
 ---
 
 ## Try it
 
-1. Open the stock take demo at `/demo/auto-pause/stock-take`, or step through it in the Field Guide. It pauses a tab once it's been hidden for 10 seconds.
-2. Type a note for the next shift, then press **+** on a few products, so the cursor isn't left in the note.
-3. Switch to another browser tab, wait 15 seconds, then come back.
-4. The panel at the top says this tab was paused, then resumed on a new circuit. The counts and the note are still there, and the stock levels were read again.
-5. Now click into the note, type something, and leave the cursor there. Switch away for 15 seconds and come back: same circuit. It won't pause while the focused box holds unsaved typing.
+1. Open the stock take in the Field Guide: it runs the .NET 10 way (`/demo/auto-pause/stock-take/net10`, your own pause script) beside AutoPause (`/demo/auto-pause/stock-take`). Both pause a tab once it's been hidden for 10 seconds.
+2. Press **+** on a few products on each side, press **Post count** on each, and at once switch to another browser tab for about 30 seconds. The warehouse takes 20 seconds to take a count.
+3. Back again, both panels say the tab was paused, then resumed on a new circuit, and the counts are still there.
+4. The .NET 10 side paused in the middle of the post. The post still finished on the server, so the warehouse has the count, but the tab says **Not posted**. AutoPause waited for the post, then paused: it says **Posted at** a time.
 
 ## The .NET 10 way
 
@@ -34,7 +33,7 @@ document.addEventListener("visibilitychange", async () => {
 });
 ```
 
-That pauses whatever the user is doing. Text typed into a bound field isn't sent to the server until the field changes, so it isn't in the saved state, and a JavaScript call still in flight is cut off. Spotting either was up to you.
+That pauses whatever the user is doing. A click handler still running finishes on a circuit that has already saved its state and gone, so its result never reaches the resumed tab, and any other call between browser and server is cut off. Text half-typed into a bound field isn't sent until the field changes: the template's reconnect dialog takes the cursor when the pause starts, which sends it first, but with the default reconnect UI it's lost. Spotting any of this was up to you.
 
 ## How it works
 
@@ -53,7 +52,7 @@ In the browser, the package's JavaScript initializer reads them when Blazor star
 - any Web Lock is held by the site,
 - or a JavaScript interop call or stream between browser and server is still running.
 
-It checks again every half second while the tab stays hidden, and gives up as soon as the tab is shown. Then it calls `Blazor.pauseCircuit()`: the server collects the `[PersistentState]` values, sends them to the browser encrypted with Data Protection, and disposes the circuit. When the tab is shown again it calls `Blazor.resumeCircuit()`, which starts a new circuit from that state. Components are created afresh, so `OnInitializedAsync` runs again: `StockSheet` reloads its products, and only `Counted` and `Note` come back.
+It checks again every half second while the tab stays hidden, and gives up as soon as the tab is shown. Then it calls `Blazor.pauseCircuit()`: the server collects the `[PersistentState]` values, sends them to the browser encrypted with Data Protection, and disposes the circuit. When the tab is shown again it calls `Blazor.resumeCircuit()`, which starts a new circuit from that state. Components are created afresh, so `OnInitializedAsync` runs again: `StockSheet` reloads its products, and only `Counted`, `Note` and `StockPost`'s `Sheet` and `Posted` come back.
 
 Gotchas:
 

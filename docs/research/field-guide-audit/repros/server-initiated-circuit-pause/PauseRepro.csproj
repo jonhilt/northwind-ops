@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(TryNet11Api)' != 'true'">
+    <Content Remove="Components/Probe/**" />
+    <None Include="Components/Probe/**" />
+  </ItemGroup>
+</Project>

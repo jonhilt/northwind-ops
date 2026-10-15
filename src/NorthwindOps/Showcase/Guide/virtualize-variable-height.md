@@ -4,9 +4,11 @@ title: Lists with items of any height
 group: Grids & lists
 order: 41
 hook: One-liners and long emails in one virtualized list, without the jumps.
-intro: Virtualize a list whose items run from one line to a page, and let them grow in place.
+intro: Virtualize a list whose items run from one line to a page, and let them grow in place. Fixed in .NET 11.
 mode: Interactive Server
 demo: demo/variable-height/incident
+before: demo/variable-height/incident/net10
+labels: .NET 10 · recorded | .NET 11 · live
 app: support
 ---
 
@@ -50,19 +52,21 @@ Nothing is virtualized: every message you load stays on the page, so a long thre
 
 ## See it work
 
-Scroll the thread, then expand everything.
+The same thread on each side: one-line log entries mixed with long emails. Scroll, then press **Expand all**. Which list keeps still?
 
-This is the Support desk's longest thread, over 400 messages. Only the ones near the viewport are on the page.
+.NET 11 fixed this inside `Virtualize`, so the old list can't run here. The left is a recording of our .NET 10 repro doing exactly that, with the same readout along the bottom as under the live list.
 
-1. Drag the scrollbar down, then back up. Log lines and long emails mix, but the scrollbar doesn't jump.
-2. Press **Show more** on a long message. It opens in place.
-3. Scroll on until no **Show more** is in view, and note the message at the top. Press **Expand all**: it stays put, though the long messages above it have opened. Scroll up to see them.
+1. Watch the left recording's readout: while it scrolls, the scroll range swings by **13,191px**, so the scrollbar thumb jumps about. Then Expand all pushes the message being read **274px** down the page.
+2. On the right, drag the scrollbar down, then back up. The readout's swing stays a small fraction of the left's 13,191px (a few thousand pixels, depending on how you scroll): the thumb barely moves.
+3. Scroll to the middle and press **Expand all**. The readout says how far the message at the top moved: 0px, though the long messages above it have opened.
+
+Explain: .NET 10's `Virtualize` sized every unseen item from the dozen it had just rendered, so each new mix of short and long messages resized the whole range. It also turned off the browser's scroll anchoring. .NET 11 keeps a running average of everything it has measured, and keeps what you're reading still when items above it change height.
 
 ## How it's built
 
-There's nothing new to write. The same `Virtualize` now measures items as they render.
+What changed in your code? Nothing new to write: the same `Virtualize`. If you'd forced every item to one height, delete the fixed height, the `overflow: hidden` and the "Read all" dialog, and let messages be their natural size.
 
-`ItemSize` is only a first guess now: the demo guesses 80px, near its average. When items above you change height, Virtualize keeps what you're reading still.
+`ItemSize` is only a first guess now: the demo guesses 80px, near its average, and Virtualize measures the real heights as it renders.
 
 ### A plain Virtualize, with messages that open and close
 code: Components/Guide/Demos/VariableHeight/IncidentThread.razor
@@ -70,5 +74,6 @@ code: Components/Guide/Demos/VariableHeight/IncidentThread.razor
 ## Good to know
 
 - **Give it a scrolling box.** Virtualize scrolls inside the nearest parent with `overflow-y: auto` or `scroll`. Give that box a fixed height, like the demo's 440px.
+- **Close, not exact.** The range still drifts a little as it learns, and a list whose heights vary wildly is estimated less well. It's steady, not pixel-perfect.
 - **More items render by default.** `OverscanCount` now defaults to 15 either side, up from 3. If your items are expensive to render, set it back to 3. QuickGrid still defaults to 3.
 - **Refreshing starts the measuring again.** `RefreshDataAsync()` and changing `ItemSize` both reset the average height it has measured.

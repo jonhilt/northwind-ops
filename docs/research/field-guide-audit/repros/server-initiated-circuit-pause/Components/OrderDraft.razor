@@ -1,0 +1,40 @@
+@inject CircuitTracker Tracker
+@inject IJSRuntime JS
+
+<p>Process <b id="pid">@Environment.ProcessId</b> · circuit <b id="circuit">@Tracker.Circuit?.Id[..6]</b></p>
+
+<label>Customer <input id="customer" @bind="CustomerId" /></label>
+<label>Quantity <input id="quantity" type="number" @bind="Quantity" /></label>
+
+@* .NET 10 has no server API to ask for a pause. The closest is JS interop into Blazor.pauseCircuit(). *@
+<button id="ask-await" @onclick="AskAwaitedAsync">Server asks: await JS Blazor.pauseCircuit()</button>
+<button id="ask-wrapper" @onclick="AskWrapperAsync">Server asks: sync JS wrapper (workaround)</button>
+<p id="status">@status</p>
+
+@code {
+    [PersistentState] public string? CustomerId { get; set; }
+    [PersistentState] public int? Quantity { get; set; }
+    string? status;
+
+    async Task AskAwaitedAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("Blazor.pauseCircuit");
+            status = "interop returned";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[repro] awaited Blazor.pauseCircuit threw {ex.GetType().Name}: {ex.Message}");
+            status = ex.GetType().Name;
+        }
+    }
+
+    // window.remotePause (App.razor) starts the pause but returns at once,
+    // so the interop reply goes out before the circuit closes.
+    async Task AskWrapperAsync()
+    {
+        await JS.InvokeVoidAsync("remotePause");
+        status = "asked";
+    }
+}

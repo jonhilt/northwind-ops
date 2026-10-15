@@ -24,7 +24,7 @@ function wireDemo(box) {
     const show = () => {
         try {
             const location = frame.contentWindow.location;
-            if (location.href !== "about:blank") address.textContent = location.pathname + location.search;
+            if (location.href !== "about:blank") address.textContent = "\u200E" + location.pathname + location.search; // keeps the "/" first in its right-to-left box
         } catch { /* not same-origin: leave the address as it was */ }
     };
     // Grow the frame to fit the demo, including errors and messages that appear without a navigation.
@@ -58,10 +58,10 @@ function wireDemo(box) {
 }
 
 function enhance() {
+    // Guide steps highlight their own code; walkthroughs ([data-learn]) do that in learn.js.
     const stage = document.querySelector("[data-guide-step]");
-    if (!stage) return;
-    window.Prism?.highlightAllUnder(stage);
-    stage.querySelectorAll("[data-demo]").forEach(wireDemo);
+    if (stage) window.Prism?.highlightAllUnder(stage);
+    document.querySelectorAll("[data-guide-step] [data-demo], [data-learn] [data-demo]").forEach(wireDemo);
 }
 
 enhance();

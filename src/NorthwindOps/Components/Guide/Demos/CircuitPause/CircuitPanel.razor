@@ -20,6 +20,20 @@
             </span>
         }
     </dd>
+    @if (request is not null)
+    {
+        <dt>The server's request</dt>
+        <dd data-request="@(request.Answer ?? "waiting")">
+            @if (request.Answer is null)
+            {
+                <span class="stuck">asked @Since(request.At) ago, and still waiting for an answer</span>
+            }
+            else
+            {
+                <span>answered <code>@request.Answer</code> in @request.After!.Value.TotalMilliseconds.ToString("0") ms</span>
+            }
+        </dd>
+    }
     <dt>This server</dt>
     <dd>@Count(Board.Open, "circuit") open · @Count(Board.Paused, "tab") paused</dd>
 </dl>
@@ -30,6 +44,7 @@
     [PersistentState] public int Resumes { get; set; }
 
     TimeSpan? pausedFor;
+    PauseRequest? request; // what became of the server's request to pause the last circuit
     PersistingComponentStateSubscription persisting;
 
     protected override void OnInitialized()
@@ -38,6 +53,7 @@
         {
             Resumes++;
             pausedFor = Board.Resumed(CircuitId);
+            request = Board.Request(CircuitId);
         }
         CircuitId = Tracker.Circuit?.Id;
         // An Interactive Server circuit persists its state when it pauses.
@@ -48,6 +64,8 @@
         }, RenderMode.InteractiveServer);
         Board.Changed += Refresh;
     }
+
+    static string Since(DateTimeOffset at) => $"{(DateTimeOffset.UtcNow - at).TotalSeconds:0} s";
 
     static string Count(int n, string noun) => $"{n} {noun}{(n == 1 ? "" : "s")}";
 

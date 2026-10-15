@@ -58,6 +58,269 @@ public partial class GuideTests(AppFactory app) : IClassFixture<AppFactory>
             var response = await client.GetAsync(url);
             Assert.True(response.StatusCode == HttpStatusCode.OK, $"{url} returned {(int)response.StatusCode}.");
         }
+
+        // The old way may fail outright, as long as it says why in its frame.
+        if (entry.Before is { } before)
+        {
+            var response = await client.GetAsync("/" + before.Url);
+            var failed = response.StatusCode == HttpStatusCode.InternalServerError
+                && (await response.Content.ReadAsStringAsync()).Contains("data-crash");
+            Assert.True(response.StatusCode == HttpStatusCode.OK || failed, $"/{before.Url} returned {(int)response.StatusCode}.");
+        }
+    }
+
+    public static TheoryData<string> EntriesWithBefore => [.. new GuideRegistry().All.Where(e => e.Before is not null).Select(e => e.Id)];
+
+    [Theory]
+    [MemberData(nameof(EntriesWithBefore))]
+    public async Task Before_and_after_demos_run_side_by_side(string id)
+    {
+        var entry = guide.Find(id)!;
+        var html = WebUtility.HtmlDecode(await app.CreateClient().GetStringAsync($"/guide/{id}/try"));
+
+        Assert.NotNull(entry.Try.ExplainHtml);
+        Assert.Contains("data-compare", html);
+        Assert.Contains($"src=\"{entry.Before!.Url}\"", html);
+        Assert.Contains($"src=\"{entry.DemoUrl}\"", html);
+        Assert.Contains(entry.Before.Label, html);
+        Assert.Contains(entry.Before.AfterLabel, html);
+        Assert.Contains("Check your guess", html);
+    }
+
+    [Fact]
+    public async Task Nested_validation_demo_shows_the_address_and_a_list_of_contacts()
+    {
+        var html = await app.CreateClient().GetStringAsync("/demo/nested-validation/with");
+
+        Assert.Matches("<legend[^>]*>Address</legend>", html);
+        Assert.Matches("<legend[^>]*>Contacts</legend>", html);
+        Assert.True(ContactRow().Matches(html).Count >= 2, "The demo should start with at least two contacts, so the list is visible.");
+        Assert.Contains("name=\"Input.Contacts[1].Email\"", html);
+        Assert.Contains("value=\"add\"", html);
+        Assert.Contains("value=\"remove:1\"", html);
+    }
+
+    [Theory]
+    [InlineData("without", true)]
+    [InlineData("with", false)]
+    public async Task Nested_validation_demo_saves_a_bad_contact_only_without_the_attribute(string side, bool saves)
+    {
+        var html = await PostNewSupplier(side, new()
+        {
+            ["Input.Company"] = "Acme",
+            ["Input.Address.City"] = "",
+            ["Input.Contacts[0].Name"] = "Ann",
+            ["Input.Contacts[0].Email"] = "sales@",
+            ["Input.Contacts[1].Name"] = "Bo",
+            ["Input.Contacts[1].Email"] = "",
+        });
+
+        Assert.Equal(saves, html.Contains("data-saved"));
+        Assert.Equal(!saves, html.Contains(">The City field is required.<"));
+        Assert.Equal(!saves, html.Contains(">The Email field is not a valid e-mail address.<"));
+    }
+
+    [Fact]
+    public async Task Nested_validation_demo_adds_a_contact_without_validating()
+    {
+        var html = await PostNewSupplier("with", new()
+        {
+            ["Input.Company"] = "",
+            ["Input.Contacts[0].Name"] = "Ann",
+            ["Input.Contacts[1].Name"] = "Bo",
+            ["Intent"] = "add",
+        });
+
+        Assert.Equal(3, ContactRow().Matches(html).Count);
+        Assert.DoesNotContain("field is required", html);
+    }
+
+    [Fact]
+    public async Task Environment_view_demo_fails_the_dotnet10_way_and_works_the_dotnet11_way()
+    {
+        var client = app.CreateClient();
+
+        var before = await client.GetAsync("/demo/environment-view/orders/net10");
+        var crash = WebUtility.HtmlDecode(await before.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.InternalServerError, before.StatusCode);
+        Assert.Contains("There is no registered service of type 'Microsoft.AspNetCore.Components.WebAssembly.Hosting.IWebAssemblyHostEnvironment'", crash);
+
+        var after = await client.GetStringAsync("/demo/environment-view/orders");
+        Assert.Contains("test data, not real customers", after);
+        Assert.Contains("class=\"debug\"", after);
+        Assert.DoesNotContain("These are real orders", after);
+    }
+
+    [Fact]
+    public void Server_pause_board_shows_a_request_that_never_got_an_answer()
+    {
+        var board = new NorthwindOps.Components.Guide.Demos.CircuitPause.CircuitBoard(TimeProvider.System);
+
+        board.Asked("js-interop");    // .NET 10: the awaited JS call never returns, so nothing answers
+        board.Asked("server-api");
+        board.Answered("server-api", "true");
+
+        Assert.Null(board.Request("js-interop")!.Answer);
+        Assert.Equal("true", board.Request("server-api")!.Answer);
+        Assert.NotNull(board.Request("server-api")!.After);
+        Assert.Null(board.Request("never-asked"));
+    }
+
+        [Theory]
+    [InlineData("/net10", "The E-Mail field is not a valid e-mail address.")]
+    [InlineData("", "E-Mail ist keine gültige E-Mail-Adresse.")]
+    public async Task Validation_localization_demo_misses_a_message_the_dotnet10_way(string side, string emailMessage)
+    {
+        var client = app.CreateClient(new() { HandleCookies = true });
+        var url = $"/demo/validation-localization/suppliers/new{side}?culture=de-DE";
+        var form = await client.GetStringAsync(url);
+        var response = await client.PostAsync(url, new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["_handler"] = "new-supplier",
+            ["__RequestVerificationToken"] = WebUtility.HtmlDecode(AntiforgeryToken().Match(form).Groups[1].Value),
+            ["Input.Company"] = "",
+            ["Input.Email"] = "sales@",
+        }));
+        var html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
+
+        Assert.Contains(">Firma ist ein Pflichtfeld.<", html);
+        Assert.Contains($">{emailMessage}<", html);
+    }
+
+    [Theory]
+    [MemberData(nameof(EntriesWithBefore))]
+    public async Task A_recorded_before_demo_names_a_repro_that_exists(string id)
+    {
+        var before = guide.Find(id)!.Before!;
+        var html = await (await app.CreateClient().GetAsync("/" + before.Url)).Content.ReadAsStringAsync();
+        if (!html.Contains("data-recording"))
+        {
+            return; // runs live, so there's nothing to trace
+        }
+
+        var repro = Regex.Match(html, @"repros/([a-z0-9-]+)").Groups[1].Value;
+        var root = new DirectoryInfo(AppContext.BaseDirectory);
+        while (root is not null && !File.Exists(Path.Combine(root.FullName, "NorthwindOps.slnx")))
+        {
+            root = root.Parent;
+        }
+        Assert.True(Directory.Exists(Path.Combine(root!.FullName, "docs/research/field-guide-audit/repros", repro)),
+            $"/{before.Url} is recorded from repros/{repro}, which isn't in docs/research/field-guide-audit.");
+    }
+
+    [Fact]
+    public async Task Static_content_demo_recorded_the_dotnet10_failure_and_works_live()
+    {
+        var client = app.CreateClient();
+
+        var before = WebUtility.HtmlDecode(await client.GetStringAsync("/demo/static-content/low-stock/net10"));
+        Assert.Contains("Cannot pass the parameter 'ChildContent' to component 'Collapsible'", before);
+
+        var after = await client.GetStringAsync("/demo/static-content/low-stock");
+        Assert.Contains("Queried at", after);
+        Assert.Contains("<table", after);
+    }
+
+    [Fact]
+    public async Task Grid_url_demo_replays_dead_dotnet10_buttons_beside_dotnet11_links()
+    {
+        var client = app.CreateClient();
+
+        var before = await client.GetStringAsync("/demo/grid-url/products/net10");
+        Assert.Matches("<button class=\"col-title\" type=\"button\"[^>]*>", before);
+        Assert.DoesNotContain("<a class=\"col-title\"", before);
+        Assert.Matches("Page <strong[^>]*>1</strong>", before); // the URL asked for page 2
+
+        var after = WebUtility.HtmlDecode(await client.GetStringAsync("/demo/grid-url/products?sort=Price&direction=desc&page=2"));
+        Assert.Matches("<a class=\"col-title\" href=\"[^\"]*sort=Price&direction=asc&page=2\"", after);
+        Assert.Matches("Page <strong[^>]*>2", after);
+        Assert.Contains("aria-sort=\"descending\"", after);
+    }
+
+    [Fact]
+    public async Task Virtualize_csp_demo_replays_dotnet10_inline_spacers_under_the_same_policy()
+    {
+        var client = app.CreateClient();
+
+        var before = await client.GetAsync("/demo/virtualize-csp/orders/net10");
+        var after = await client.GetAsync("/demo/virtualize-csp/orders");
+        var replay = await before.Content.ReadAsStringAsync();
+
+        // Same policy on both, so the browser refuses the replayed spacers' inline heights.
+        Assert.Equal("style-src 'self'; frame-ancestors 'self'", before.Headers.GetValues("Content-Security-Policy").Single());
+        Assert.Equal(before.Headers.GetValues("Content-Security-Policy").Single(), after.Headers.GetValues("Content-Security-Policy").Single());
+        Assert.Contains("style=\"height: 39240px; flex-shrink: 0;\"", replay);
+        Assert.Equal(19, Regex.Matches(replay, "class=\"row\"").Count);
+    }
+
+    [Fact]
+    public async Task Variable_height_demo_plays_the_dotnet10_recording_beside_a_live_readout()
+    {
+        var client = app.CreateClient();
+
+        var before = await client.GetStringAsync("/demo/variable-height/incident/net10");
+        var video = Regex.Match(before, "<video src=\"([^\"]+)\"").Groups[1].Value;
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/" + video)).StatusCode);
+        Assert.Contains("13,191px", before);
+
+        var after = await client.GetStringAsync("/demo/variable-height/incident");
+        Assert.Contains("data-scroll-readout", after);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/js/scroll-readout.js")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Wasm_culture_demo_records_the_dotnet10_flip_and_keeps_what_the_server_rendered()
+    {
+        var client = app.CreateClient();
+
+        var before = await client.GetStringAsync("/demo/wasm-culture/invoice/net10");
+        Assert.Contains("1.234,56", before);
+        Assert.Contains("1,234.56", before);
+
+        // The live invoice persists what the server rendered, for WebAssembly to show beside its own values.
+        var after = WebUtility.HtmlDecode(await client.GetStringAsync("/demo/wasm-culture/invoice?culture=de-DE"));
+        Assert.Contains("Server, now", after);
+        Assert.Matches("<td[^>]*>de-DE</td>", after);
+    }
+
+    [Fact]
+    public async Task Row_click_demo_puts_a_button_in_every_row_only_the_dotnet10_way()
+    {
+        var client = app.CreateClient();
+
+        var before = await client.GetStringAsync("/demo/row-click/tickets/net10");
+        var after = await client.GetStringAsync("/demo/row-click/tickets");
+
+        Assert.Equal(8, Regex.Matches(before, "<button type=\"button\" class=\"open\"").Count);
+        Assert.DoesNotContain("class=\"open\"", after);
+        Assert.Contains("data-tally", before);
+        Assert.Contains("data-tally", after);
+    }
+
+    [Fact]
+    public async Task Async_validation_demo_checks_the_code_in_a_handler_only_the_dotnet10_way()
+    {
+        var client = app.CreateClient();
+
+        var before = await client.GetStringAsync("/demo/async-validation/suppliers/new/net10");
+        var after = await client.GetStringAsync("/demo/async-validation/suppliers/new");
+
+        // Both are the same New supplier form; only the .NET 11 one can say "Checking…" on its Save button.
+        Assert.Contains("Supplier code", before);
+        Assert.Contains("Supplier code", after);
+        Assert.Contains(">Save supplier</button>", before);
+        Assert.Matches(@"<button type=""submit""[^>]*>\s*Save supplier", after);
+    }
+
+    async Task<string> PostNewSupplier(string side, Dictionary<string, string> fields)
+    {
+        var client = app.CreateClient(new() { HandleCookies = true });
+        var url = $"/demo/nested-validation/{side}";
+        var form = await client.GetStringAsync(url);
+        fields["_handler"] = "new-supplier";
+        fields["__RequestVerificationToken"] = WebUtility.HtmlDecode(AntiforgeryToken().Match(form).Groups[1].Value);
+        var response = await client.PostAsync(url, new FormUrlEncodedContent(fields));
+        return await response.Content.ReadAsStringAsync();
     }
 
     [Fact]
@@ -65,7 +328,8 @@ public partial class GuideTests(AppFactory app) : IClassFixture<AppFactory>
     {
         var html = await app.CreateClient().GetStringAsync("/guide");
 
-        Assert.All(guide.All, e => Assert.Contains($"href=\"guide/{e.Id}\"", html));
+        // A feature with a walkthrough links to that instead of its guide steps.
+        Assert.All(guide.All, e => Assert.Contains($"href=\"{NorthwindOps.Components.Learn.LearnPages.UrlFor(e.Id)}\"", html));
     }
 
     [Theory]
@@ -117,6 +381,8 @@ public partial class GuideTests(AppFactory app) : IClassFixture<AppFactory>
             intro: An intro.
             mode: Static SSR
             demo: demo/x
+            before: demo/x/old
+            labels: The old way | The new way
             ---
 
             ## The problem
@@ -143,6 +409,8 @@ public partial class GuideTests(AppFactory app) : IClassFixture<AppFactory>
             1. Do **this**.
             2. Then that.
 
+            Explain: Because **this**.
+
             ## How it's built
 
             Two parts.
@@ -164,6 +432,9 @@ public partial class GuideTests(AppFactory app) : IClassFixture<AppFactory>
         Assert.Matches("<p class=\"bad\">It hurts.\\s*</p>", option.Html);
         Assert.Equal(["Do <strong>this</strong>.", "Then that."], entry.Try.WatchHtml);
         Assert.Contains("A lead.", entry.Try.LeadHtml);
+        Assert.DoesNotContain("Because", entry.Try.LeadHtml);
+        Assert.Equal("Because <strong>this</strong>.", entry.Try.ExplainHtml);
+        Assert.Equal(new GuideBefore("demo/x/old", "The old way", "The new way"), entry.Before);
         var card = Assert.Single(entry.Code.Cards);
         Assert.Equal(("The first part", "Components/Guide/Demos/TempData/EditOrder.razor"), (card.Caption, card.Path));
         Assert.Contains("A note.", card.NoteHtml);
@@ -171,6 +442,9 @@ public partial class GuideTests(AppFactory app) : IClassFixture<AppFactory>
         Assert.Equal("First thing", note.Title);
         Assert.Equal("Its detail with <code>code</code>.", note.Html);
     }
+
+    [GeneratedRegex(@"data-contact[\s>]")]
+    private static partial Regex ContactRow();
 
     [GeneratedRegex("""href="demo/tempdata/orders/(\d+)""")]
     private static partial Regex OrderLink();

@@ -1,0 +1,3 @@
+@* .NET 11's <Label For> does not exist in .NET 10: the compiler treats it as unknown markup. *@
+<Label For="() => Name" />
+@code { string? Name { get; set; } }

@@ -1,0 +1,26 @@
+@using System.Globalization
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="/" />
+    <ImportMap />
+</head>
+<body>
+    <Routes />
+    @if (Fix == "start")
+    {
+        @* .NET 10 workaround 1: hand the server's culture to Blazor.start yourself. *@
+        <script src="@Assets["_framework/blazor.web.js"]" autostart="false"></script>
+        <script>Blazor.start({ webAssembly: { applicationCulture: "@CultureInfo.CurrentCulture.Name" } });</script>
+    }
+    else
+    {
+        <script src="@Assets["_framework/blazor.web.js"]"></script>
+    }
+</body>
+</html>
+@code {
+    [CascadingParameter] HttpContext? Http { get; set; }
+    string? Fix => Http?.Request.Query["fix"];
+}

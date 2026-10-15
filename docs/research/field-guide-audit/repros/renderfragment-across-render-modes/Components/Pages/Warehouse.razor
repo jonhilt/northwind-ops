@@ -1,0 +1,7 @@
+@page "/warehouse"
+@* Static SSR page (no @rendermode). The obvious markup: a table inside an interactive card. *@
+<h1>Warehouse</h1>
+<Collapsible @rendermode="InteractiveServer" Title="Low stock">
+    <p>Queried at <b>@DateTime.Now.ToString("HH:mm:ss")</b></p>
+    <table><tr><td>Chai</td><td>3</td></tr></table>
+</Collapsible>

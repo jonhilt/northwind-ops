@@ -4,29 +4,32 @@ title: DisplayName
 group: Forms
 order: 14
 hook: Grid headers that use your form's field names.
-intro: Show a property's [Display] name as plain text, so a grid's headers match the form's labels.
+intro: Show a property's [Display] name as plain text, so a grid's headers say what the form's labels say. New in .NET 11, and works in any render mode.
 mode: Static SSR
 demo: demo/displayname/suppliers
+before: demo/displayname/suppliers/net10
+labels: .NET 10: headers typed as Title | .NET 11: DisplayName
 app: suppliers
 ---
 
 ## The problem
 
-Your grid's headers should say what your form's labels say. Why type them twice?
+Your form's model already names every field with `[Display]`. Why does the grid type them again?
 
-Blazor in .NET 10 had no `DisplayNameFor`, so apps used one of two workarounds.
+Blazor in .NET 10 had no `DisplayNameFor`, MVC's helper for this. Validation messages read `[Display]`, but nothing rendered it as text, so apps used one of two workarounds.
 
-### Type the headers in
+### Type each column's Title
 
 ```razor
-<tr>
-    <th>Supplier code</th>
-    <th>Company name</th>
-    <th>Main contact</th>
-</tr>
+<QuickGrid Items="suppliers">
+    <PropertyColumn Title="Supplier code"
+        Property="s => s.Code" />
+    <PropertyColumn Title="Main contact"
+        Property="s => s.Contact" />
+</QuickGrid>
 ```
 
-Rename a field on the form and the grid keeps the old name, in every language you translate it into. {.bad}
+Rename or translate a field on the model and the grid keeps the old English words, unless you look each one up again yourself. Leave `Title` out and QuickGrid prints the raw property name, `Contact`. {.bad}
 
 ### Write a reflection helper
 
@@ -38,36 +41,41 @@ static string NameOf<T>(Expression<Func<T>> e)
         .GetCustomAttribute<DisplayAttribute>();
     return display?.GetName() ?? member.Name;
 }
-// <th>@NameOf(() => names.Code)</th>
+// <th>@NameOf(() => form.Code)</th>
 ```
 
-One more helper to write, test and copy between projects, for something MVC has had built in for years. {.bad}
+It works, but it's one more helper to write, test and copy between projects. {.bad}
 
 ## See it work
 
-Read the headers, then switch language.
+Both grids list the same suppliers. Switch both to German: which grid's headers follow the form's model?
 
-This is a static page listing suppliers. Its headers come from the New supplier form's model.
+On the left, columns have a typed `Title`, or none, the .NET 10 way. On the right, each header is a `<DisplayName For>` pointing at the form's model. The dashed **Guide readout** above each grid isn't part of either technique: it lists the model's `[Display]` names right now, for you to compare.
 
-1. The headers read Supplier code, Company name, Main contact and Country: the same words as the form's labels.
-2. Click **Deutsch**. The headers turn German, though the page has no German in it.
-3. Right-click a header and choose Inspect. `DisplayName` renders just the text, with no element around it.
+1. In English, look at the left grid's third header: **Contact**. That column has no `Title`, so QuickGrid printed the property name, while the model calls it Main contact. The right grid reads Main contact.
+2. Click **Deutsch** on the left. It adds `?culture=de-DE` to the URL, and the readout turns German (Lieferantencode, Firmenname, Hauptansprechpartner), but the headers stay English.
+3. Click **Deutsch** on the right. The headers turn German with the readout. The German comes from `SupplierText.de.resx`, which the model's `[Display(ResourceType = …)]` points at; none is typed in the grid.
+
+Explain: `<DisplayName For>` reads the property's `[Display]` name each time it renders, through `DisplayAttribute.GetName()`, which looks the name up in the request's culture. A typed `Title` is a copy, and copies don't follow; a missing one falls back to the property's name.
 
 ## How it's built
 
-`<DisplayName For>` reads a property's `[Display]` name, as `Label` does, and renders it as text.
+What's new? A header template holding `<DisplayName For>`, pointing at the form's model rather than the grid's row type.
 
-The names live on the form's model, so the grid and the form can't drift apart.
+`DisplayName` is a component, the text-only sibling of `<Label For>`. .NET 11 adds no method that returns the name as a string, so it can't go in `Title`: it goes in the column's `HeaderTemplate`. `For` is only read for which property it names and never run, so `form` can stay null. A `HeaderTemplate` replaces QuickGrid's own title element, so the demo restores the bold, and the sort button goes with it.
 
-### The form's model, where each name is set once
+### New in .NET 11: each header points at the form model
+code: Components/Guide/Demos/DisplayNames/Suppliers.razor
+
+### Not new: the model, where each name is set once
 code: Components/Guide/Demos/DisplayNames/SupplierForm.cs
 
-### The list's headers point at the model
-code: Components/Guide/Demos/DisplayNames/Suppliers.razor
+### .NET 10: names typed again as Title, or left out
+code: Components/Guide/Demos/DisplayNames/SuppliersNet10.razor
 
 ## Good to know
 
-- **The expression is never run.** Only the property it points at matters, so an empty model instance is fine.
+- **Sortable columns.** The template replaces the sort button too. Keep a plain `Title` on columns that sort, or add your own button that calls `context.Grid.SortByColumnAsync(context)`.
 - **It reads attributes, not `IStringLocalizer`.** For names that change with the language, use `[Display(ResourceType = …)]`, as this model does.
-- **QuickGrid loses its sort link.** A `HeaderTemplate` replaces the whole header, sort link included. Keep a plain `Title` on columns that sort.
+- **Any render mode.** This page is static SSR; `DisplayName` renders the same text when interactive.
 - **Falls back in order.** `[Display(Name)]`, then `[DisplayName]`, then the property's own name.

@@ -1,0 +1,19 @@
+@page "/demo/wasm-culture/invoice/net10"
+@layout DemoLayout
+
+<h1>Invoice</h1>
+
+@* Two moments from the .NET 10 repro, recorded: what the server sent, and what the same
+   component showed once WebAssembly started in an English browser. *@
+<Net10Recording Sdk="10.0.102" Request="GET /?culture=de-DE, in an en-US browser"
+                Repro="wasm-culture-from-server" Note="Read from the page by Playwright at each moment.">
+    <table class="quickgrid moments" data-moments>
+        <thead><tr><th></th><th>Culture</th><th>Total</th><th>Due</th></tr></thead>
+        <tbody>
+            <tr><th>Server rendered</th><td>de-DE</td><td>1.234,56</td><td>Freitag, 13. November 2026</td></tr>
+            <tr class="flipped"><th>WebAssembly started</th><td>en-US</td><td>1,234.56</td><td>Friday, November 13, 2026</td></tr>
+            <tr><th>…with the culture passed as a parameter</th><td>en-US</td><td>1.234,56</td><td class="miss">Friday, November 13, 2026</td></tr>
+        </tbody>
+    </table>
+    <p class="note">In a fr-FR browser the same page became <b>1 234,56</b> and <b>vendredi 13 novembre 2026</b>.</p>
+</Net10Recording>

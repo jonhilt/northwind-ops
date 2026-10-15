@@ -1,0 +1,11 @@
+@* Same shape as the guide's Collapsible: an interactive card that folds its ChildContent away. *@
+<section id="card">
+    <button id="toggle" @onclick="() => open = !open">@(open ? "▾" : "▸") @Title</button>
+    <span id="mode">@(RendererInfo.IsInteractive ? "Interactive" : "Static")</span>
+    @if (open) { @ChildContent }
+</section>
+@code {
+    bool open = true;
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

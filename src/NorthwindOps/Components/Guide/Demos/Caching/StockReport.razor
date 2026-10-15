@@ -4,9 +4,15 @@
 <h1>Stock by category</h1>
 <p class="stamp">Page rendered at <b>@DateTime.Now.ToString("HH:mm:ss")</b></p>
 
-@* xray:cacheview *@
-@* Keeps the summary's HTML for 20 seconds. On a hit, StockSummary isn't even created. *@
-<CacheView ExpiresAfter="TimeSpan.FromSeconds(20)">
-    <StockSummary />
-</CacheView>
-@* /xray:cacheview *@
+<div class="cached" data-label="Cached for 10 seconds by CacheView">
+    @* xray:cacheview *@
+    @* New in .NET 11: keeps the summary's HTML. On a hit, StockSummary isn't even created,
+       and visitors who miss together wait for one render instead of each running it.
+       The key is where it sits on the page, so every visitor shares one entry. *@
+    <CacheView ExpiresAfter="TimeSpan.FromSeconds(10)">
+        <StockSummary />
+    </CacheView>
+    @* /xray:cacheview *@
+</div>
+
+<Visitors Tally="ReportTally.Net11" />

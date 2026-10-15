@@ -1,0 +1,10 @@
+@page "/try-anchormode"
+@* The .NET 11 fix, compiled against .NET 10: dotnet build -p:TryAnchor=true *@
+<div class="feed fixed">
+    <Virtualize Items="messages" AnchorMode="VirtualizeAnchorMode.End" Context="m">
+        <div class="msg">@m.Text</div>
+    </Virtualize>
+</div>
+@code {
+    List<Message> messages = [];
+}

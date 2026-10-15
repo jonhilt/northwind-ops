@@ -2,51 +2,41 @@
 @layout DemoLayout
 @inject IDbContextFactory<NorthwindDb> DbFactory
 
-@* Request localization reads ?culture=de-DE (see Program.cs) *@
+@* Deutsch adds ?culture=de-DE, which request localization reads (see Program.cs) *@
 <nav class="languages">
     <a href="demo/displayname/suppliers">English</a>
     <a href="demo/displayname/suppliers?culture=de-DE">Deutsch</a>
 </nav>
 
 <h1>Suppliers</h1>
+<FormLabels />
 
-<table class="quickgrid">
-    <thead>
-        <tr>
-            @* xray:displayname-component *@
-            <th><DisplayName For="() => names.Code" /></th>
-            <th><DisplayName For="() => names.Company" /></th>
-            <th><DisplayName For="() => names.Contact" /></th>
-            <th><DisplayName For="() => names.Country" /></th>
-            @* /xray:displayname-component *@
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var supplier in suppliers)
-        {
-            <tr>
-                <td>@supplier.Code</td>
-                <td>@supplier.Company</td>
-                <td>@supplier.Contact</td>
-                <td>@supplier.Country</td>
-            </tr>
-        }
-    </tbody>
-</table>
+<div class="grid">
+<QuickGrid Items="suppliers">
+    @* xray:displayname-component *@
+    @* New in .NET 11: each header is the form model's [Display] name, as plain text *@
+    <PropertyColumn Property="s => s.Code">
+        <HeaderTemplate><DisplayName For="() => form.Code" /></HeaderTemplate>
+    </PropertyColumn>
+    <PropertyColumn Property="s => s.Company">
+        <HeaderTemplate><DisplayName For="() => form.Company" /></HeaderTemplate>
+    </PropertyColumn>
+    <PropertyColumn Property="s => s.Contact">
+        <HeaderTemplate><DisplayName For="() => form.Contact" /></HeaderTemplate>
+    </PropertyColumn>
+    @* /xray:displayname-component *@
+</QuickGrid>
+</div>
 
 @code {
     // xray:displayname-component
-    // Never shown or run: <DisplayName For> only reads the property's [Display] name.
-    static readonly SupplierForm names = new();
+    // Left null on purpose: DisplayName reads which property () => form.Code names,
+    // and never calls the lambda, so nothing dereferences form.
+    SupplierForm form = null!;
     // /xray:displayname-component
 
-    List<Supplier> suppliers = [];
+    IQueryable<Supplier> suppliers = Enumerable.Empty<Supplier>().AsQueryable();
 
     protected override async Task OnInitializedAsync()
-    {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        // The first suppliers by id: the seeded ones, not rows visitors have added.
-        suppliers = await db.Set<Supplier>().Where(s => s.Code != null)
-            .OrderBy(s => s.Id).Take(8).ToListAsync();
-    }
+        => suppliers = await SupplierRows.LoadAsync(DbFactory);
 }

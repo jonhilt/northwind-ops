@@ -1,0 +1,49 @@
+@page "/demo/client-validation/suppliers/new/net10"
+@layout DemoLayout
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+@if (added is not null)
+{
+    <div class="flash" role="status">✓ @added added to suppliers</div>
+}
+
+<h1>New supplier</h1>
+@* Counted in a hidden field, so it only goes up when a post reaches the server. *@
+<p class="server-time" data-tally>Posts to the server: <b>@Posts</b></p>
+
+<EditForm Model="Input" FormName="new-supplier" OnValidSubmit="SaveAsync" Enhance>
+    @* xray:ssr-client-validation *@
+    @* New in .NET 11: DisableClientValidation opts one form out of browser rules.
+       Here it brings back .NET 10's behaviour: inputs with no rules, server checks only. *@
+    <DataAnnotationsValidator DisableClientValidation="true" />
+    @* /xray:ssr-client-validation *@
+    <input type="hidden" name="Posts" value="@(Posts + 1)" />
+    <label for="company">Company</label>
+    <InputText id="company" @bind-Value="Input!.Company" />
+    <ValidationMessage For="() => Input!.Company" />
+
+    <label for="email">Email</label>
+    <InputText id="email" @bind-Value="Input!.Email" />
+    <ValidationMessage For="() => Input!.Email" />
+
+    <button type="submit">Save supplier</button>
+</EditForm>
+
+@code {
+    string? added;
+
+    [SupplyParameterFromForm] public NewSupplierForm? Input { get; set; }
+    [SupplyParameterFromForm] public int Posts { get; set; } // counted in a hidden field
+
+    protected override void OnInitialized() => Input ??= new();
+
+    // The only check: every mistake costs a post and a fresh render.
+    async Task SaveAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        db.Add(new Supplier { Company = Input!.Company!, Email = Input.Email });
+        await db.SaveChangesAsync();
+        added = Input.Company;
+        Input = new(); // a blank form for the next supplier
+    }
+}

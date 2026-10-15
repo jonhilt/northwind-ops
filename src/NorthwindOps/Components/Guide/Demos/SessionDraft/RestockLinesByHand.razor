@@ -1,0 +1,49 @@
+@page "/demo/session/restock/by-hand"
+@layout DemoLayout
+@using System.Text.Json
+@inject IDbContextFactory<NorthwindDb> DbFactory
+@inject NavigationManager Navigation
+
+@* The other .NET 10 way: step 1 again, reading and writing session by hand. *@
+<h1>Restock · 1. Quantities (session by hand)</h1>
+<form method="post" @formname="restock-by-hand" @onsubmit="Review" data-enhance>
+    <AntiforgeryToken />
+    @foreach (var p in products)
+    {
+        <label for="p@(p.Id)">@p.Name · @p.UnitsInStock in stock</label>
+        <input id="p@(p.Id)" name="Packs[@p.Id]" value="@Saved(p)" type="number" />
+    }
+    <button type="submit">Save draft</button>
+</form>
+
+@code {
+    [CascadingParameter] HttpContext Http { get; set; } = default!;
+    [SupplyParameterFromForm] public Dictionary<int, int?>? Packs { get; set; }
+    List<Product> products = [];
+    Dictionary<int, int> draft = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        // xray:supply-parameter-from-session
+        // .NET 10: every page loads the draft itself, and parses it.
+        draft = JsonSerializer.Deserialize<Dictionary<int, int>>(
+            Http.Session.GetString("restock-draft-by-hand") ?? "{}")!;
+        // /xray:supply-parameter-from-session
+        await using var db = await DbFactory.CreateDbContextAsync();
+        products = await db.Products.Where(p => !p.Discontinued)
+            .OrderBy(p => p.UnitsInStock).ThenBy(p => p.Id).Take(4).ToListAsync();
+    }
+
+    void Review()
+    {
+        draft = products.Where(p => Packs?.GetValueOrDefault(p.Id) > 0)
+            .ToDictionary(p => p.Id, p => Math.Min(Packs![p.Id]!.Value, 99));
+        // xray:supply-parameter-from-session
+        // .NET 10: and saves it. Leave this line out and the draft is lost, with no error.
+        Http.Session.SetString("restock-draft-by-hand", JsonSerializer.Serialize(draft));
+        // /xray:supply-parameter-from-session
+        Navigation.NavigateTo("demo/session/restock/by-hand");
+    }
+
+    int? Saved(Product p) => draft.TryGetValue(p.Id, out var n) ? n : null;
+}

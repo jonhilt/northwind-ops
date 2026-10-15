@@ -1,0 +1,16 @@
+@page "/demo/variable-height/incident/net10"
+@layout DemoLayout
+
+<h1>Order sync incident</h1>
+
+@* The same thread on .NET 10, recorded: the jump is in Virtualize's own script, so it can't be
+   replayed as markup. The readout along the bottom is scroll-readout.js, the one under the live list. *@
+<Net10Recording Sdk="10.0.102" Request="scroll 24 × 400px, then Expand all"
+                Repro="virtualize-variable-height" Note="Recorded with Playwright; the numbers along the bottom are measured, not drawn.">
+    <video src="guide/recordings/virtualize-variable-height-net10.webm" autoplay muted loop playsinline controls
+           data-recording-video></video>
+    <p class="measured" data-measured>
+        Measured on .NET 10: the scroll range swung <b>13,191px</b> while scrolling, and
+        Expand all moved the message being read by <b>274px</b>.
+    </p>
+</Net10Recording>

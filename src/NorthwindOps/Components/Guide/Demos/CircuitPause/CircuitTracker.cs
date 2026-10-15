@@ -7,7 +7,8 @@ namespace NorthwindOps.Components.Guide.Demos.CircuitPause;
 public sealed class CircuitTracker(CircuitBoard board) : CircuitHandler
 {
     // xray:server-initiated-circuit-pause
-    // Set when the circuit opens, before any of its components render.
+    // Not new: a circuit handler has always been handed each Circuit when it opens,
+    // before any of its components render. In .NET 11 a Circuit can ask its tab to pause.
     public Circuit? Circuit { get; private set; }
 
     public override Task OnCircuitOpenedAsync(Circuit circuit, CancellationToken cancel)

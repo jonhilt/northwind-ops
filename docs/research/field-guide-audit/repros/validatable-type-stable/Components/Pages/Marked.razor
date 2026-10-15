@@ -1,0 +1,22 @@
+@page "/marked"
+<h1>Marked model ([ValidatableType] + pragma)</h1>
+<EditForm Model="Input" FormName="marked" OnValidSubmit="Save">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <InputText @bind-Value="Input!.Company" />
+    <InputText @bind-Value="Input!.Address.City" />
+    @for (var i = 0; i < Input.Contacts.Count; i++)
+    {
+        var n = i;
+        <InputText @bind-Value="Input.Contacts[n].Name" />
+        <InputText @bind-Value="Input.Contacts[n].Email" />
+    }
+    <button>Save</button>
+</EditForm>
+<p id="result">@result</p>
+@code {
+    [SupplyParameterFromForm] public MarkedSupplierForm? Input { get; set; }
+    string? result;
+    protected override void OnInitialized() => Input ??= new();
+    void Save() => result = $"SAVED company={Input!.Company} city='{Input.Address.City}' contactEmail='{Input.Contacts.FirstOrDefault()?.Email}'";
+}

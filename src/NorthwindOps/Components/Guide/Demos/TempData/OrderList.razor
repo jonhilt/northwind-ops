@@ -2,45 +2,49 @@
 @layout DemoLayout
 @inject IDbContextFactory<NorthwindDb> DbFactory
 
-@* xray:tempdata-ssr *@
 @if (message is not null)
 {
     <div class="flash" role="status">✓ @message</div>
 }
-@* /xray:tempdata-ssr *@
+
+@* Not part of the feature: shows what this request carried. *@
+<p class="carrier" data-carrier>Carried by: @(cookie is null ? "no TempData cookie"
+    : $"an encrypted TempData cookie, {cookie[..Math.Min(16, cookie.Length)]}…")</p>
 
 <h1>Orders</h1>
 <table class="quickgrid">
     <thead><tr><th>Order</th><th>Customer</th><th>Internal note</th></tr></thead>
-    <tbody>
-        @foreach (var order in orders)
-        {
-            <tr>
-                <td><a href="demo/tempdata/orders/@order.Id">@order.Id</a></td>
-                <td>@order.Customer.Company</td>
-                <td>@order.Notes</td>
-            </tr>
-        }
-    </tbody>
+    @foreach (var order in orders)
+    {
+        <tr><td><a href="demo/tempdata/orders/@order.Id">@order.Id</a></td>
+            <td>@order.Customer.Company</td><td>@order.Notes</td></tr>
+    }
 </table>
 
 @code {
-    string? message;
+    string? message, cookie;
     List<Order> orders = [];
 
     // xray:tempdata-ssr
-    // Statically rendered components get the request's TempData as a cascading parameter.
+    // New in .NET 11: statically rendered components get the request's TempData, cascaded.
+    // In an interactive component it's null: there's no HTTP request to carry a cookie.
     [CascadingParameter] public ITempData? TempData { get; set; }
     // /xray:tempdata-ssr
+
+    [CascadingParameter] public HttpContext? Http { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         // xray:tempdata-ssr
-        // Get reads the value and marks it for deletion, so the message shows once.
+        // New in .NET 11: Get reads the value and marks it for deletion, so it shows once.
+        // Not [SupplyParameterFromTempData]: it writes the value back when the request
+        // ends, so the message would come back on every visit.
         message = TempData?.Get("flash") as string;
         // /xray:tempdata-ssr
+        cookie = Http?.Request.Cookies[".AspNetCore.Components.TempData"];
 
         await using var db = await DbFactory.CreateDbContextAsync();
-        orders = await db.Orders.Include(o => o.Customer).OrderByDescending(o => o.Id).Take(6).ToListAsync();
+        orders = await db.Orders.Include(o => o.Customer)
+            .OrderByDescending(o => o.Id).Take(6).ToListAsync();
     }
 }

@@ -1,0 +1,49 @@
+@page "/"
+@using System.Diagnostics
+@implements IDisposable
+
+<h1>Revenue by product (.NET 10, WebAssembly)</h1>
+
+<p class="clock">Clock on the UI thread <b id="clock">@(now?.ToString("HH:mm:ss.f") ?? "--")</b></p>
+<button id="ui" disabled="@busy" @onclick="() => Run(0)">Total on the UI thread</button>
+<button id="yield" disabled="@busy" @onclick="() => Run(1000)">Total, with Task.Delay(1) every 1,000 lines</button>
+<p role="status" id="status">@status</p>
+<ol>@foreach (var p in top) { <li>@p.Product <b>$@p.Revenue.ToString("N0")</b> (@p.Units units)</li> }</ol>
+
+@code {
+    const int LineCount = 300_000;
+    DateTime? now;
+    Timer? timer;
+    bool busy = true;
+    string status = "Building the order lines…";
+    byte[] csv = [];
+    ProductTotal[] top = [];
+    int ticks; // how many times the clock actually redrew
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        timer = new(_ => InvokeAsync(() => { now = DateTime.Now; ticks++; StateHasChanged(); }), null, 0, 100);
+        await Task.Yield();
+        csv = OrderLines.Build(LineCount);
+        (busy, status) = (false, $"{csv.Length / 1e6:0.0} MB, {LineCount:N0} order lines. Ready.");
+        StateHasChanged();
+    }
+
+    async Task Run(int yieldEvery)
+    {
+        (busy, top) = (true, []);
+        status = yieldEvery == 0 ? "Totalling on the UI thread…" : "Totalling, pausing every 1,000 lines…";
+        await Task.Delay(50); // let that show before the work starts
+        var startTicks = ticks;
+        var sw = Stopwatch.StartNew();
+        var (lines, t) = await OrderLines.Total(csv, yieldEvery);
+        var secs = sw.Elapsed.TotalSeconds;
+        top = t;
+        // A free UI thread would have ticked about secs * 10 times.
+        status = $"Totalled {lines:N0} lines in {secs:0.00} s. The clock ticked {ticks - startTicks} times (expected about {secs * 10:0}).";
+        busy = false;
+    }
+
+    public void Dispose() => timer?.Dispose();
+}

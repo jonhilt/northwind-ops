@@ -1,0 +1,11 @@
+@*
+    Demo only: shows the reconnection settings this page sent to the browser, as written in its
+    source, and whether Blazor then started. Filled in by SentToBrowser.razor.js.
+*@
+<div class="sent" data-sent>
+    <p class="lbl">Sent to the browser</p>
+    <pre data-sent-code></pre>
+    <p class="started" data-sent-started></p>
+</div>
+@* A classic script, not a module: it runs now, so it hears a later script's syntax error. *@
+<script src="@Assets["Components/Guide/Demos/Reconnect/SentToBrowser.razor.js"]"></script>

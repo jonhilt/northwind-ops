@@ -1,0 +1,10 @@
+@page "/demo/auto-pause/stock-take/net10"
+@layout DemoLayout
+
+<h1>Stock take: Beverages</h1>
+
+@* The same count sheet, with no auto-pause. A script of our own pauses it instead. *@
+<StockSheet @rendermode="new InteractiveServerRenderMode(prerender: false)" />
+
+@* .NET 10: your own script watches the tab and pauses the circuit. *@
+<script src="js/auto-pause-net10.js"></script>

@@ -1,0 +1,2 @@
+video { width: 100%; border: 1px solid var(--line); border-radius: 10px; }
+.measured { margin: 0; font-size: 13px; color: var(--bad); }

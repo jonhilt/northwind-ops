@@ -1,0 +1,12 @@
+@*
+    The same tabs, written the natural way, with no option to set. Blazor pages have
+    <base href="/">, so the browser resolves each link against the app's root.
+*@
+<nav class="tabs">
+    @* xray:relative-navigation *@
+    @* .NET 10, the problem, not the fix: on /orders/12047/summary, "lines" is /lines. *@
+    <NavLink href="summary">Summary</NavLink>
+    <NavLink href="lines">Lines</NavLink>
+    <NavLink href="customer">Customer</NavLink>
+    @* /xray:relative-navigation *@
+</nav>

@@ -1,6 +1,5 @@
 @page "/demo/hosted-services/customers"
 @layout DemoLayout
-@using NorthwindOps.Client.HostedServices
 @inject IDbContextFactory<NorthwindDb> DbFactory
 
 <nav class="tabs">
@@ -8,8 +7,8 @@
     <a href="demo/hosted-services/customers" class="on">Customers</a>
 </nav>
 
-@* Another page, another bell: the watcher behind it kept running. *@
-<OrderBell @rendermode="new InteractiveWebAssemblyRenderMode(prerender: false)" />
+@* No bell on this page. The watcher keeps checking anyway, and the Orders bell catches up. *@
+<p class="quiet">This page doesn't show the bell.</p>
 
 <h1>Customers</h1>
 <table class="quickgrid">

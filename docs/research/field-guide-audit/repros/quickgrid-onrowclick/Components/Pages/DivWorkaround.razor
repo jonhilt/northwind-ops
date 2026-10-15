@@ -1,0 +1,18 @@
+@page "/div-in-cells"
+<h1>.NET 10: clickable div in every cell (workaround from issue #44899)</h1>
+
+<QuickGrid Items="Tickets.All" RowClass="Highlight">
+    <TemplateColumn Title="Ticket"><div class="cell" @onclick="() => Open(context)">@context.Id</div></TemplateColumn>
+    <TemplateColumn Title="Subject"><div class="cell" @onclick="() => Open(context)">@context.Subject</div></TemplateColumn>
+    <TemplateColumn Title="Customer"><div class="cell" @onclick="() => Open(context)">@context.Company</div></TemplateColumn>
+</QuickGrid>
+
+<p id="open">@(open is null ? "Nothing open" : $"Open: #{open.Id} {open.Subject}")</p>
+<p id="clicks">Handler calls: @calls</p>
+
+@code {
+    TicketRow? open;
+    int calls;
+    void Open(TicketRow t) { calls++; open = t; }
+    string? Highlight(TicketRow t) => t.Id == open?.Id ? "selected" : null;
+}

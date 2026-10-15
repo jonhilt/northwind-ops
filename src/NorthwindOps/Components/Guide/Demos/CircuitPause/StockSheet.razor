@@ -21,9 +21,12 @@
 <label for="note">Note for the next shift</label>
 <input id="note" @bind="Note" placeholder="Shelf 4 is half empty" maxlength="200" />
 
+<StockPost />
+
 @code {
     // xray:circuit-auto-pause
-    // Saved when the circuit pauses, and put back when it resumes.
+    // Not new: since .NET 10, these are saved when the circuit pauses and put back when it
+    // resumes, on a new circuit. Nothing else on it survives.
     [PersistentState] public Dictionary<int, int>? Counted { get; set; }
     [PersistentState] public string? Note { get; set; }
     // /xray:circuit-auto-pause

@@ -4,7 +4,7 @@ title: Configure the Blazor client from C# (WithBrowserOptions and ConfigureBrow
 badge: BrowserOptions · client settings in C#
 release: Preview 4 (final names in RC1)
 mode: Interactive Server
-sources: Components/Guide/Demos/Reconnect/PickList.razor
+sources: Components/Guide/Demos/Reconnect/PickList.razor, Components/Guide/Demos/Reconnect/PickListNet10.razor
 docs: https://github.com/dotnet/core/blob/main/release-notes/11.0/preview/rc1/aspnetcore.md
 summary: Client startup settings that used to need a hand-written Blazor.start() call, like how the browser reconnects to the server, are now set in C#. The server writes them into the page and blazor.web.js applies them, for the whole app with WithBrowserOptions or for one page with ConfigureBrowser.
 ---

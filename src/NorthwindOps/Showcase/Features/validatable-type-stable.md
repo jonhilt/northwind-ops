@@ -6,7 +6,7 @@ release: Preview 7
 mode: Any render mode
 sources: Features/Suppliers/SupplierForm.cs, Program.cs, Components/Pages/Suppliers/SupplierEditor.razor
 docs: https://learn.microsoft.com/aspnet/core/blazor/forms/validation?view=aspnetcore-11.0
-summary: Mark the form model [ValidatableType], call AddValidation(), and DataAnnotationsValidator validates the whole object graph, nested objects and list items included. In .NET 10 that was an experimental API you had to suppress a warning (ASP0029) to use. In .NET 11 it's a supported part of the framework.
+summary: Mark the form model [ValidatableType], call AddValidation(), and DataAnnotationsValidator validates the whole object graph, nested objects and list items included. In .NET 10 that was an experimental API you had to suppress the ASP0029 error to use. In .NET 11 it's a supported part of the framework.
 ---
 
 ## Try it

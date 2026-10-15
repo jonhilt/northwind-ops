@@ -1,0 +1,32 @@
+@page "/"
+@using System.ComponentModel.DataAnnotations
+
+@* .NET 10: the same static SSR form the Field Guide demo uses. *@
+<h1>New supplier</h1>
+<p>Server rendered at <b id="server-time">@DateTime.Now.ToString("HH:mm:ss.fff")</b> (server render #<b id="renders">@(++renders)</b>)</p>
+
+@if (added is not null) { <p id="flash">Added @added</p> }
+
+<EditForm Model="Input" FormName="new-supplier" OnValidSubmit="Save" Enhance>
+    <DataAnnotationsValidator />
+    <label>Company <InputText id="company" @bind-Value="Input!.Company" /></label>
+    <ValidationMessage For="() => Input!.Company" />
+    <label>Email <InputText id="email" @bind-Value="Input!.Email" /></label>
+    <ValidationMessage For="() => Input!.Email" />
+    <button type="submit">Save supplier</button>
+</EditForm>
+
+@code {
+    static int renders;
+    string? added;
+
+    [SupplyParameterFromForm] public NewSupplierForm? Input { get; set; }
+    protected override void OnInitialized() => Input ??= new();
+    void Save() { added = Input!.Company; Input = new(); }
+
+    public sealed class NewSupplierForm
+    {
+        [Required, StringLength(40)] public string? Company { get; set; }
+        [Required, EmailAddress, StringLength(60)] public string? Email { get; set; }
+    }
+}

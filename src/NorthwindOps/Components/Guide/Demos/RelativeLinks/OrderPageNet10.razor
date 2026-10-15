@@ -1,0 +1,13 @@
+@page "/demo/relative-nav/net10/orders/{Id:int}/{Tab}"
+@layout DemoLayout
+
+<h1>Order @Id</h1>
+
+@* The same order page, with its tabs linked the .NET 10 way. *@
+<OrderTabsNet10 />
+<OrderDetails Id="Id" Tab="@Tab" />
+
+@code {
+    [Parameter] public int Id { get; set; }
+    [Parameter] public string Tab { get; set; } = "";
+}

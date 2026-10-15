@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+
+  <!-- dotnet build -p:TryNet11Api=true  compiles Probe/Net11Api.razor (expected to fail on .NET 10) -->
+  <ItemGroup Condition="'$(TryNet11Api)' != 'true'">
+    <Content Remove="Probe/**" />
+    <None Include="Probe/**" />
+  </ItemGroup>
+
+</Project>

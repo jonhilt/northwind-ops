@@ -21,3 +21,4 @@
 .circuit-panel code { font-family: var(--mono); font-weight: 600; color: var(--ink); }
 .circuit-panel .resumed { color: var(--ok); font-weight: 600; }
 .circuit-panel .muted { color: var(--muted); }
+.stuck { color: var(--bad); font-weight: 600; }

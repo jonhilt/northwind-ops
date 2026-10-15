@@ -1,0 +1,36 @@
+@page "/orders"
+@* .NET 10 static SSR: two ways to say "saved" after a redirect, both hand-rolled. *@
+
+@if (Saved is not null)
+{
+    <div id="query-flash">Order @Saved saved (from ?saved= in the URL)</div>
+}
+@if (cookieMessage is not null)
+{
+    <div id="cookie-flash">@cookieMessage (from the Status cookie)</div>
+}
+
+<h1>Orders</h1>
+<ul>
+    <li><a href="orders/11077">11077</a></li>
+    <li><a href="orders/11078">11078</a></li>
+</ul>
+
+@code {
+    [CascadingParameter] public HttpContext HttpContext { get; set; } = default!;
+
+    // Workaround 1: a flag in the query string.
+    [SupplyParameterFromQuery] public int? Saved { get; set; }
+
+    string? cookieMessage;
+
+    protected override void OnInitialized()
+    {
+        // Workaround 2: a hand-written cookie, read then deleted (like Identity's StatusMessage).
+        cookieMessage = HttpContext.Request.Cookies["Status"];
+        if (cookieMessage is not null)
+        {
+            HttpContext.Response.Cookies.Delete("Status");
+        }
+    }
+}

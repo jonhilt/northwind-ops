@@ -5,22 +5,18 @@
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 
-<Clock />
-<button disabled="@busy" @onclick="() => Total(false)">Total on the UI thread</button>
-<button disabled="@busy" @onclick="() => Total(true)">Total in a Web Worker</button>
+<Clock @ref="clock" />
+<button disabled="@busy" @onclick="Total">Total in a Web Worker</button>
+<button disabled="@busy" @onclick="Misspelled">Call a misspelled method</button>
 <p role="status">@status</p>
-<ol>
-    @foreach (var p in totals?.TopProducts ?? [])
-    {
-        <li>@p.Product <b>$@p.Revenue.ToString("N0")</b></li>
-    }
-</ol>
+<ReportRuns Runs="runs" />
 
 @code {
+    Clock clock = default!;
     bool busy = true;
     string status = "Downloading the order lines…";
     byte[] csv = [];
-    OrderLineTotals? totals;
+    List<ReportRun> runs = [];
     WebWorkerClient? worker;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -29,31 +25,46 @@
         using var http = new HttpClient { BaseAddress = new(Navigation.BaseUri) };
         csv = await http.GetByteArrayAsync("demo/web-worker/order-lines.csv");
         // xray:web-worker-template
-        worker = await WebWorkerClient.CreateAsync(JS); // starts .NET in a Web Worker
+        // New in .NET 11: WebWorkerClient is C# the blazorwebworker template writes into
+        // your project, with two scripts. It starts a second .NET runtime in a Web Worker.
+        worker = await WebWorkerClient.CreateAsync(JS);
         // /xray:web-worker-template
         (busy, status) = (false, $"{csv.Length / 1e6:0.0} MB of order lines. Ready.");
         StateHasChanged();
     }
 
-    async Task Total(bool inWorker)
+    async Task Total()
     {
-        (busy, totals) = (true, null);
-        status = inWorker ? "Totalling in the worker…" : "Totalling on the UI thread…";
+        (busy, status) = (true, "Totalling in the worker…");
         await Task.Delay(50); // let that show before the work starts
-        var timer = Stopwatch.StartNew();
+        var (ticks, timer) = (clock.Ticks, Stopwatch.StartNew());
         // xray:web-worker-template
-        var json = inWorker
-            ? await worker!.InvokeAsync<string>(
-                "NorthwindOps.Worker.WorkerMethods.TotalOrderLines", [csv])
-            : WorkerMethods.TotalOrderLines(csv); // the same method, on this thread
+        // New in .NET 11: call the method by its full name. The template's client numbers
+        // the call, copies the bytes over and awaits the reply; this thread stays free.
+        var json = await worker!.InvokeAsync<string>(
+            "NorthwindOps.Worker.WorkerMethods.TotalOrderLines", [csv]);
         // /xray:web-worker-template
-        totals = JsonSerializer.Deserialize<OrderLineTotals>(json)!;
-        var seconds = timer.Elapsed.TotalSeconds;
-        (busy, status) = (false, $"Totalled {totals.Lines:N0} lines in {seconds:0.0} s");
+        var totals = JsonSerializer.Deserialize<OrderLineTotals>(json)!;
+        runs.Add(new("In a Web Worker", timer.Elapsed, clock.Ticks - ticks, totals));
+        (busy, status) = (false, "Ready.");
+    }
+
+    async Task Misspelled()
+    {
+        // xray:web-worker-template
+        // New in .NET 11: the template carries the worker's error back to this call as an
+        // exception. The name is only checked at run time: here "Lines" lost its "s".
+        try
+        {
+            await worker!.InvokeAsync<string>(
+                "NorthwindOps.Worker.WorkerMethods.TotalOrderLine", []);
+        }
+        catch (InvalidOperationException ex) { status = ex.Message.Split('\n')[0]; }
+        // /xray:web-worker-template
     }
 
     // xray:web-worker-template
-    // Ends the worker, and the runtime in it, when the visitor leaves
+    // New in .NET 11 (template): ends the worker and its runtime when the visitor leaves.
     public ValueTask DisposeAsync() => worker?.DisposeAsync() ?? default;
     // /xray:web-worker-template
 }

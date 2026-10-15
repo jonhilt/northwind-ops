@@ -1,0 +1,24 @@
+@page "/byid"
+@inject IJSRuntime JS
+<p id="status">@status</p>
+<div class="thread">
+    <Virtualize Items="Thread.Messages" Context="m">
+        <article id="msg-@m.Number" class="@(m.Number == Message ? "msg target" : "msg")">
+            <b>@m.Author</b> #@m.Number <p>@m.Body</p>
+        </article>
+    </Virtualize>
+</div>
+@code {
+    string status = "not scrolled yet";
+    [SupplyParameterFromQuery] public int? Message { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && Message is int n)
+        {
+            var found = await JS.InvokeAsync<bool>("scrollToId", $"msg-{n}");
+            status = found ? $"found msg-{n}" : $"msg-{n} is not in the DOM, nothing to scroll to";
+            StateHasChanged();
+        }
+    }
+}

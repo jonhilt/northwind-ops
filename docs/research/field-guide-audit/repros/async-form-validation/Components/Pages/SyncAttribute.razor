@@ -1,0 +1,35 @@
+@page "/sync-attribute"
+@inject SupplierDirectory Directory
+
+@* The other .NET 10 option: make the rule an attribute. IsValid must be synchronous, so it blocks. *@
+<h1>New supplier (.NET 10, sync-over-async attribute)</h1>
+
+<EditForm Model="Input" OnValidSubmit="Save">
+    <DataAnnotationsValidator />
+    <label>Supplier code <InputText id="code" @bind-Value="Input.Code" /></label>
+    <ValidationMessage For="() => Input.Code" />
+    <button id="save" type="submit">Save supplier</button>
+</EditForm>
+
+@code {
+    public sealed class Form
+    {
+        [Required, UniqueCode]
+        public string? Code { get; set; }
+    }
+
+    public sealed class UniqueCodeAttribute : ValidationAttribute
+    {
+        protected override ValidationResult? IsValid(object? value, ValidationContext context)
+        {
+            if (value is not string code) return ValidationResult.Success;
+            var dir = context.GetRequiredService<SupplierDirectory>();
+            // There is no IsValidAsync in .NET 10: block the circuit's thread for 1.5 s.
+            var taken = dir.IsCodeTakenAsync(code).GetAwaiter().GetResult();
+            return taken ? new ValidationResult("That code is already used.", [context.MemberName!]) : ValidationResult.Success;
+        }
+    }
+
+    readonly Form Input = new();
+    void Save() => Directory.Add(Input.Code!);
+}

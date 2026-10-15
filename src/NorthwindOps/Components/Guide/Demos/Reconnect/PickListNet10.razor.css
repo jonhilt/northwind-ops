@@ -1,0 +1,15 @@
+/* Hidden until blazor.web.js fills in the numbers, the first time the connection drops. */
+.rejoin {
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: var(--warn-soft);
+    color: var(--warn);
+    font-size: 13px;
+}
+.rejoin:has(b:empty) { display: none; }
+
+/* The two .NET 10 ways, one page load each: Blazor.start() can only run once. */
+.ways { display: flex; gap: 8px; margin: -6px 0 12px; font-size: 13px; }
+.ways a { padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; }
+.ways a.on { background: var(--brand); border-color: var(--brand); color: #fff; }

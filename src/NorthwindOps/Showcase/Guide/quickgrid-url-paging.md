@@ -4,17 +4,19 @@ title: Grid state in the URL
 group: Grids & lists
 order: 30
 hook: Sort, page, refresh: the grid stays put.
-intro: Keep a grid's sort and page in the URL, so a refresh or a shared link shows the same view.
+intro: Keep a grid's sort and page in the URL, so a refresh or a shared link shows the same view. New in .NET 11.
 mode: Static SSR
-demo: demo/grid-url/products
+demo: demo/grid-url/products?sort=Price&direction=desc&page=2
+before: demo/grid-url/products/net10
+labels: .NET 10 · recorded | .NET 11 · live
 app: orders
 ---
 
 ## The problem
 
-You sort a grid and go to page 3, then refresh. Why are you back on page 1?
+You sort a grid and go to page 2, then refresh or share the link. Why are you back on page 1?
 
-In .NET 10, QuickGrid's sort headers and pager were buttons that only worked in an interactive render mode, so apps used one of two workarounds.
+In .NET 10, QuickGrid kept its sort and page in component state, never in the URL. On a static page its headers and pager were buttons with no handler, so they did nothing at all.
 
 ### Make the page interactive
 
@@ -30,7 +32,7 @@ In .NET 10, QuickGrid's sort headers and pager were buttons that only worked in 
 <Paginator State="pagination" />
 ```
 
-A circuit per visitor, holding the view in server memory, so a refresh or a link still lands on page 1. {.bad}
+Sorting works, but the view lives in the circuit, so a refresh or a shared link still lands on page 1. {.bad}
 
 ### Read the query string yourself
 
@@ -54,19 +56,21 @@ You give up QuickGrid's sorting and pager, and write the links and queries for e
 
 ## See it work
 
-Sort and page the grid, then refresh.
+Both grids were asked for `?sort=Price&direction=desc&page=2`, on a static page. Which one shows it?
 
-This is a small product grid on a static page, running for real. There's no circuit: the headers and the pager are plain links.
+.NET 11 changed QuickGrid itself, so the old grid can't run here. The left is what our .NET 10 repro returned, replayed as-is: its buttons are exactly as inert as they were.
 
-1. Click **Price** twice to sort highest first. The address bar gains `sort=Price` and `direction=desc`.
-2. Press **›** under the grid to go to page 2. The URL gains `page=2`, and the sort stays.
-3. Press **⟳** above the demo to refresh. Same sort, same page: the view lives in the URL.
+1. On the left, .NET 10 ignored the URL: page 1, sorted by Product. Click **Price** or **›**: nothing happens, no request, no change.
+2. On the right, the same URL opens on page 2, highest price first. The header arrow and the pager say so.
+3. Click **Price**, or **‹** under the grid, and watch the frame's address: the URL changes with the view. Press **⟳** to refresh, and it stays.
+
+Explain: In .NET 11, QuickGrid reads `sort`, `direction` and `page` from the URL, and renders its headers and pager as links to the next view. The page is static, with no circuit: every click is a plain request for a new URL.
 
 ## How it's built
 
-QuickGrid reads its sort and page from the URL. Its headers and pager are links.
+What did the page have to change? Nothing: an ordinary QuickGrid and Paginator on a static page.
 
-The parameters are `sort`, `direction` and `page`. There's nothing to turn on: every QuickGrid in .NET 11 does this.
+There's nothing to turn on: every QuickGrid in .NET 11 does this, and an interactive grid keeps the URL in step too.
 
 ### An ordinary QuickGrid, on a static page
 code: Components/Guide/Demos/GridUrl/Products.razor
@@ -75,5 +79,5 @@ code: Components/Guide/Demos/GridUrl/Products.razor
 
 - **Sorting matches the column title.** `sort=Price` finds the column whose `Title` is Price. Rename it, and old links fall back to the default sort.
 - **Two grids on one page?** Give each a prefix with its `QueryParameterNameOptions` parameter. `new QueryParameterNameOptions("cities_")` makes them `cities_sort`, `cities_direction` and `cities_page`.
+- **Headers are links now, not buttons.** They render as `<a class="col-title">`, so update any CSS that styled the buttons. The AppContext switch `Microsoft.AspNetCore.Components.QuickGrid.EnableUrlBasedQuickGridNavigationAndSorting` set to `false` brings the buttons back.
 - **Your own query parameters survive.** A filter read with `[SupplyParameterFromQuery]` stays in the grid's links. Reset `page` when the filter changes, as the Orders screen does with `GetUriWithQueryParameters`.
-- **Headers are links now, not buttons.** They render as `<a class="col-title">`, so update any CSS that styled the buttons.

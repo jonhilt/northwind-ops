@@ -1,0 +1,56 @@
+@page "/demo/hosted-services/orders/net10"
+@layout DemoLayout
+@using NorthwindOps.Client.HostedServices
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+<nav class="tabs">
+    <a href="demo/hosted-services/orders/net10" class="on">Orders</a>
+    <a href="demo/hosted-services/customers/net10">Customers</a>
+</nav>
+
+@* The same page with the .NET 10 bell: it polls by itself, so its timer lives on this page. *@
+<PollingBell @rendermode="new InteractiveWebAssemblyRenderMode(prerender: false)" />
+
+@* One .NET 10 app running this bell's timer, the .NET 11 line and workaround 2. *@
+<Net10Recording Sdk="10.0.102" Request="Orders → Customers → Orders, three watchers"
+                Repro="wasm-hosted-services"
+                Note="Each watcher's ticks, one a second, read from the page by Playwright.">
+    <table class="quickgrid moments" data-moments>
+        <thead><tr><th>Ticks on .NET 10</th><th>5 s on Orders</th><th>Customers</th>
+            <th>Orders again</th></tr></thead>
+        <tbody>
+            <tr><th>Timer in the page <i>this bell</i></th>
+                <td>5</td><td>gone</td><td class="bad">1</td></tr>
+            <tr class="dead"><th>AddHostedService <i>the .NET 11 line</i></th>
+                <td>0</td><td>0</td><td>0</td></tr>
+            <tr><th>Started by hand <i>workaround 2</i></th>
+                <td>5</td><td>8</td><td>10</td></tr>
+        </tbody>
+    </table>
+    <p class="note">AddHostedService never started, with no error. Starting by hand worked,
+        but only for services you start yourself.</p>
+</Net10Recording>
+
+<h1>Orders</h1>
+<table class="quickgrid">
+    <thead><tr><th>Order</th><th>Customer</th><th>Status</th></tr></thead>
+    <tbody>
+        @foreach (var order in orders)
+        {
+            <tr>
+                <td>@order.Id</td><td>@order.Customer.Company</td><td>@order.Status</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    List<Order> orders = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        orders = await db.Orders.Include(o => o.Customer)
+            .OrderByDescending(o => o.Id).Take(6).ToListAsync();
+    }
+}

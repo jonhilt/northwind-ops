@@ -1,0 +1,19 @@
+.count { margin: 0 0 8px; font-size: 13px; color: var(--ink-soft); }
+
+.feed {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fcfcfe;
+}
+
+.msg {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 12px 14px;
+    line-height: 1.45;
+    border-bottom: 1px solid #f0eef6;
+}
+.msg b { flex: none; width: 104px; font-weight: 600; }
+.msg span { flex: 1; min-width: 0; color: var(--ink-soft); }
+.msg time { flex: none; font-family: var(--mono); font-size: 12px; color: var(--muted); }

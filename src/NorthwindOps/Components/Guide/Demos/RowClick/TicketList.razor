@@ -1,8 +1,12 @@
 @using NorthwindOps.Features.Support
 @inject SupportDesk Desk
 
-<div class="tickets">
+@* Every click on the grid is counted, so you can compare it with the tickets it opened. *@
+<p class="tally" data-tally>Clicks on the grid: <b>@clicks</b> · Tickets opened: <b>@opened</b></p>
+<div class="tickets" @onclick="() => clicks++">
     @* xray:quickgrid-onrowclick *@
+    @* OnRowClick is new. Given a method group, the grid can't infer its item type: name it with
+       TGridItem, or the build fails with CS1503. *@
     <QuickGrid TGridItem="TicketRow" Items="tickets"
                OnRowClick="OpenAsync" RowClass="Highlight">
     @* /xray:quickgrid-onrowclick *@
@@ -29,6 +33,7 @@ else
 @code {
     IQueryable<TicketRow> tickets = Enumerable.Empty<TicketRow>().AsQueryable();
     TicketView? open;
+    int clicks, opened;
 
     protected override async Task OnInitializedAsync()
     {
@@ -37,10 +42,14 @@ else
     }
 
     // xray:quickgrid-onrowclick
-    // QuickGrid hands over the clicked row's item: load that ticket and show it.
-    async Task OpenAsync(TicketRow row) => open = await Desk.GetAsync(row.Id);
-
-    // Mark the open ticket's row, so you can see which one you're reading.
-    string? Highlight(TicketRow row) => row.Id == open?.Id ? "selected" : null;
+    // New in .NET 11: QuickGrid calls this with the clicked row's item, wherever on the row you click.
+    async Task OpenAsync(TicketRow row)
+    {
+        open = await Desk.GetAsync(row.Id);
+        opened++;
+    }
     // /xray:quickgrid-onrowclick
+
+    // Not new: RowClass marks the open ticket's row, so you can see which one you're reading.
+    string? Highlight(TicketRow row) => row.Id == open?.Id ? "selected" : null;
 }

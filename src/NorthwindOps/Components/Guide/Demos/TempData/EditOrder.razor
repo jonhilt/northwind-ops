@@ -24,19 +24,15 @@
     [SupplyParameterFromForm] public NoteForm? Input { get; set; }
 
     // xray:tempdata-ssr
-    // Whatever this holds when the request ends is saved to TempData, under the key "flash".
+    // New in .NET 11: whatever this holds when the request ends is saved to TempData,
+    // under the key "flash". Only SaveAsync sets it.
     [SupplyParameterFromTempData(Name = "flash")] public string? Flash { get; set; }
     // /xray:tempdata-ssr
 
     protected override async Task OnInitializedAsync()
     {
         await using var db = await DbFactory.CreateDbContextAsync();
-        if (await db.Orders.FindAsync(Id) is not { } order)
-        {
-            Navigation.NotFound();
-            return;
-        }
-        Input ??= new() { Notes = order.Notes };
+        Input ??= new() { Notes = (await db.Orders.FindAsync(Id))?.Notes };
     }
 
     async Task SaveAsync()
@@ -47,13 +43,11 @@
         await db.SaveChangesAsync();
 
         // xray:tempdata-ssr
+        // New in .NET 11: set it, then redirect. The 302 carries it in an encrypted cookie.
         Flash = $"Order {Id} saved";
         Navigation.NavigateTo("demo/tempdata/orders");
         // /xray:tempdata-ssr
     }
 
-    public sealed class NoteForm
-    {
-        [StringLength(500)] public string? Notes { get; set; }
-    }
+    public sealed class NoteForm { [StringLength(500)] public string? Notes { get; set; } }
 }

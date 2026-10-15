@@ -1,0 +1,30 @@
+@page "/manual"
+@page "/manual-forgot"
+@inject NavigationManager Nav
+@* .NET 10 workaround 2: read and write HttpContext.Session by hand. *@
+<h1>Step 1</h1>
+<p id="current">In session: @(Http.Session.GetString("draft") ?? "(nothing)")</p>
+<form method="post" @formname="lines" @onsubmit="Review">
+    <AntiforgeryToken />
+    <input name="Chai" type="number" value="@draft.GetValueOrDefault("chai")" />
+    <button>Review</button>
+</form>
+
+@code {
+    [CascadingParameter] HttpContext Http { get; set; } = default!;
+    [SupplyParameterFromForm] public int? Chai { get; set; }
+    Dictionary<string, int> draft = new();
+
+    protected override void OnInitialized() => Load();
+
+    void Load() => draft = JsonSerializer.Deserialize<Dictionary<string, int>>(
+        Http.Session.GetString("draft") ?? "{}")!;
+    void Save() => Http.Session.SetString("draft", JsonSerializer.Serialize(draft));
+
+    void Review()
+    {
+        draft["chai"] = Chai ?? 0;
+        if (!Nav.Uri.Contains("forgot")) Save(); // the /manual-forgot handler "forgets" to save
+        Nav.NavigateTo("manual-review");
+    }
+}

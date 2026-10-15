@@ -1,0 +1,18 @@
+@*
+    The debug panel the .NET 10 way: WebAssembly's own environment service. It works once the
+    panel is running in the browser, but the server prerenders it first, and the server has no
+    such service.
+*@
+@using Microsoft.AspNetCore.Components.WebAssembly.Hosting
+@* xray:environment-view *@
+@inject IWebAssemblyHostEnvironment Env
+@* /xray:environment-view *@
+
+@if (!Env.IsProduction())
+{
+    <aside class="debug">
+        <b>Debug</b>
+        <span>Environment: @Env.Environment</span>
+        <span>Renderer: @RendererInfo.Name</span>
+    </aside>
+}

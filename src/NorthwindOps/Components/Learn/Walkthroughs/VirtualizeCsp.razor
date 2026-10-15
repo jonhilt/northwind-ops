@@ -1,0 +1,150 @@
+@page "/learn/virtualize-csp"
+@layout LearnLayout
+
+<PageTitle>Virtualize under a strict CSP · Field Guide</PageTitle>
+
+<article class="l-article" data-learn>
+    <h1 class="l-title">Virtualize under a strict CSP</h1>
+    <p class="l-sub">Your Content-Security-Policy bans inline styles. Why do your virtualized lists stop working?</p>
+    <p class="l-meta">.NET 11 · Grids &amp; lists · Interactive Server · about 5 minutes</p>
+    <p class="l-new">
+        <b>What's new in .NET 11:</b> a fix, not an API. <code>Virtualize</code> no longer writes inline styles, so it
+        works under a policy without <code>'unsafe-inline'</code>. Your code doesn't change. In .NET 10 the same list
+        broke under that policy, silently.
+    </p>
+
+    <p>
+        A Content-Security-Policy tells the browser what a page may load and apply. A strict one says
+        <code>style-src 'self'</code>: styles come from your stylesheets, and nothing else. Every
+        <code>style="…"</code> attribute in the markup is refused.
+    </p>
+    <p>
+        We built a small .NET 10 app with that policy: a <code>Virtualize</code> of 1,000 rows, <i>Order #1</i> to
+        <i>Order #1000</i>, each 40px tall. This app runs .NET 11, where the bug is fixed, so it can't run the .NET 10
+        list itself. Instead, Fig. 1 serves the exact markup that .NET 10 app rendered, under the same policy. Your
+        browser refuses it now, just as it did then.
+    </p>
+
+    <DemoFigure Number="1" Title="The order list, replayed from .NET 10" Url="demo/virtualize-csp/orders/net10"
+                Label=".NET 10 · recorded" Side="before">
+        <Caption>
+            At first it looks fine. The only hint is the scrollbar thumb: it fills about half the track, as if the
+            list held 19 rows, not 1,000. Scroll the list to the end. It stops at <b>Order #19</b>. There's no error
+            on screen. Open DevTools → Console to see why: "Applying inline style violates the following Content
+            Security Policy directive".
+        </Caption>
+    </DemoFigure>
+
+    <h2><small>The problem</small>The spacers are inline styles</h2>
+    <p>
+        <code>Virtualize</code> only renders the rows near the scroll position. Above and below them it puts a spacer:
+        an empty <code>div</code> as tall as the rows it stands for. That gives the box its scroll range. In .NET 10,
+        each spacer's height was an inline style:
+    </p>
+    <div class="fig">
+        <span class="fig-title">What .NET 10 rendered, and what the browser did with it</span>
+        <pre class="snip">&lt;div <span class="err">style="height: 0px; flex-shrink: 0;"</span>&gt;&lt;/div&gt;       <span class="err">refused</span>
+&lt;div class="row"&gt;Order #1&lt;/div&gt;
+<span class="dim">... Order #2 to #18 ...</span>
+&lt;div class="row"&gt;Order #19&lt;/div&gt;
+&lt;div <span class="err">style="height: 39240px; flex-shrink: 0;"</span>&gt;&lt;/div&gt;   <span class="err">refused: 0px</span></pre>
+    </div>
+    <p>
+        The policy refuses both styles, so the spacers collapse to nothing. The .NET 10 app measured a scroll range
+        of 760px, where 1,000 rows of 40px need 40,000px. Order #20 onwards can't be reached. Nothing throws, and the
+        page doesn't say why.
+    </p>
+
+    <h2><small>The fix</small>Upgrade. The list stays the same</h2>
+    <p>There's no code to change. .NET 11's <code>Virtualize</code> renders its spacers differently:</p>
+    <div class="fig">
+        <span class="fig-title">The same spacer in .NET 11</span>
+        <pre class="snip"><span class="dim">&lt;!-- .NET 10 --&gt;</span>
+&lt;div <span class="err">style="height: 39240px; flex-shrink: 0;"</span>&gt;&lt;/div&gt;
+
+<span class="dim">&lt;!-- .NET 11 --&gt;</span>
+&lt;div <span class="hl">data-blazor-virtualize-reserved-height="39240"</span>&gt;&lt;/div&gt;</pre>
+    </div>
+    <p>
+        The height is now data. Blazor's script reads it and sets <code>element.style.height</code>. A CSP checks
+        styles written into the markup, not ones script sets on an element, so the height stands. Here's a list running
+        on .NET 11, under the same policy. It's this app's real order history rather than the test app's numbered
+        rows, but it's the same <code>Virtualize</code> with no workaround, and it's longer.
+    </p>
+
+    <DemoFigure Number="2" Title="An order list on .NET 11, same policy" Url="demo/virtualize-csp/orders"
+                Label=".NET 11 · live">
+        <Caption>
+            Scroll the list to the end: it reaches the oldest order (the count is above the list), and rows render as you go. The
+            dashed line above it stays grey: its own <code>style="…"</code> asks for red, and the policy refuses it.
+            So the policy is on, and the list works anyway. The Console logs nothing for the list. (Newest first
+            means by the time each order was placed, so order numbers from the same day aren't in sequence.)
+        </Caption>
+    </DemoFigure>
+
+    <p>
+        Here's the code behind both figures, in the same order. None of it is a change for you to make: the fix is
+        the upgrade. The highlighting marks what to look at in each.
+    </p>
+
+    <CodeFigure Number="3" Path="Components/Guide/Demos/VirtualizeCsp/OrdersNet10.razor" Feature="virtualize-csp">
+        <Caption>
+            Fig. 1: the rows and spacers the .NET 10 app rendered, copied as they were, and served with the same
+            policy as Fig. 2. Highlighted: the two spacers your browser refuses.
+        </Caption>
+    </CodeFigure>
+
+    <CodeFigure Number="4" Path="Components/Guide/Demos/VirtualizeCsp/Orders.razor" Feature="virtualize-csp">
+        <Caption>
+            Fig. 2's page. Highlighted: the policy, <code>style-src 'self'</code> with no <code>'unsafe-inline'</code>.
+            This is the test setup, not the fix.
+        </Caption>
+    </CodeFigure>
+
+    <CodeFigure Number="5" Path="Components/Guide/Demos/VirtualizeCsp/OrderList.razor" Feature="virtualize-csp">
+        <Caption>
+            The list in Fig. 2. Highlighted: an ordinary <code>&lt;Virtualize&gt;</code>, unchanged from .NET 10. The
+            comment above it shows how its spacers render in each version.
+        </Caption>
+    </CodeFigure>
+
+    <h2><small>The .NET 10 way</small>Weaken the policy, or drop Virtualize</h2>
+    <p>
+        A nonce doesn't help, because nonces don't cover style attributes. Hashes only do with
+        <code>'unsafe-hashes'</code>, and you'd need one for every height a spacer could ever have. That left two
+        choices:
+    </p>
+    <div class="fig">
+        <span class="fig-title">Two ways round it in .NET 10, and what they cost</span>
+        <div class="flow">
+            <div class="box">
+                <pre class="snip">style-src 'self' <span class="err">'unsafe-inline'</span></pre>
+                <span class="why">allow inline styles after all; the .NET 10 app then scrolled to Order #1000</span>
+                <div class="verdict bad">✗ injected markup can restyle the page, say to hide a warning, and security reviews flag it</div>
+            </div>
+            <div class="box">
+                <pre class="snip">@@foreach (var order in orders)
+{
+    &lt;OrderRow Order="order" /&gt;
+}</pre>
+                <span class="why">don't virtualize</span>
+                <div class="verdict bad">✗ every row is on the page, so a long list is slow to load and to scroll</div>
+            </div>
+        </div>
+    </div>
+
+    <h2><small>.NET 11</small>A strict policy and a virtualized list</h2>
+    <p>
+        In .NET 11 the spacers carry their height as data, and Blazor's script applies it. The same test app, built on
+        .NET 11 with the same policy and the same code, scrolled the whole list and logged no CSP errors. It works in every interactive
+        render mode, and for QuickGrid's virtualized rows too. That's what Fig. 2 runs.
+    </p>
+
+    <h2><small>Good to know</small></h2>
+    <ul class="gk">
+        <li><b>DevTools shows <code>style="height: …"</code> on .NET 11 spacers too.</b> That isn't markup. It's the height the script set, which DevTools displays as an attribute. The policy never sees it.</li>
+        <li><b>Your own inline styles are refused too,</b> like the dashed line's in Fig. 2. Move them into stylesheets.</li>
+        <li><b>A policy belongs to a document.</b> Enhanced navigation patches the next page into the current one, so the next page's header is ignored. That's why this app's Support screen (<code>/support</code>, its ticket desk) sends its policy in a <code>&lt;meta&gt;</code> tag as well as the header.</li>
+        <li><b>Lock down scripts as well.</b> This demo only restricts styles. A full policy also bans inline scripts, and Blazor writes its import map inline, so allow that one script by its hash. The Support screen does this.</li>
+    </ul>
+</article>

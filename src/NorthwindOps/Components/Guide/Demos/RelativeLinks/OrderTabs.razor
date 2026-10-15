@@ -1,10 +1,11 @@
 @*
     Tabs for whichever order is showing, wherever the page lives. Each link resolves
-    against the current URL's folder: from /orders/11077/summary, "lines" means
-    /orders/11077/lines.
+    against the current URL's folder: from /orders/12047/summary, "lines" means
+    /orders/12047/lines.
 *@
 <nav class="tabs">
     @* xray:relative-navigation *@
+    @* New in .NET 11: resolve each link against the current URL, not the app's root. *@
     <NavLink href="summary" RelativeToCurrentUri="true">Summary</NavLink>
     <NavLink href="lines" RelativeToCurrentUri="true">Lines</NavLink>
     <NavLink href="customer" RelativeToCurrentUri="true">Customer</NavLink>

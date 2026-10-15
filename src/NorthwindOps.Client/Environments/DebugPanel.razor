@@ -1,16 +1,22 @@
 @*
-    Details for whoever is testing. Hosted with InteractiveWebAssembly, it runs in your
-    browser, and asks the same question as the page's banner, with the same component.
+    Details for whoever is testing. Hosted with InteractiveWebAssembly, the server prerenders it,
+    then it runs in your browser.
 *@
 @using Microsoft.Extensions.Hosting
+@* xray:environment-view *@
+@* The fix: workaround 2's line, but .NET 11 registers it in WebAssembly, with no extra package. *@
 @inject IHostEnvironment Env
+@* /xray:environment-view *@
 
 @* xray:environment-view *@
+@* The shorthand: asks the same service for you. It needs no @inject; this panel injects only to print the name. *@
 <EnvironmentView Exclude="Production">
+@* /xray:environment-view *@
     <aside class="debug">
         <b>Debug</b>
         <span>Environment: @Env.EnvironmentName</span>
         <span>Renderer: @RendererInfo.Name</span>
     </aside>
+@* xray:environment-view *@
 </EnvironmentView>
 @* /xray:environment-view *@

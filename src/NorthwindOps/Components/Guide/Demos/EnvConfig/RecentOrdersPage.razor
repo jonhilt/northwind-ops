@@ -5,7 +5,7 @@
 @if (!WithoutVariable)
 {
     @* xray:wasm-env-vars-config *@
-    @* Written into the page, for the WebAssembly runtime to start with. *@
+    @* New in .NET 11: the options go into the page; no hand-written Blazor.start. *@
     <ConfigureBrowser Options="ordersApi" />
     @* /xray:wasm-env-vars-config *@
 }
@@ -30,8 +30,10 @@
     bool WithoutVariable => Variable == "off";
 
     // xray:wasm-env-vars-config
-    // This server knows where its API is, so it tells the browser.
+    // New in .NET 11: BrowserOptions, so the server sets the variable in C#.
     // "__" stands for ":", so the client reads it as Orders:ApiUrl.
+    // OrdersApi.Url is this server's own orders endpoint, a constant here; a real app
+    // would read its server's configuration. Built once, written into every visit's page.
     static readonly BrowserOptions ordersApi = new()
     {
         InteractiveWebAssembly =

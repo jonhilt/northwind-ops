@@ -1,0 +1,10 @@
+@* Exactly the markup the guide's Workaround 1 shows: QuickGrid's own sorting and pager. *@
+<QuickGrid Items="Product.All" Pagination="pagination">
+    <PropertyColumn Title="Product" Property="p => p.Name" Sortable="true" IsDefaultSortColumn="true" />
+    <PropertyColumn Title="Price" Property="p => p.UnitPrice" Sortable="true" />
+</QuickGrid>
+<Paginator State="pagination" />
+
+@code {
+    readonly PaginationState pagination = new() { ItemsPerPage = 10 };
+}

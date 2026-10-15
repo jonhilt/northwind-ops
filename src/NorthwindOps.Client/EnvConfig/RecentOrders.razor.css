@@ -10,4 +10,3 @@ p ::deep .runtime-badge {
 }
 
 .error { color: var(--bad); font-weight: 600; }
-.sources { color: var(--ink-soft); font-size: 13px; }

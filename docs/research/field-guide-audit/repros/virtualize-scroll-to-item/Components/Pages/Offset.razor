@@ -1,0 +1,26 @@
+@page "/offset"
+@inject IJSRuntime JS
+<p id="status">@status</p>
+<div class="thread" @ref="thread">
+    <Virtualize Items="Thread.Messages" ItemSize="120" Context="m">
+        <article id="msg-@m.Number" class="@(m.Number == Message ? "msg target" : "msg")">
+            <b>@m.Author</b> #@m.Number <p>@m.Body</p>
+        </article>
+    </Virtualize>
+</div>
+@code {
+    ElementReference thread;
+    string status = "not scrolled yet";
+    [SupplyParameterFromQuery] public int? Message { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && Message is int n)
+        {
+            // Right only if every message is exactly 120px tall
+            await JS.InvokeVoidAsync("scrollToOffset", thread, (n - 1) * 120);
+            status = $"scrolled to offset {(n - 1) * 120}px";
+            StateHasChanged();
+        }
+    }
+}

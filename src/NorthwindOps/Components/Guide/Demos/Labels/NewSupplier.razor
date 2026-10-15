@@ -9,17 +9,21 @@
 
 <h1>New supplier</h1>
 
+@* The same form and model. No label text or id is typed: each comes from the field itself. *@
 <EditForm Model="Input" FormName="new-supplier" OnValidSubmit="SaveAsync" Enhance>
     <DataAnnotationsValidator />
     @* xray:label-and-input-ids *@
-    @* Renders <label for="Input_Company">Company name</label> *@
+    @* New in .NET 11: renders <label for="Input_Company">Company name</label> *@
     <Label For="() => Input!.Company" />
-    @* Renders <input id="Input_Company" name="Input.Company"> *@
+    @* Same line as .NET 10, new output: every InputText now renders an id *@
+    @* from its field, Label or not: <input id="Input_Company" name="Input.Company"> *@
     <InputText @bind-Value="Input!.Company" />
     @* /xray:label-and-input-ids *@
     <ValidationMessage For="() => Input!.Company" />
 
     @* xray:label-and-input-ids *@
+    @* New in .NET 11: <label for="Input_Email">Contact email</label>, for the *@
+    @* id="Input_Email" this unchanged InputText now renders *@
     <Label For="() => Input!.Email" />
     <InputText @bind-Value="Input!.Email" type="email" />
     @* /xray:label-and-input-ids *@
@@ -27,6 +31,8 @@
 
     <button type="submit">Save supplier</button>
 </EditForm>
+
+<LabelReadout />
 
 @code {
     string? added;

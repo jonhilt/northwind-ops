@@ -1,0 +1,60 @@
+@using System.Diagnostics
+@using System.Text.Json
+@using NorthwindOps.Worker
+@inject NavigationManager Navigation
+
+<Clock @ref="clock" />
+<button disabled="@busy" @onclick="OnUiThread">Total on the UI thread</button>
+<button disabled="@busy" @onclick="WithPauses">Total, pausing every 1,000 lines</button>
+<p role="status">@status</p>
+<ReportRuns Runs="runs" />
+
+@code {
+    Clock clock = default!;
+    bool busy = true;
+    string status = "Downloading the order lines…";
+    byte[] csv = [];
+    List<ReportRun> runs = [];
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        using var http = new HttpClient { BaseAddress = new(Navigation.BaseUri) };
+        csv = await http.GetByteArrayAsync("demo/web-worker/order-lines.csv");
+        (busy, status) = (false, $"{csv.Length / 1e6:0.0} MB of order lines. Ready.");
+        StateHasChanged();
+    }
+
+    // xray:web-worker-template
+    // .NET 10, no worker: the same method runs on the page's only thread. The clock stops.
+    Task OnUiThread() => Run("On the UI thread",
+        () => Task.FromResult(WorkerMethods.TotalOrderLines(csv)));
+    // /xray:web-worker-template
+
+    // xray:web-worker-template
+    // .NET 10's workaround: let the page draw every 1,000 lines. The clock keeps going,
+    // but each pause adds time, and every heavy loop needs its own.
+    Task WithPauses() => Run("Pausing every 1,000 lines", async () =>
+    {
+        var tally = new OrderLineTally();
+        using var reader = new StreamReader(new MemoryStream(csv));
+        reader.ReadLine(); // skip the header row
+        while (reader.ReadLine() is { } line)
+        {
+            tally.Add(line);
+            if (tally.Lines % 1000 == 0) await Task.Delay(1);
+        }
+        return tally.ToJson();
+    });
+    // /xray:web-worker-template
+
+    async Task Run(string how, Func<Task<string>> total)
+    {
+        (busy, status) = (true, $"{how}…");
+        await Task.Delay(50); // let that show before the work starts
+        var (ticks, timer) = (clock.Ticks, Stopwatch.StartNew());
+        var totals = JsonSerializer.Deserialize<OrderLineTotals>(await total())!;
+        runs.Add(new(how, timer.Elapsed, clock.Ticks - ticks, totals));
+        (busy, status) = (false, "Ready.");
+    }
+}

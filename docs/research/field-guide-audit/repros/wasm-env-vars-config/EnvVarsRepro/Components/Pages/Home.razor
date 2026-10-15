@@ -1,0 +1,6 @@
+@page "/"
+@using EnvVarsRepro.Client
+<h1>.NET 10: server value vs client IConfiguration</h1>
+<p>Server's Orders:ApiUrl = @Config["Orders:ApiUrl"]</p>
+<Probe @rendermode="new InteractiveWebAssemblyRenderMode(prerender: false)" />
+@code { [Inject] IConfiguration Config { get; set; } = default!; }

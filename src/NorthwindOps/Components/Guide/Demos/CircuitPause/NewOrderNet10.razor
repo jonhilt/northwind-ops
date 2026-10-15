@@ -1,0 +1,7 @@
+@page "/demo/server-pause/new-order/net10"
+@layout DemoLayout
+
+<h1>New order</h1>
+
+@* The same draft, but its server code asks for the pause the .NET 10 way. *@
+<OrderDraft ViaJavaScript="true" @rendermode="new InteractiveServerRenderMode(prerender: false)" />

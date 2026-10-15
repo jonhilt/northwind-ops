@@ -1,0 +1,59 @@
+@using NorthwindOps.Features.Support
+@inject SupportDesk Desk
+@inject IJSRuntime JS
+
+<form class="tools" @onsubmit="() => GoToAsync(jumpTo ?? 1)">
+    <label for="jump">Jump to message #</label>
+    <input id="jump" type="number" @bind="jumpTo" />
+    <button disabled="@(!RendererInfo.IsInteractive)">Go</button>
+    <button type="button" disabled="@(!RendererInfo.IsInteractive)"
+            @onclick="() => GoToAsync(messages.Count)">Latest</button>
+</form>
+
+@if (messages.Count > 0)
+{
+    <div class="thread" @ref="thread" data-asked="@(target ?? Message)" data-count="@messages.Count">
+        @* No InitialItemIndex, so it opens at the top. ItemSize: a guess at each height. *@
+        <Virtualize Items="messages" Context="m" ItemSize="120">
+            <article class="@(m.Number == (target ?? Message) ? "msg target" : "msg")">
+                <header><b>@m.Author</b> #@m.Number</header>
+                <p>@m.Body</p>
+            </article>
+        </Virtualize>
+    </div>
+}
+
+@code {
+    ElementReference thread;
+    List<TicketMessage> messages = [];
+    int? jumpTo, target;
+    bool opened;
+
+    [SupplyParameterFromQuery] public int? Message { get; set; } // like ?message=300
+
+    protected override async Task OnInitializedAsync()
+    {
+        var longest = (await Desk.ListAsync()).MaxBy(t => t.MessageCount)!;
+        messages = (await Desk.GetAsync(longest.Id))!.Messages;
+    }
+
+    // Once the list is on screen, scroll to the linked message.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (opened || messages.Count == 0) return;
+        opened = true;
+        // xray:virtualize-scroll-to-item
+        // Old .NET 10 workaround, not new: a pixel offset, right only if all are 120px.
+        await JS.InvokeVoidAsync("scrollToOffset", thread, ((Message ?? 1) - 1) * 120);
+        // /xray:virtualize-scroll-to-item
+    }
+
+    async Task GoToAsync(int number)
+    {
+        target = Math.Clamp(number, 1, messages.Count);
+        // xray:virtualize-scroll-to-item
+        // Old .NET 10 workaround again: the same guessed offset.
+        await JS.InvokeVoidAsync("scrollToOffset", thread, (target.Value - 1) * 120);
+        // /xray:virtualize-scroll-to-item
+    }
+}

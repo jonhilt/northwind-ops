@@ -1,0 +1,145 @@
+@page "/learn/virtualize-variable-height"
+@layout LearnLayout
+
+<PageTitle>Lists with items of any height · Field Guide</PageTitle>
+
+<article class="l-article" data-learn>
+    <h1 class="l-title">Lists with items of any height</h1>
+    <p class="l-sub">Your thread mixes one-line log entries with long emails. Can you virtualize it without the jumps?</p>
+    <p class="l-meta">.NET 11 · Grids &amp; lists · Interactive Server · about 5 minutes</p>
+    <p class="l-new">
+        <b>What's new in .NET 11:</b> nothing to write. <code>Virtualize</code> itself was fixed: it averages every
+        height it has measured, and keeps what you're reading still when items above it grow. .NET 10 virtualized
+        the same markup, but the scrollbar jumped and expanding moved the page.
+    </p>
+
+    <p>
+        Below is a long support thread: short replies mixed with long emails, so the items vary a lot in height.
+        Long messages start cut to three lines, with <b>Show more</b> on each and <b>Expand all</b> above the list.
+    </p>
+    <p>
+        .NET 11 fixed this inside <code>Virtualize</code>, so the old list can't run on this site. Fig. 1 is a video
+        of our .NET 10 repro: a small standalone app with the same <code>Virtualize</code> markup as Fig. 2, but its
+        own sample thread (a sync bot's log lines mixed with long emails) and plain styling, so it looks different. The dark
+        strip along the bottom of the video is the same readout script that runs under the live list in Fig. 2.
+    </p>
+
+    <DemoFigure Number="1" Title="The thread on .NET 10, recorded" Url="demo/variable-height/incident/net10"
+                Label=".NET 10 · recorded" Side="before">
+        <Caption>
+            A recording, not a live list: it plays by itself on a loop, and its controls pause or rewind it. It opens
+            on an empty box; the messages and the readout, a dark strip along the bottom of the video, appear a moment
+            later. The capture was narrower than the repro's page, so long lines are cut off at its edge: that's the
+            video, not the bug. As it scrolls down 24 times, watch the readout: <b>Scroll range</b> keeps changing, so
+            the scrollbar thumb resizes and jumps. By the end it has swung by <b>13,191px</b>. Then it presses <b>Expand all</b>, and the
+            message being read is pushed <b>274px</b> down. Both totals are also printed under the video.
+        </Caption>
+    </DemoFigure>
+
+    <h2><small>The problem</small>It guessed from the dozen items in view</h2>
+    <p>
+        <code>Virtualize</code> only renders the items near the view. It stands in for the rest with two spacers,
+        sized from an average height. In .NET 10 that average came from the items rendered at that moment:
+    </p>
+    <div class="fig">
+        <span class="fig-title">How .NET 10 sized the messages you can't see</span>
+        <pre class="snip">in view: mostly log lines    <span class="dim">small average</span>  → range <span class="err">shrinks</span>
+scroll on: a few emails      <span class="dim">large average</span>  → range <span class="err">grows</span>
+scroll on: log lines again   <span class="dim">small average</span>  → range <span class="err">shrinks</span></pre>
+    </div>
+    <p>
+        Every new mix of short and long messages resized the whole scroll range. That's the 13,191px swing in Fig. 1.
+        A scripted run of the same repro saw a similar swing (12,550px), and while it scrolled steadily down, the
+        message at the top of the box changed to an earlier one 10 times: the list jumped back up.
+    </p>
+    <p>
+        .NET 10 also set <code>overflow-anchor: none</code> on the scrolling box. That turns off the browser's scroll
+        anchoring, so when a message above you grew, everything below it, including what you were reading, was
+        pushed down.
+    </p>
+
+    <h2><small>The fix</small>The same Virtualize, on .NET 11</h2>
+    <p>There's no new API. Give the list a scrolling box with a height, and let messages be their natural size.</p>
+    <div class="fig">
+        <span class="fig-title">The whole list</span>
+        <pre class="snip">&lt;div class="thread"&gt;   <span class="dim">@@* height: 440px; overflow-y: auto *@@</span>
+    &lt;Virtualize Items="messages" Context="m" ItemSize="80"&gt;
+        &lt;article class="msg"&gt;...&lt;/article&gt;
+    &lt;/Virtualize&gt;
+&lt;/div&gt;</pre>
+    </div>
+    <p>
+        Nothing in it is highlighted, because nothing in it changes. <code>ItemSize</code> stays, but it's only a
+        first guess now. .NET 11 keeps a running average of every item it has measured, so the range settles instead of swinging. It also leaves scroll anchoring on, with the spacers
+        excluded, so the anchor is always a real message. Here's the same thread, live.
+    </p>
+
+    <DemoFigure Number="2" Title="The same thread, live on .NET 11" Url="demo/variable-height/incident"
+                Label=".NET 11 · live">
+        <Caption>
+            The readout under the list says <b>scroll to measure</b> until you scroll. Drag the list's scrollbar down,
+            then back up: the <b>swung</b> figure stays a small fraction of Fig. 1's 13,191px, and the thumb barely
+            moves. Then scroll to the middle and press <b>Expand all</b>. The readout says how far the top message
+            moved: next to nothing (0 or 1px), though the long messages above it have opened.
+        </Caption>
+    </DemoFigure>
+
+    <p>Both figures use the same <code>Virtualize</code> markup, over different threads. Here's Fig. 2's:</p>
+
+    <CodeFigure Number="3" Path="Components/Guide/Demos/VariableHeight/IncidentThread.razor" Feature="virtualize-variable-height">
+        <Caption>
+            Fig. 2's thread; the repro behind Fig. 1 has the same <code>Virtualize</code> line. That line is
+            highlighted to show where the behaviour lives, not because you change it: its comment says it's unchanged
+            since .NET 10. The difference is how .NET 11 measures and anchors.
+        </Caption>
+    </CodeFigure>
+
+    <h2><small>The .NET 10 way</small>One height for everything, or no virtualizing</h2>
+    <p>To keep the list still, apps gave up either the natural heights or the virtualizing:</p>
+    <div class="fig">
+        <span class="fig-title">Two ways round it in .NET 10, and what they cost</span>
+        <div class="flow">
+            <div class="box">
+                <pre class="snip">&lt;Virtualize Items="messages" <span class="err">ItemSize="120"</span>&gt;
+    <span class="dim">@@* 120px, overflow: hidden *@@</span>
+    &lt;article class="preview"&gt;...
+        &lt;button&gt;Read all&lt;/button&gt;
+&lt;/Virtualize&gt;
+&lt;MessageDialog Message="open" /&gt;</pre>
+                <span class="why">every item is the height Virtualize expects, so nothing jumps</span>
+                <div class="verdict bad">✗ a one-liner gets an email's box, and long messages are read in a dialog</div>
+            </div>
+            <div class="box">
+                <pre class="snip">&lt;button @@onclick="() =&gt; shown += 50"&gt;
+    Show 50 older messages
+&lt;/button&gt;
+@@foreach (var m in messages.<span class="err">TakeLast(shown)</span>)</pre>
+                <span class="why">nothing is virtualized, so heights can be anything</span>
+                <div class="verdict bad">✗ every message you load stays on the page, so a long thread still gets slow</div>
+            </div>
+        </div>
+    </div>
+
+    <h2><small>.NET 11</small>It measures, and it holds your place</h2>
+    <p>
+        The repro's own files, built for .NET 11, swung by under 1,000px (34,115 to 35,067px), against 12,550px in
+        the scripted .NET 10 run, and the top message never jumped back. Expand all moved the message being read by 1px. Fig. 2 shows the same on
+        this site's thread.
+    </p>
+    <p>
+        If you used the first workaround, keep <code>ItemSize</code> but stop treating it as a fixed height: remove
+        the fixed-height box, its <code>overflow: hidden</code> and the dialog, and let messages be their natural size.
+    </p>
+    <p>
+        <b>One thing changes on upgrade:</b> more items render by default. <code>OverscanCount</code> now defaults to
+        15 either side, up from 3. If your items are expensive to render, set it back to 3. QuickGrid still defaults
+        to 3.
+    </p>
+
+    <h2><small>Good to know</small></h2>
+    <ul class="gk">
+        <li><b>Give it a scrolling box.</b> <code>Virtualize</code> scrolls inside the nearest parent with <code>overflow-y: auto</code> or <code>scroll</code>. Give that box a fixed height, like the demo's 440px.</li>
+        <li><b>Close, not exact.</b> The range still drifts a little as it learns, and wildly varied heights are estimated less well.</li>
+        <li><b>Refreshing starts the measuring again.</b> <code>RefreshDataAsync()</code> and changing <code>ItemSize</code> both reset the average.</li>
+    </ul>
+</article>

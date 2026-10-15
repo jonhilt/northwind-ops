@@ -1,9 +1,8 @@
 @using Microsoft.Extensions.Configuration
-@using Microsoft.Extensions.Configuration.EnvironmentVariables
 @inject IConfiguration Config
 @inject HttpClient Http
 
-<p><RuntimeBadge /> Calling <code>@apiUrl?take=@pageSize</code></p>
+<p><RuntimeBadge /> Calling <code>@calling</code></p>
 <p class="error">@error</p>
 
 <table class="quickgrid">
@@ -14,36 +13,26 @@
     }
 </table>
 
-<p class="sources">
-    <code>Orders:ApiUrl</code> came from <b>@SourceOf("Orders:ApiUrl")</b>.
-    <code>Orders:PageSize</code> came from <b>@SourceOf("Orders:PageSize")</b>.
-</p>
+<ConfigSources />
 
 @code {
     record OrderRow(int Id, string Customer, decimal Total);
 
     string? apiUrl, error;
-    int pageSize;
+    Uri? calling;
     OrderRow[]? orders = [];
 
     protected override async Task OnInitializedAsync()
     {
         // xray:wasm-env-vars-config
-        // Plain IConfiguration: an environment variable beats wwwroot/appsettings.json.
+        // New in .NET 11: plain IConfiguration sees the variable, and it beats the file.
+        // No AddEnvironmentVariables() and no extra package in the client.
         apiUrl = Config["Orders:ApiUrl"];
-        pageSize = Config.GetValue("Orders:PageSize", 10);
         // /xray:wasm-env-vars-config
-        var url = $"{apiUrl}?take={pageSize}";
-        try { orders = await Http.GetFromJsonAsync<OrderRow[]>(url); }
+        var pageSize = Config.GetValue("Orders:PageSize", 10);
+        // A relative address resolves against the server that sent the page.
+        calling = new Uri(Http.BaseAddress!, $"{apiUrl}?take={pageSize}");
+        try { orders = await Http.GetFromJsonAsync<OrderRow[]>(calling); }
         catch (HttpRequestException) { error = $"Couldn't reach {apiUrl}"; }
     }
-
-    // For the demo: of the sources holding a key, the last one added wins.
-    string SourceOf(string key) => ((IConfigurationRoot)Config).Providers
-        .LastOrDefault(p => p.TryGet(key, out _)) switch
-        {
-            EnvironmentVariablesConfigurationProvider => "an environment variable",
-            null => "nowhere (the default in code)",
-            _ => "wwwroot/appsettings.json",
-        };
 }

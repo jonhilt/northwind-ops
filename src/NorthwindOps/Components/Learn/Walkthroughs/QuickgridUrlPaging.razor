@@ -1,0 +1,136 @@
+@page "/learn/quickgrid-url-paging"
+@layout LearnLayout
+
+<PageTitle>Grid state in the URL · Field Guide</PageTitle>
+
+<article class="l-article" data-learn>
+    <h1 class="l-title">Grid state in the URL</h1>
+    <p class="l-sub">You sort a grid and go to page 2, then refresh. Why are you back on page 1?</p>
+    <p class="l-meta">.NET 11 · Grids &amp; lists · Static SSR · about 4 minutes</p>
+    <p class="l-new">
+        <b>What's new in .NET 11:</b> QuickGrid reads its sort, direction and page from the URL, and renders its
+        headers and pager as links. So it sorts and pages on a static page, and every view is a URL you can share.
+        In .NET 10 the grid kept that state inside the component, and on a static page its headers and pager did
+        nothing.
+    </p>
+
+    <p>
+        Below is a products grid on a static page: sortable columns and a pager, nothing else. It was asked for
+        <code>?sort=Price&amp;direction=desc&amp;page=2</code>, the second page, highest price first.
+    </p>
+    <p>
+        .NET 11 changed QuickGrid itself, so the old grid can't run in this app. Fig. 1 replays what a real .NET 10
+        build returned for that query string. It comes from a small repro with its own data: 25 placeholder
+        products and two columns, so its rows won't match Fig. 2's Northwind products. Compare what each grid does
+        with the URL, not the rows. The replay's buttons are as inert as they were.
+    </p>
+
+    <DemoFigure Number="1" Title="A sortable grid on a static page, recorded on .NET 10" Url="demo/grid-url/products/net10"
+                Label=".NET 10 · recorded" Side="before">
+        <Caption>
+            The line inside the frame, <code>GET /static?sort=Price&amp;direction=desc&amp;page=2</code>, is the
+            request the .NET 10 app was sent; the frame's own address is just where this app keeps the replay. The
+            grid ignored the query: it shows page 1, sorted by Product. Click <b>Price</b>, or <b>›</b> under the
+            grid. Nothing happens: no request, no error, no change. (<b>⟳</b> and <b>Start over</b> just reload the same replay.)
+        </Caption>
+    </DemoFigure>
+
+    <h2><small>The problem</small>The headers and pager are buttons with nothing behind them</h2>
+    <p>Here's what .NET 10 sent for the Price header and the next-page arrow:</p>
+    <div class="fig">
+        <span class="fig-title">The markup .NET 10 returned</span>
+        <pre class="snip">&lt;button class="col-title" type="button"&gt;Price&lt;/button&gt;   <span class="err">no handler</span>
+&lt;button class="go-next" type="button"&gt;&lt;/button&gt;          <span class="err">no handler</span></pre>
+    </div>
+    <p>
+        In .NET 10 the headers and pager are buttons with click handlers. On a static page there's no circuit to
+        run a handler, so a click goes nowhere. The grid's sort and page live in the component, and it never looks
+        at the URL. So a refresh, or a shared link, always starts from page 1.
+    </p>
+
+    <h2><small>The fix</small>Upgrade, and write the grid as usual</h2>
+    <p>There's nothing to turn on. An ordinary QuickGrid and Paginator, on a static page, is the whole fix:</p>
+    <div class="fig">
+        <span class="fig-title">The whole fix: the grid you'd write anyway</span>
+        <pre class="snip">@@page "/demo/grid-url/products"
+<span class="dim">@@* no @@rendermode, so the page is static SSR *@@</span>
+
+&lt;QuickGrid Items="products" Pagination="pagination"&gt;
+    &lt;PropertyColumn <span class="hl">Title="Price"</span> Property="p =&gt; p.UnitPrice"
+                    <span class="hl">Sortable="true"</span> /&gt;
+&lt;/QuickGrid&gt;
+&lt;Paginator State="pagination" /&gt;</pre>
+    </div>
+    <p>
+        In .NET 11, QuickGrid reads <code>sort</code>, <code>direction</code> and <code>page</code> from the query
+        string. It renders each sortable header and pager arrow as a link to the next view's URL. Every click is a
+        plain request for a new URL, with no circuit. <code>sort=Price</code> finds the column whose
+        <code>Title</code> is Price. Here's the same query string, on the .NET 11 grid.
+    </p>
+
+    <DemoFigure Number="2" Title="The same query string, on .NET 11" Url="demo/grid-url/products?sort=Price&direction=desc&page=2"
+                Label=".NET 11 · live" Side="after">
+        <Caption>
+            The address carries Fig. 1's query string, and this time the grid obeys it: page 2, highest price
+            first, as the header arrow and the pager say. Click <b>Price</b>, or
+            <b>‹</b> under the grid, and watch the frame's address: the URL changes with the view. Press <b>⟳</b>
+            to refresh, and the view stays.
+        </Caption>
+    </DemoFigure>
+
+    <p>Here's the page behind Fig. 2:</p>
+
+    <CodeFigure Number="3" Path="Components/Guide/Demos/GridUrl/Products.razor" Feature="quickgrid-url-paging">
+        <Caption>
+            No render mode, and no paging or sorting code of its own. Fig. 1's repro used the same pattern,
+            sortable <code>PropertyColumn</code>s plus a <code>Paginator</code> on a static page, with two columns
+            instead of three, on QuickGrid 10.
+        </Caption>
+    </CodeFigure>
+
+    <h2><small>The .NET 10 way</small>Make it interactive, or hand-roll it</h2>
+    <p>A .NET 10 build rendered the same grid two ways, and showed what each costs:</p>
+    <div class="fig">
+        <span class="fig-title">The same grid in .NET 10, and what it did</span>
+        <div class="flow">
+            <div class="box">
+                <pre class="snip">@@page "/static"</pre>
+                <span class="why">headers and pager are buttons with no handler; sort and page in the URL are ignored</span>
+                <div class="verdict bad">✗ clicks do nothing</div>
+            </div>
+            <div class="box">
+                <pre class="snip">@@page "/interactive"
+<span class="err">@@rendermode InteractiveServer</span></pre>
+                <span class="why">clicks work over a WebSocket circuit, but the URL never changes</span>
+                <div class="verdict bad">✗ a refresh or shared link lands on page 1, sorted by Product</div>
+            </div>
+        </div>
+    </div>
+    <p>
+        Going interactive also costs a circuit, and server memory, for every visitor, just to sort a table. The
+        other way out was to give up QuickGrid's sorting and pager: read <code>sort</code> and <code>page</code>
+        with <code>[SupplyParameterFromQuery]</code>, and write your own header links and
+        <code>OrderBy</code>, <code>Skip</code> and <code>Take</code> for every grid.
+    </p>
+
+    <h2><small>.NET 11</small>Every QuickGrid keeps its view in the URL</h2>
+    <p>
+        In .NET 11 this is how QuickGrid works, with nothing to opt into. On a static page, headers and pager are
+        links, and enhanced navigation fetches the next view without a full reload. With an interactive render
+        mode, the grid keeps the URL in step as you click. That's what Fig. 2 runs.
+    </p>
+    <p>
+        Nothing to opt into also means your existing grids change when you upgrade. Their sortable headers render
+        as <code>&lt;a class="col-title"&gt;</code> links instead of buttons, so CSS that targeted
+        <code>button.col-title</code> stops matching. If that bites, an AppContext switch brings the buttons back;
+        it's in Good to know below.
+    </p>
+
+    <h2><small>Good to know</small></h2>
+    <ul class="gk">
+        <li><b>Sorting matches the column title.</b> Rename a column, and old links that sort by it fall back to the default sort.</li>
+        <li><b>Two grids on one page?</b> Give each a prefix: <code>new QueryParameterNameOptions("cities_")</code> makes them <code>cities_sort</code>, <code>cities_direction</code> and <code>cities_page</code>.</li>
+        <li><b>Turning it off.</b> The AppContext switch <code>Microsoft.AspNetCore.Components.QuickGrid.EnableUrlBasedQuickGridNavigationAndSorting</code> set to <code>false</code> brings the buttons back.</li>
+        <li><b>Your own query parameters survive.</b> A filter read with <code>[SupplyParameterFromQuery]</code> stays in the grid's links.</li>
+    </ul>
+</article>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="/" />
+    <style>
+        .thread { height: 400px; overflow-y: auto; border: 1px solid #999; width: 500px; }
+        .msg { padding: 6px 10px; border-bottom: 1px solid #ddd; }
+        .msg p { margin: 2px 0; white-space: pre-line; }
+        .target { background: #ffe9a8; }
+    </style>
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+<body>
+    <Routes @rendermode="InteractiveServer" />
+    <script src="_framework/blazor.web.js"></script>
+    <script>
+        window.scrollToOffset = (el, top) => { el.scrollTop = top; };
+        window.scrollToId = id => {
+            const el = document.getElementById(id);
+            if (el) el.scrollIntoView({ block: 'start' });
+            return el !== null;
+        };
+    </script>
+</body>
+</html>

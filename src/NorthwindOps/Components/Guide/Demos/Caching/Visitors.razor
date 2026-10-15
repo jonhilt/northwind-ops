@@ -1,0 +1,19 @@
+@*
+    Demo only: counts this page's visitors and the report queries they ran, and sends five at once.
+    The button is plain HTML, wired up by Visitors.razor.js, so it works on this static page.
+*@
+<div class="visitors">
+    <p data-tally>
+        Since the app started: visitors <b>@Tally.Visitors</b>
+        · report queries run <b data-queries>@Tally.Queries</b>
+    </p>
+    <button type="button" data-burst>Five visitors at once</button>
+    <span class="status" data-burst-status></span>
+</div>
+<script type="module" src="@Assets["Components/Guide/Demos/Caching/Visitors.razor.js"]"></script>
+
+@code {
+    [Parameter, EditorRequired] public ReportTally Tally { get; set; } = default!;
+
+    protected override void OnInitialized() => Interlocked.Increment(ref Tally.Visitors);
+}

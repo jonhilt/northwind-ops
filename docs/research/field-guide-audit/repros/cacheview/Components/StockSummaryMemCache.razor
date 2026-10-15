@@ -1,0 +1,16 @@
+@inject IMemoryCache Cache
+<StockTable Rows="entry.Rows" CalculatedAt="entry.At" />
+@code {
+    record Entry(List<CategoryStock> Rows, DateTime At);
+    Entry entry = new([], default);
+    public StockSummaryMemCache() => Interlocked.Increment(ref Stats.ComponentsCreated);
+    protected override async Task OnInitializedAsync()
+    {
+        // Hand-picked key; nothing stops two requests that miss together from both running the query.
+        entry = (await Cache.GetOrCreateAsync("stock", async e =>
+        {
+            e.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(20);
+            return new Entry(await SlowStock.LoadAsync(), DateTime.Now);
+        }))!;
+    }
+}

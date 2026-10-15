@@ -1,0 +1,22 @@
+@page "/jump"
+@inject IJSRuntime JS
+<input id="n" type="number" @bind="n" />
+<button id="go" @onclick="Go">Go</button>
+<div class="thread" @ref="thread">
+    <Virtualize Items="Thread.Messages" ItemSize="120" Context="m">
+        <article id="msg-@m.Number" class="@(m.Number == target ? "msg target" : "msg")">
+            <b>@m.Author</b> #@m.Number <p>@m.Body</p>
+        </article>
+    </Virtualize>
+</div>
+@code {
+    ElementReference thread;
+    int n = 35;
+    int? target;
+    // No virtualize.ScrollToItemAsync in .NET 10, so: offset maths again.
+    async Task Go()
+    {
+        target = n;
+        await JS.InvokeVoidAsync("scrollToOffset", thread, (n - 1) * 120);
+    }
+}

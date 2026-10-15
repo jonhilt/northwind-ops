@@ -1,0 +1,32 @@
+@page "/demo/hosted-services/customers/net10"
+@layout DemoLayout
+@inject IDbContextFactory<NorthwindDb> DbFactory
+
+<nav class="tabs">
+    <a href="demo/hosted-services/orders/net10">Orders</a>
+    <a href="demo/hosted-services/customers/net10" class="on">Customers</a>
+</nav>
+
+@* No bell on this page, so the Orders bell and its timer are gone until you go back. *@
+<p class="quiet">This page doesn't show the bell.</p>
+
+<h1>Customers</h1>
+<table class="quickgrid">
+    <thead><tr><th>Company</th><th>Contact</th><th>City</th></tr></thead>
+    <tbody>
+        @foreach (var c in customers)
+        {
+            <tr><td>@c.Company</td><td>@c.Contact</td><td>@c.City</td></tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    List<Customer> customers = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        customers = await db.Customers.OrderBy(c => c.Company).Take(6).ToListAsync();
+    }
+}

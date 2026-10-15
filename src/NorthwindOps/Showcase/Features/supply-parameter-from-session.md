@@ -4,7 +4,7 @@ title: [SupplyParameterFromSession] for static SSR
 badge: Session · [SupplyParameterFromSession]
 release: Preview 5
 mode: Static SSR
-sources: Components/Pages/Purchasing/PurchaseOrderWizard.razor, Components/Pages/Purchasing/DraftBanner.razor, Program.cs
+sources: Components/Pages/Purchasing/PurchaseOrderWizard.razor, Components/Pages/Purchasing/DraftBanner.razor, Program.cs, Components/Guide/Demos/SessionDraft/SessionSetup.cs
 docs: https://learn.microsoft.com/aspnet/core/blazor/state-management/server?view=aspnetcore-11.0#session-data-persistence
 summary: Binds a component property to a value in the user's HTTP session. It's read when the page renders and written back at the end of the request, so a multi-step static SSR form can keep its draft on the server with no hidden fields, no query string and no circuit.
 ---

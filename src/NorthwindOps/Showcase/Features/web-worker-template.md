@@ -4,20 +4,22 @@ title: Run .NET in a Web Worker (the blazorwebworker template)
 badge: dotnet new blazorwebworker · [JSExport]
 release: Preview 2 (as webworker); renamed blazorwebworker in Preview 4
 mode: Interactive WebAssembly
-sources: Client/WebWorker/OrderLineReport.razor, Worker/WorkerMethods.cs
+sources: Client/WebWorker/OrderLineReport.razor, Worker/WorkerMethods.cs, Client/WebWorker/OrderLineReportNet10.razor
 docs: https://learn.microsoft.com/aspnet/core/blazor/blazor-with-dotnet-on-web-workers?view=aspnetcore-11.0
 summary: A new project template, dotnet new blazorwebworker, scaffolds a WebWorkerClient class plus the JavaScript glue that starts a second .NET runtime in a Web Worker. Static [JSExport] methods run there, off the browser's UI thread, so a WebAssembly page keeps responding while they crunch.
 ---
 
 ## Try it
 
-1. Open the order-lines demo at `/demo/web-worker/order-lines`, or step through it in the Field Guide. It downloads a year of made-up order lines as a CSV export (a few megabytes) and starts a Web Worker. The status says **Ready** when both are done.
-2. Press **Total on the UI thread**. The clock above the buttons, which a .NET timer updates ten times a second, stops for a couple of seconds. Nothing on the page responds until the top five products appear.
-3. Press **Total in a Web Worker**. The same method totals the same bytes, in about the same time, but the clock keeps ticking throughout.
+1. Open the Field Guide's "See it work" step, or the two demos on their own: `/demo/web-worker/order-lines/net10` (no worker) and `/demo/web-worker/order-lines` (the worker). Each downloads a year of made-up order lines as a CSV export (about 27 MB in a published build, 3.4 MB gzipped over the wire; a Debug build uses fewer lines). The status says **Ready** when it has them, and on the worker side when the worker has started.
+2. On the .NET 10 page, press **Total on the UI thread**. The clock, which a .NET timer updates ten times a second, stops until the top five products appear, and the run line says it ticked 0 of the ~27 times it should have. Any other frame in the same tab stops too.
+3. Press **Total, pausing every 1,000 lines**. The clock keeps every tick this time, and the run takes a little longer (about 17% in the .NET 10 repro).
+4. On the worker page, press **Total in a Web Worker**. The same method totals the same bytes, in about the same time as the first run, and the clock keeps ticking throughout.
+5. Press **Call a misspelled method**. It asks the worker for `TotalOrderLine` (no "s"), and the status shows the `InvalidOperationException` the template's client throws: the worker found no such method, and said so for that request id.
 
 ## The .NET 10 way
 
-Blazor WebAssembly ran all your C# on the page's single UI thread (WebAssembly multithreading was never supported for Blazor). Anything CPU-heavy, like parsing an import or aggregating a report, froze the page until it finished. The usual workarounds were to break the loop up with `await Task.Delay(1)` every so often, which still stutters, or to post the data to a server API.
+Blazor WebAssembly ran all your C# on the page's single UI thread (WebAssembly multithreading was never supported for Blazor). Anything CPU-heavy, like parsing an import or aggregating a report, froze the page until it finished. That's still true in .NET 11: the template moves the work, not the thread model. The usual workarounds were to break the loop up with `await Task.Delay(1)` every so often, which keeps the page responsive but is slower and has to go in every heavy loop, or to post the data to a server API.
 
 Running .NET in a Web Worker was possible, but you built it from Microsoft's long guide: a worker script that imports `_framework/dotnet.js` and boots the runtime, a client script that creates the worker and matches replies to requests, a `[JSImport]` class to call that client from C#, and two stub `.razor` files so the build served the scripts:
 
@@ -47,7 +49,7 @@ dotnet add NorthwindOps.Client/NorthwindOps.Client.csproj \
 
 The template makes a Razor class library (`Microsoft.NET.Sdk.Razor`, with `AllowUnsafeBlocks` for the `[JSExport]` source generator) holding four files:
 
-- **`WorkerMethods.cs`**: a `static partial class` marked `[SupportedOSPlatform("browser")]`, where you add `static` methods marked `[JSExport]`. The demo's `TotalOrderLines(byte[] csv)` parses the CSV and returns the top five products as JSON.
+- **`WorkerMethods.cs`**: a `static partial class` marked `[SupportedOSPlatform("browser")]`, where you add `static` methods marked `[JSExport]`. The demo's `TotalOrderLines(byte[] csv)` feeds each CSV line to an `OrderLineTally` and returns the top five products as JSON.
 - **`WebWorkerClient.cs`**: the C# side. `CreateAsync(IJSRuntime, timeoutMs = 60000, assemblyName = null, CancellationToken)` starts the worker and waits until .NET is running in it. `InvokeAsync<TResult>(method, object[] args, timeoutMs = 60000, CancellationToken)` and `InvokeVoidAsync` call a method by its full name as a string, like `"NorthwindOps.Worker.WorkerMethods.TotalOrderLines"`. `DisposeAsync` terminates the worker.
 - **`wwwroot/dotnet-web-worker-client.js`**: creates the module worker, posts each call with a request id, resolves the matching reply and applies the timeouts. It resolves `_framework/dotnet.js` through the page's import map on the main thread and passes the URL in, so fingerprinted, published apps work.
 - **`wwwroot/dotnet-web-worker.js`**: the worker itself. It imports `dotnet.js`, calls `dotnet.create()` and `getAssemblyExports()` for the app's main assembly and the worker library, then looks each requested method up by walking the dotted name.
@@ -63,4 +65,4 @@ Things to know:
 - **Methods are found by string.** A rename or typo fails at run time with "Method not found", not at compile time. `nameof` can't build the full name for you, so keep the string next to the method or in a constant.
 - **No DI, no DOM, no components.** `dotnet.create()` loads your assemblies but never runs `Program.cs`. Worker methods are plain static methods: give them everything they need as arguments.
 - **A timeout stops the wait, not the work.** When `timeoutMs` passes or the token is cancelled, `InvokeAsync` throws, but the worker carries on with the method until it finishes.
-- **Calling the method directly works too.** `TotalOrderLines` is an ordinary static method, so the demo's UI-thread button calls it with no worker at all. That's what makes the comparison fair.
+- **Calling the method directly works too.** `TotalOrderLines` is an ordinary static method, so the .NET 10 page's UI-thread button calls it with no worker at all. That's what makes the comparison fair.

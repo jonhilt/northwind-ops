@@ -4,17 +4,19 @@ title: Relative links
 group: Pages & navigation
 order: 22
 hook: Tabs that link to their siblings, wherever the page lives.
-intro: Link from a page to its siblings, like an order's tabs, without spelling out the full path.
-mode: Static SSR
-demo: demo/relative-nav/orders
+intro: Link from a page to its siblings, like an order's tabs, without spelling out the full path. New in .NET 11.
+mode: Any render mode
+demo: demo/relative-nav/orders/12047
+before: demo/relative-nav/net10/orders/12047/summary
+labels: .NET 10: href="lines" | .NET 11: RelativeToCurrentUri
 app: purchasing
 ---
 
 ## The problem
 
-An order page has tabs: Summary, Lines, Customer. Can each tab link to its neighbours without spelling out `/orders/11077/`?
+An order page has tabs: Summary, Lines, Customer. Can each tab link to its neighbours without spelling out `/orders/12047/`?
 
-Blazor pages have `<base href="/">`, so in .NET 10 a relative link pointed at the app's root, not the current page. Apps used one of two workarounds.
+Blazor pages have `<base href="/">`, so a relative link like `href="lines"` points at the app's root, `/lines`, not the current page. In .NET 10 `NavLink` and `NavigateTo` had no way round that, so apps used one of two workarounds. .NET 11 adds an option, `RelativeToCurrentUri`, but it's off by default: a plain `href="lines"` still goes to `/lines`.
 
 ### Spell out the full path
 
@@ -46,29 +48,35 @@ String surgery, copied into every component that links to a sibling page. {.bad}
 
 ## See it work
 
-Open an order, then click through its tabs.
+Both pages show order 12047, and both tab strips say just `href="lines"`. Which one takes you to the order's lines?
 
-This is a cut-down order page, running for real on static SSR. Its tabs aren't told which order they're on.
+Both frames run on .NET 11. On the left, the tabs are plain `NavLink`s with the option left off, which is exactly what .NET 10 did (the .NET 10 repro lands on `/lines` too). On the right, each has `RelativeToCurrentUri="true"`. Watch the tabs, and the **You are at** line under them.
 
-1. Click an order number. The page sends you on to `…/orders/{id}/summary`.
-2. Click **Lines**, then **Customer**. Their code says just `href="lines"` and `href="customer"`, yet the address bar keeps the order's id.
-3. Go back to **Orders** and open another. The same links now point under that order, and the current tab is underlined.
+1. Before clicking, look at the tabs. On the right, **Summary** is underlined: `NavLink` knows it's the current page. On the left, none is, because Summary points at `/summary`. The right frame was opened at `…/orders/12047`; **You are at** shows `…/orders/12047/summary`, where the page's `NavigateTo` redirected it.
+2. Click **Lines** on the left. The address becomes `/lines` and the app answers **Not Found**.
+3. Click **Lines** on the right. The order's lines show, **Lines** is underlined, and **You are at** reads `/demo/relative-nav/orders/12047/lines`.
+4. On the right, click **← Orders** and open another order. Its link is just `…/orders/{id}`; **You are at** shows `…/orders/{id}/summary`, and the same tabs now point under it.
+
+Explain: A relative link resolves against `<base href="/">`, the app's root, so on the left `lines` means `/lines`. `RelativeToCurrentUri` resolves it against the current URL's folder instead: everything after its last `/` is dropped, and `lines` goes on the end. From `…/12047/summary` that's `…/12047/lines`. The redirect uses the same option on `NavigateTo`, but from `…/orders/12047` the last segment is the id itself, so it says `12047/summary`.
 
 ## How it's built
 
-Set `RelativeToCurrentUri` on a `NavLink`, or in `NavigationOptions`. The link then resolves against the current page, not the app's root.
+What's new? One parameter on each `NavLink`, and the same option for `NavigateTo`.
 
-It works like a link on a page with no `<base>`: everything after the last `/` is dropped, and your path goes on the end.
+Both pages are static SSR and share the tab content, so only the links differ. The option works the same in every render mode.
 
-### The tabs: three relative links, and no parameters
+### .NET 11: three relative links, and no parameters
 code: Components/Guide/Demos/RelativeLinks/OrderTabs.razor
 
-### The page: it redirects to a tab, then shows it
+### The left frame (.NET 10): the same links, resolved from the app's root
+code: Components/Guide/Demos/RelativeLinks/OrderTabsNet10.razor
+
+### The page redirects to a tab with NavigateTo
 code: Components/Guide/Demos/RelativeLinks/OrderPage.razor
 
 ## Good to know
 
-- **Mind the last segment.** From `/orders/11077`, `summary` means `/orders/summary`. That's why the page's redirect says `11077/summary`.
+- **Mind the last segment.** The option saves string surgery for sibling links, like tabs. To go *into* a page's own folder, from `/orders/12047` to its summary, the last segment is dropped, so you name it again (`12047/summary`). With a trailing slash, `/orders/12047/`, it's just `summary`: the page checks which.
+- **Not in a .NET 10 app.** There, `RelativeToCurrentUri` isn't a `NavLink` parameter, yet `RelativeToCurrentUri="true"` still compiles: `NavLink` passes any attribute it doesn't know through to the `<a>`. The link still points at the app's root, with no warning. `NavigationOptions.RelativeToCurrentUri` doesn't compile there.
 - **Relative paths only.** With the option on, a path starting with `/`, or an absolute URL, throws `ArgumentException`.
 - **`?` and `#` keep the page.** `?tab=2` replaces just the query, and `#notes` just the fragment.
-- **Off by default.** Both options default to `false`, so existing links behave as before.

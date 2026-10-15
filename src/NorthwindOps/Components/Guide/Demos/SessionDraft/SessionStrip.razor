@@ -1,0 +1,21 @@
+@using System.Text.Json.Nodes
+@* Not part of the feature: reads the session by hand, to show what the server holds. *@
+<p class="kept">
+    In session:
+    @if (Stored is null)
+    {
+        <b>nothing</b>
+    }
+    else
+    {
+        @* The attribute stores JSON with the type: { "type": …, "value": … }. *@
+        <code>restock-draft = @JsonNode.Parse(Stored)?["value"]?.ToJsonString()</code>
+        <span>· on the server; the browser holds only a cookie</span>
+    }
+</p>
+
+@code {
+    [CascadingParameter] HttpContext Http { get; set; } = default!;
+
+    string? Stored => Http.Session.GetString("restock-draft");
+}

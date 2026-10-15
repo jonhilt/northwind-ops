@@ -1,0 +1,164 @@
+@page "/learn/browser-options"
+@layout LearnLayout
+
+<PageTitle>Reconnection settings in C# · Field Guide</PageTitle>
+
+<article class="l-article" data-learn>
+    <h1 class="l-title">Reconnection settings in C#</h1>
+    <p class="l-sub">Your scanners lose Wi-Fi for a few seconds. How do you make Blazor retry every 2 seconds?</p>
+    <p class="l-meta">.NET 11 · Interactive Server · about 5 minutes</p>
+    <p class="l-new">
+        <b>What's new in .NET 11:</b> <code>BrowserOptions</code>, Blazor's start-up settings as a typed C# object.
+        .NET 10 could already set the same reconnection options, but only in JavaScript, by starting Blazor yourself
+        with <code>Blazor.start()</code>.
+    </p>
+
+    <p>
+        Below is a warehouse pick list. Only the list runs on the server, over a connection. When the connection drops,
+        Blazor tries to rejoin. Its default is 30 tries: 10 at once with no wait, then 10 five seconds apart, then 10
+        thirty seconds apart. Scanners that drop out for a few seconds want something steadier: a try every 2 seconds,
+        20 times.
+    </p>
+    <p>
+        This page asks for that the .NET 10 way, in a hand-written <code>Blazor.start()</code> script, and makes the
+        kind of slip nothing catches: two option names are slightly wrong. A second version, <b>Settings from
+        config</b>, spells them right but reads the values from configuration, where one of them was never set.
+    </p>
+    <p>
+        The banner that counts the tries is hidden while the connection is up. It appears, in yellow above the list,
+        the moment the connection drops, and times the waits between tries.
+    </p>
+
+    <DemoFigure Number="1" Title="Settings in a Blazor.start() script" Url="demo/browser-options/pick-list/net10"
+                Label=".NET 10: Blazor.start() in JavaScript" Side="before">
+        <Caption>
+            Press <b>Pick</b> on a line, then <b>Drop my Wi-Fi for 10 seconds</b>. The yellow banner appears, jumps to
+            "11 of 30" and reads "measured waits: 0 s ×10, then 5 s ×1": Blazor's defaults, not 2 seconds and 20
+            tries, and no warning anywhere. <b>Sent to the browser</b> shows the script; its names aren't the ones
+            Blazor reads (see the box below). Then choose <b>Settings from config</b>. <b>Sent to the browser</b> now
+            shows the line <code>maxRetries: ,</code> with no number in it. Blazor didn't start, and <b>Pick</b> does
+            nothing.
+        </Caption>
+    </DemoFigure>
+
+    <h2><small>The problem</small>Nothing checks a JavaScript object</h2>
+    <p>Here's what the page sent, beside the names Blazor reads:</p>
+    <div class="fig">
+        <span class="fig-title">The script, and what Blazor made of it</span>
+        <pre class="snip">Blazor.start({ circuit: { reconnectionOptions: {
+    <span class="err">maxRetry</span>: 20,            <span class="dim">// Blazor reads maxRetries</span>
+    <span class="err">retryIntervalMs</span>: 2000     <span class="dim">// Blazor reads retryIntervalMilliseconds</span>
+} } });                    <span class="err">both ignored: the defaults apply</span>
+
+<span class="dim">// Settings from config: Razor pastes in a value nobody set</span>
+maxRetries: ,              <span class="err">SyntaxError: Blazor never starts</span></pre>
+    </div>
+    <p>
+        The options are a plain JavaScript object, so a misspelt name is just an extra property that nothing reads. And
+        because <code>autostart</code> is off, a script that won't parse means Blazor never starts at all. The page
+        looks fine until someone clicks.
+    </p>
+
+    <h2><small>The fix</small>Put the settings in C#</h2>
+    <p>Build a <code>BrowserOptions</code>, and hand it to the page with <code>&lt;ConfigureBrowser&gt;</code>.</p>
+    <div class="fig">
+        <span class="fig-title">The whole fix</span>
+        <pre class="snip"><span class="hl">&lt;ConfigureBrowser Options="warehouseWifi" /&gt;</span>
+
+static readonly BrowserOptions warehouseWifi = new()
+{
+    InteractiveServer =
+    {
+        <span class="hl">ReconnectionMaxRetries = 20,</span>
+        <span class="hl">ReconnectionRetryInterval = TimeSpan.FromSeconds(2),</span>
+    },
+};</pre>
+    </div>
+    <p>
+        A misspelt name now doesn't compile. A value left out is <code>null</code>, which keeps Blazor's default. The
+        server writes the options into the page as a <code>&lt;!--Blazor-Configuration:…--&gt;</code> comment, and
+        <code>blazor.web.js</code> applies them as it starts. There's no <code>Blazor.start()</code> to write. Here's
+        the same pick list with the settings in C#.
+    </p>
+
+    <DemoFigure Number="2" Title="The same pick list, settings in C#" Url="demo/browser-options/pick-list"
+                Label=".NET 11: BrowserOptions in C#">
+        <Caption>
+            Press <b>Pick</b> on a line, then <b>Drop my Wi-Fi for 10 seconds</b>. The yellow banner appears and reads
+            "Rejoin attempt 1 of 20". With each try its count of waits grows, from "measured waits: 2 s ×1" to
+            "2 s ×2" to "2 s ×3": a try every 2 seconds. After 10 seconds it rejoins, and your pick is still there. <b>Sent to the browser</b> shows the C# names camelCased, and the
+            <code>TimeSpan</code> as milliseconds.
+        </Caption>
+    </DemoFigure>
+
+    <p>Here are the two pages:</p>
+
+    <CodeFigure Number="3" Path="Components/Guide/Demos/Reconnect/PickList.razor" Feature="browser-options">
+        <Caption>
+            Fig. 2's page. The settings are a <code>static readonly</code> object, built once, and only this page gets
+            them.
+        </Caption>
+    </CodeFigure>
+
+    <CodeFigure Number="4" Path="Components/Guide/Demos/Reconnect/PickListNet10.razor" Feature="browser-options">
+        <Caption>
+            For comparison, not the feature: Fig. 1's page, and you can skim it. It is the whole HTML document, because
+            <code>Blazor.start()</code> needs <code>autostart="false"</code> on the script tag. The highlighted block is
+            the old way: that script tag, then the two scripts from the box above. The nonce, the <code>From</code>
+            parameter and the in-memory configuration are only there to run the demo.
+        </Caption>
+    </CodeFigure>
+
+    <h2><small>The .NET 10 way</small>Start Blazor yourself</h2>
+    <p>A .NET 10 build tried three versions of the same script, and dropped the connection each time:</p>
+    <div class="fig">
+        <span class="fig-title">Three Blazor.start() scripts in .NET 10, and what the browser did</span>
+        <div class="flow">
+            <div class="box">
+                <pre class="snip">maxRetries: 20,
+retryIntervalMilliseconds: 2000</pre>
+                <span class="why">"1 of 20, 2 of 20…", trying again in 2 seconds</span>
+                <div class="verdict ok">✓ works, if every name is right</div>
+            </div>
+            <div class="box">
+                <pre class="snip"><span class="err">maxRetry</span>: 20,
+<span class="err">retryIntervalMs</span>: 2000</pre>
+                <span class="why">"11 of 30" after a second, then trying again in 5 seconds</span>
+                <div class="verdict bad">✗ the defaults, with no warning</div>
+            </div>
+            <div class="box">
+                <pre class="snip">maxRetries:
+  @@Config["Reconnect:Tries"],</pre>
+                <span class="why">renders <code>maxRetries: ,</code>: "SyntaxError: Unexpected token ','"</span>
+                <div class="verdict bad">✗ Blazor never starts</div>
+            </div>
+        </div>
+    </div>
+    <p>
+        Even the script that worked cost something. You turned off autostart in <code>App.razor</code>, kept settings
+        in JavaScript where nothing checks them, and let a strict Content-Security-Policy allow an inline script.
+    </p>
+
+    <h2><small>.NET 11</small>Typed settings, written into the page</h2>
+    <p>
+        In .NET 11 the same settings are C# properties. Set them for one page with <code>&lt;ConfigureBrowser&gt;</code>,
+        as Fig. 2 does, or for every page with <code>WithBrowserOptions</code> in <code>Program.cs</code>.
+    </p>
+    <p>
+        Configuration stops being a trap too. The demos don't run this case, but there's no script for Razor to paste
+        a missing value into: read it as <code>int?</code>, and a missing key is <code>null</code>, which keeps Blazor's
+        default.
+    </p>
+    <div class="fig">
+        <span class="fig-title">Settings from config, in .NET 11</span>
+        <pre class="snip">ReconnectionMaxRetries = <span class="hl">config.GetValue&lt;int?&gt;("Reconnect:Tries")</span>,  <span class="dim">// not set: null, Blazor's default</span></pre>
+    </div>
+
+    <h2><small>Good to know</small></h2>
+    <ul class="gk">
+        <li><b>Don't mix the two, at least in RC2.</b> This guide runs on .NET 11 RC2, a release candidate, so this may change by the final release. In RC2, once <code>WithBrowserOptions</code> is set, <code>&lt;ConfigureBrowser&gt;</code> writes into the app-wide options, so one visit to a page would change every page, for everyone.</li>
+        <li><b>Only pages with an interactive component get them.</b> The settings are written just before the page's first Server, WebAssembly or Auto component.</li>
+        <li><b>Callbacks still need JavaScript.</b> A retry-interval function, <code>configureSignalR</code> and a custom <code>reconnectionHandler</code> can't be serialized, so they stay in <code>Blazor.start()</code> or a JS initializer.</li>
+        <li><b>Hub settings live on the server.</b> For the hub's own options, use <code>AddInteractiveServerRenderMode(o =&gt; o.ConfigureConnection = …)</code>, also new in .NET 11.</li>
+    </ul>
+</article>

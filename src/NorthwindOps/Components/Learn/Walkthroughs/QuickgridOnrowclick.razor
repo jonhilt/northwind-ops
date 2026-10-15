@@ -1,0 +1,156 @@
+@page "/learn/quickgrid-onrowclick"
+@layout LearnLayout
+
+<PageTitle>Clickable grid rows · Field Guide</PageTitle>
+
+<article class="l-article" data-learn>
+    <h1 class="l-title">Clickable grid rows</h1>
+    <p class="l-sub">People click a row to open it. How do you know which row they clicked?</p>
+    <p class="l-meta">.NET 11 · Grids &amp; lists · Interactive Server · about 4 minutes</p>
+    <p class="l-new">
+        <b>What's new in .NET 11:</b> QuickGrid has a row event, <code>OnRowClick</code>. In .NET 10 QuickGrid had no
+        row events at all, so a row was only clickable where you put a button or a clickable element of your own.
+        This page shows what that costs, then the one parameter that replaces it.
+    </p>
+
+    <p>
+        Below is a list of support tickets: the eight with the latest activity, from the app's real database. Each
+        row has an <b>Open</b> button, the usual .NET 10 answer. A line above the grid counts every click on the grid,
+        and every ticket that click opened.
+    </p>
+    <p>
+        The hint under the grid says <i>Click a ticket</i>. Do that, the way people do: on the subject, on the
+        customer, in the gap between.
+    </p>
+
+    <DemoFigure Number="1" Title="A button in every row" Url="demo/row-click/tickets/net10"
+                Label=".NET 10: a button in every row" Side="before">
+        <Caption>
+            Click a subject or a customer. <b>Clicks on the grid</b> goes up, <b>Tickets opened</b> stays at 0, and
+            no message appears: the hint asks for something this grid can't do. Only the <b>Open</b> button opens a
+            ticket, and the pointer stays an arrow everywhere else on the row.
+        </Caption>
+    </DemoFigure>
+
+    <h2><small>The problem</small>The grid never tells you about the row</h2>
+    <p>
+        In .NET 10, QuickGrid renders each row as a plain <code>&lt;tr&gt;</code>, with nothing to hook a click to.
+        The only place you can attach a handler is inside a cell, through a <code>TemplateColumn</code>:
+    </p>
+    <div class="fig">
+        <span class="fig-title">Where a click can land, and what it does</span>
+        <pre class="snip">&lt;tr&gt;                       <span class="dim">no handler</span>
+├─ &lt;td&gt; Ticket              <span class="err">nothing happens</span>
+├─ &lt;td&gt; Subject             <span class="err">nothing happens</span>
+├─ &lt;td&gt; Customer            <span class="err">nothing happens</span>
+└─ &lt;td&gt; &lt;button @@onclick&gt;  <span class="ok">✓ opens the ticket</span></pre>
+    </div>
+    <p>
+        So the row people aim at is mostly dead space. The button works, but it's a small target, and it's an extra
+        column on every list screen.
+    </p>
+
+    <h2><small>The fix</small>Give the grid a row handler</h2>
+    <p>Set <code>OnRowClick</code> to a method that takes the row's item.</p>
+    <div class="fig">
+        <span class="fig-title">The whole fix</span>
+        <pre class="snip">&lt;QuickGrid <span class="hl">TGridItem="TicketRow"</span> Items="tickets"
+           <span class="hl">OnRowClick="OpenAsync"</span>&gt;
+    ...
+&lt;/QuickGrid&gt;
+
+<span class="hl">async Task OpenAsync(TicketRow row)</span>
+{
+    open = await Desk.GetAsync(row.Id);
+}</pre>
+    </div>
+    <p>
+        QuickGrid puts the click handler on each <code>&lt;tr&gt;</code> and passes your method the clicked row's
+        item, so the whole row is the target. <code>OpenAsync</code> itself is the method the button called; only
+        the wiring moves.
+    </p>
+    <div class="fig">
+        <span class="fig-title">Don't leave out TGridItem</span>
+        <pre class="snip">&lt;QuickGrid Items="tickets" OnRowClick="OpenAsync"&gt;</pre>
+        <div class="verdict bad">✗ CS1503: given a method group, the grid can't infer its item type. Name it with <code>TGridItem="TicketRow"</code>.</div>
+    </div>
+    <p>
+        One trade-off to know before you delete the button: a row can't take keyboard focus, so
+        <code>OnRowClick</code> is for the mouse. Fig. 2 drops the button to keep the comparison plain. On a real
+        screen, keep a link or button in the row too; the full Support screen makes each subject a link.
+    </p>
+    <p>Here's the same list, with the button gone and <code>OnRowClick</code> set.</p>
+
+    <DemoFigure Number="2" Title="The same list, with OnRowClick" Url="demo/row-click/tickets"
+                Label=".NET 11: OnRowClick">
+        <Caption>
+            Click anywhere on a row. Each click opens that row's ticket below the grid, and the two counts stay
+            equal. Hover a row: the pointer cursor comes with <code>OnRowClick</code>, and the open row stays
+            highlighted.
+        </Caption>
+    </DemoFigure>
+
+    <p>Here are the two lists. Each is an Interactive Server island on an otherwise static page:</p>
+
+    <CodeFigure Number="3" Path="Components/Guide/Demos/RowClick/TicketListNet10.razor" Feature="quickgrid-onrowclick">
+        <Caption>
+            Fig. 1's list. The <code>TemplateColumn</code> with its button is the only way in to <code>OpenAsync</code>.
+        </Caption>
+    </CodeFigure>
+
+    <CodeFigure Number="4" Path="Components/Guide/Demos/RowClick/TicketList.razor" Feature="quickgrid-onrowclick">
+        <Caption>
+            Fig. 2's list. The change is lines 9 and 10: <code>TGridItem</code> and <code>OnRowClick</code> on the
+            grid, and the button column is gone. <code>OpenAsync</code> is highlighted because the grid now calls it,
+            but the method is the same as Fig. 3's.
+        </Caption>
+    </CodeFigure>
+
+    <h2><small>The .NET 10 way</small>Put the click inside the cells</h2>
+    <p>Without a row event, the handler has to live inside a cell. We built each of these on .NET 10:</p>
+    <div class="fig">
+        <span class="fig-title">Three ways to try it in .NET 10, and what clicking the row did</span>
+        <div class="flow">
+            <div class="box">
+                <pre class="snip">&lt;TemplateColumn&gt;
+  &lt;button @@onclick="..."&gt;Open&lt;/button&gt;
+&lt;/TemplateColumn&gt;</pre>
+                <div class="verdict bad">✗ clicking the subject or customer does nothing; only the button opens it</div>
+            </div>
+            <div class="box">
+                <pre class="snip">&lt;TemplateColumn Title="Subject"&gt;
+  &lt;div <span class="err">@@onclick="..."</span>&gt;...&lt;/div&gt;
+&lt;/TemplateColumn&gt;</pre>
+                <span class="why">every column becomes a <code>TemplateColumn</code>, each with its own handler</span>
+                <div class="verdict bad">✗ the cell's padding is dead: only the text area opens it</div>
+            </div>
+            <div class="box">
+                <pre class="snip">&lt;QuickGrid TGridItem="TicketRow"
+  <span class="err">OnRowClick="OpenAsync"</span>&gt;</pre>
+                <span class="why">the .NET 11 markup, built against .NET 10's QuickGrid, which passes unknown attributes through to the <code>&lt;table&gt;</code></span>
+                <div class="verdict bad">✗ builds with no warning, renders a dead <code>onrowclick</code> attribute, and clicks do nothing</div>
+            </div>
+        </div>
+    </div>
+    <p>
+        Two ways out went beyond the grid. One was JavaScript: tag each row with <code>RowClass</code>, listen for
+        clicks on the table, find the row, and call back into .NET through a <code>DotNetObjectReference</code> you
+        must remember to dispose. The other was CSS: one link per row whose <code>::after</code> is stretched over
+        the whole row. That needs no script and keeps keyboard access, but it's CSS you add to every grid, and any
+        other button in the row has to be lifted above the stretched link to stay clickable.
+    </p>
+
+    <h2><small>.NET 11</small>The same markup, now a real parameter</h2>
+    <p>
+        The third card's markup is exactly what Fig. 2 runs. The difference is that .NET 11's QuickGrid declares
+        <code>OnRowClick</code> as an <code>EventCallback&lt;TGridItem&gt;</code>, so it binds to a parameter
+        instead of falling through to the <code>&lt;table&gt;</code> as a dead attribute. If you see an
+        <code>onrowclick</code> attribute in the rendered HTML, you're still on .NET 10.
+    </p>
+
+    <h2><small>Good to know</small></h2>
+    <ul class="gk">
+        <li><b>Links or buttons inside a row?</b> Add <code>@@onclick:stopPropagation</code> to them. Otherwise a click on one opens the row too.</li>
+        <li><b>It needs interactivity.</b> On a static SSR page the rows still render, but clicking them does nothing.</li>
+    </ul>
+</article>

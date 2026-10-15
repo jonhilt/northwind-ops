@@ -27,6 +27,21 @@
 <p>Payment due <b>@Due.ToString("D")</b></p>
 @* /xray:wasm-culture-from-server *@
 
+@* What the server rendered, kept from the prerender, next to what's on screen now. *@
+<table class="moments" data-moments>
+    <thead><tr><th></th><th>Culture</th><th>Total</th><th>Due</th></tr></thead>
+    <tbody>
+        @if (ServerRendered?.Split('|') is [var culture, var total, var due])
+        {
+            <tr><th>Server rendered</th><td>@culture</td><td>@total</td><td>@due</td></tr>
+        }
+        <tr data-now>
+            <th>@(OperatingSystem.IsBrowser() ? "WebAssembly now" : "Server, now")</th>
+            <td>@CultureInfo.CurrentCulture.Name</td><td>@Total.ToString("N2")</td><td>@Due.ToString("D")</td>
+        </tr>
+    </tbody>
+</table>
+
 @code {
     public sealed record Line(string Product, int Quantity, decimal UnitPrice);
 
@@ -35,4 +50,10 @@
     [Parameter] public DateTime Due { get; set; }
 
     decimal Total => Lines.Sum(l => l.Quantity * l.UnitPrice);
+
+    // Set while the server prerenders, and handed to WebAssembly with the page's persisted state.
+    [PersistentState] public string? ServerRendered { get; set; }
+
+    protected override void OnInitialized() =>
+        ServerRendered ??= $"{CultureInfo.CurrentCulture.Name}|{Total:N2}|{Due:D}";
 }
