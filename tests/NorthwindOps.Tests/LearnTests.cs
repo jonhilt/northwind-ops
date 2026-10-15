@@ -5,7 +5,7 @@ using NorthwindOps.Components.Learn;
 
 namespace NorthwindOps.Tests;
 
-/// <summary>Checks every walkthrough (/learn/{id}) renders whole: its code and its live demos.</summary>
+/// <summary>Checks every walkthrough (/learn/{id}) renders whole: its code, and its live demos or animated figure.</summary>
 public partial class LearnTests(AppFactory app) : IClassFixture<AppFactory>
 {
     /// <summary>Every page routed at /learn/{id}.</summary>
@@ -34,9 +34,18 @@ public partial class LearnTests(AppFactory app) : IClassFixture<AppFactory>
         Assert.All(Regex.Matches(html, "<pre class=\"line-numbers\" data-line=\"([^\"]*)\""),
             m => Assert.NotEmpty(m.Groups[1].Value));
 
+        // Live demos come in pairs: the .NET 10 way and the .NET 11 way. Where the difference happens out of
+        // sight (on the server, say), an animated figure shows it instead.
         var demos = DemoFrame().Matches(html).Select(m => (Side: m.Groups["side"].Value, Url: m.Groups["url"].Value)).ToList();
-        Assert.Contains(demos, d => d.Side == "before");
-        Assert.Contains(demos, d => d.Side == "after");
+        if (demos.Count == 0)
+        {
+            Assert.Contains("data-anim", html);
+        }
+        else
+        {
+            Assert.Contains(demos, d => d.Side == "before");
+            Assert.Contains(demos, d => d.Side == "after");
+        }
         foreach (var (side, demo) in demos)
         {
             // Only a .NET 10 demo may fail on purpose: a 500 that names the exception in the frame (DemoCrash).

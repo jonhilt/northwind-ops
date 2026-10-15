@@ -9,28 +9,67 @@
     <p class="l-meta">.NET 11 · WebAssembly · Interactive WebAssembly · about 5 minutes</p>
     <p class="l-new">
         <b>What's new in .NET 11:</b> in the browser, services you register with <code>AddHostedService</code> now
-        start on their own, just like on a server. In .NET 10 you could write the
-        <code>AddHostedService</code> call, but the service never ran, and nothing told you. You had to start it
-        yourself.
+        start on their own, just like on a server. In .NET 10 you could write the <code>AddHostedService</code> line,
+        but the service never ran, and nothing told you.
     </p>
 
     <p>
-        Below is an <i>Orders</i> page with a bell at the top. The bell runs in the browser and asks the server for
-        order updates every 3 seconds, and counts the new ones it finds. The <i>Customers</i> page has no bell.
-    </p>
-    <p>
-        This first bell runs its own timer. When you leave the page, the timer goes with it. That's normal for a
-        component, and it's why you'd move the checking into a service. But in .NET 10, a service registered with
-        <code>AddHostedService</code> never ran. Fig. 1 shows both. At the top is the live bell. Below it is a table
-        recorded from a real .NET 10 app, because this app runs .NET 11 and can't show it live.
+        Say you have a watcher that asks the server for order updates every 3 seconds, and a bell on the
+        <i>Orders</i> page that shows what it found. Here is the same app on both versions:
     </p>
 
-    <DemoFigure Number="1" Title="A bell that polls by itself" Url="demo/hosted-services/orders/net10"
-                Label=".NET 10: the bell polls by itself" Side="before">
+    <figure class="fig anim" data-anim>
+        <figcaption class="fig-title">Fig. 1 · The same app starts on .NET 10 and on .NET 11</figcaption>
+        <button type="button" class="fig-replay" data-replay hidden>replay ↻</button>
+        <div class="lanes">
+            <div class="lane">
+                <div class="lane-h bad">.NET 10</div>
+                <ol class="steps">
+                    <li style="--d:0.3s">AddHostedService(watcher) <span class="done" style="--d:0.6s">✓ compiles</span></li>
+                    <li style="--d:1.2s">start the watcher <span class="wait" style="--d:1.5s">… nothing happens</span></li>
+                    <li style="--d:2.4s">show the page <span class="done" style="--d:2.7s">✓</span></li>
+                    <li class="never" style="--d:3.6s">check for updates every 3 s</li>
+                </ol>
+                <div class="tabs">
+                    <div class="tab paused" style="--d:4.2s"><b>Orders</b><span class="was">bell</span><span class="now">bell: 0</span></div>
+                    <div class="tab paused" style="--d:4.8s"><b>Customers</b><span class="was">…</span><span class="now">not checking</span></div>
+                    <div class="tab paused" style="--d:5.4s"><b>Orders again</b><span class="was">bell</span><span class="now">bell: 0</span></div>
+                </div>
+                <div class="verdict bad" style="--d:6s">✗ the watcher never runs. No error, no warning.</div>
+            </div>
+            <div class="lane">
+                <div class="lane-h ok">.NET 11</div>
+                <ol class="steps">
+                    <li style="--d:0.3s">AddHostedService(watcher) <span class="done" style="--d:0.6s">✓ compiles</span></li>
+                    <li style="--d:1.2s">start the watcher <span class="done" style="--d:1.5s">✓ started</span></li>
+                    <li style="--d:2.4s">show the page <span class="done" style="--d:2.7s">✓</span></li>
+                    <li style="--d:3.6s">check for updates every 3 s <span class="done" style="--d:3.9s">✓ running</span></li>
+                </ol>
+                <div class="tabs">
+                    <div class="tab" style="--d:4.2s"><b>Orders</b><span>bell counts up</span></div>
+                    <div class="tab" style="--d:4.8s"><b>Customers</b><span>still checking</span></div>
+                    <div class="tab" style="--d:5.4s"><b>Orders again</b><span>count carried on</span></div>
+                </div>
+                <div class="verdict ok" style="--d:6s">✓ the app starts the watcher before the first page.</div>
+            </div>
+        </div>
+        <p class="fig-cap">
+            Same code on both sides. On .NET 10 the line compiles (once you add the hosting package) and then does
+            nothing, so the bell sits at 0. On .NET 11 the watcher starts with the app and keeps going while you
+            change pages.
+        </p>
+    </figure>
+
+    <p>
+        Why a service at all? Because a bell that runs its own timer loses it when you leave the page. Try it:
+    </p>
+
+    <DemoFigure Number="2" Title="A bell that runs its own timer" Url="demo/hosted-services/orders/net10"
+                Label="The bell runs its own timer" Side="before">
         <Caption>
-            Watch the bell count new updates for a few seconds. Click <b>Customers</b>, then <b>Orders</b>: the bell
-            is back at <b>0</b>. The table under it is the recording. Its <b>AddHostedService</b> row, the line Fig. 2
-            uses, stayed at <b>0</b>: on .NET 10 that service never ran, and nothing said so.
+            Wait a few seconds for the bell to count some updates. Click <b>Customers</b>, then <b>Orders</b>: the
+            bell is back at <b>0</b>. The table under it was recorded on a real .NET 10 app, since this one runs
+            .NET 11.
         </Caption>
     </DemoFigure>
 
@@ -46,13 +85,13 @@
    └─ services                    <span class="ok">✓ live as long as the runtime</span></pre>
     </div>
     <p>
-        Leave Orders and the bell is thrown away, timer and count included. Come back and a new bell starts from zero.
-        The checking should live in a service instead. But in .NET 10, nothing started that service for you.
+        Leave Orders and the bell is thrown away, with its timer and its count. Come back and a new bell starts from
+        zero. The checking belongs in a service. But in .NET 10, nothing started that service for you.
     </p>
 
     <h2><small>The fix</small>Make it a hosted service</h2>
     <p>
-        Move the checking into a <code>BackgroundService</code>. Register it once, and pass that same instance to
+        Move the checking into a <code>BackgroundService</code>. Register it once, and hand that same instance to
         <code>AddHostedService</code>.
     </p>
     <div class="fig">
@@ -64,51 +103,50 @@ builder.Services.AddSingleton&lt;OrderWatcher&gt;();
 <span class="hl">builder.Services.AddHostedService(sp =&gt; sp.GetRequiredService&lt;OrderWatcher&gt;());</span></pre>
     </div>
     <p>
-        The bell no longer checks anything. It just listens to the watcher. <code>AddSingleton</code> gives every bell
-        the same watcher. The host is the part of .NET that starts your app and its services, and the lambda tells it
-        to start that same watcher. If you wrote <code>AddHostedService&lt;OrderWatcher&gt;()</code> instead, you'd
-        get two watchers: the host would run one, and the bells would listen to the other, which never checks.
+        Now the bell doesn't check anything. It just listens to the watcher. <code>AddSingleton</code> gives every
+        bell the same watcher, and the lambda tells the app to start that one. If you wrote
+        <code>AddHostedService&lt;OrderWatcher&gt;()</code> instead, you'd get two watchers: the app would start one,
+        and the bells would listen to the other, which never checks.
     </p>
 
-    <DemoFigure Number="2" Title="The same pages, with a hosted watcher" Url="demo/hosted-services/orders"
+    <DemoFigure Number="3" Title="The same pages, with a hosted watcher" Url="demo/hosted-services/orders"
                 Label=".NET 11: AddHostedService">
         <Caption>
-            Watch the bell count new updates for a few seconds. Click <b>Customers</b>, then <b>Orders</b>: the count
-            didn't reset. It kept going while you were away.
+            Wait for the bell to count some updates. Click <b>Customers</b>, then <b>Orders</b>: the count didn't
+            reset. It kept going while you were away.
         </Caption>
     </DemoFigure>
 
     <p>Here's the code:</p>
 
-    <CodeFigure Number="3" Path="Client/Program.cs" Feature="wasm-hosted-services">
-        <Caption>The registration: one watcher, started by the host.</Caption>
+    <CodeFigure Number="4" Path="Client/Program.cs" Feature="wasm-hosted-services">
+        <Caption>The registration: one watcher, started by the app.</Caption>
     </CodeFigure>
 
-    <CodeFigure Number="4" Path="Client/HostedServices/OrderWatcher.cs" Feature="wasm-hosted-services">
+    <CodeFigure Number="5" Path="Client/HostedServices/OrderWatcher.cs" Feature="wasm-hosted-services">
         <Caption>
             A normal <code>BackgroundService</code>, the same kind you'd use on a server. It checks every 3 seconds
             until the tab closes.
         </Caption>
     </CodeFigure>
 
-    <CodeFigure Number="5" Path="Client/HostedServices/OrderBell.razor" Feature="wasm-hosted-services">
+    <CodeFigure Number="6" Path="Client/HostedServices/OrderBell.razor" Feature="wasm-hosted-services">
         <Caption>
-            Fig. 2's bell. It only listens, so it can come and go without stopping the checks. Nothing here is new;
-            the highlights just show what replaced the timer.
+            The bell from Fig. 3. It only listens, so it can come and go without stopping the checks. Nothing here is
+            new. The highlights show what replaced the timer.
         </Caption>
     </CodeFigure>
 
-    <CodeFigure Number="6" Path="Client/HostedServices/PollingBell.razor" Feature="wasm-hosted-services">
+    <CodeFigure Number="7" Path="Client/HostedServices/PollingBell.razor" Feature="wasm-hosted-services">
         <Caption>
-            For comparison: Fig. 1's bell. Its timer starts with the component, and <code>Dispose</code> stops it.
+            For comparison, the bell from Fig. 2. Its timer starts with the bell, and <code>Dispose</code> stops it.
         </Caption>
     </CodeFigure>
 
     <h2><small>The .NET 10 way</small>Check from the page, or start it yourself</h2>
     <p>
-        The table in Fig. 1 came from a .NET 10 app that tried three ways. Here's the code behind each row. The numbers
-        are how many times each one had ticked (once a second) after 5 seconds on Orders, on Customers, and back on
-        Orders.
+        The table in Fig. 2 came from a .NET 10 app that tried three ways at once. Each one ticked once a second. The
+        numbers are its ticks after 5 seconds on Orders, then on Customers, then back on Orders.
     </p>
     <div class="fig">
         <span class="fig-title">Three watchers in one .NET 10 app, and their ticks</span>
@@ -135,21 +173,21 @@ await host.RunAsync();</pre>
         </div>
     </div>
     <p>
-        Starting it yourself worked, but only for your own services. A hosted service added by a library, like
-        OpenTelemetry's, never started.
+        Starting it yourself worked, but only for your own services. A hosted service that came from a library, like
+        OpenTelemetry's, still never started.
     </p>
 
-    <h2><small>.NET 11</small>The host starts them</h2>
+    <h2><small>.NET 11</small>The app starts them</h2>
     <p>
-        In .NET 11 the WebAssembly host calls <code>StartAsync</code> on every hosted service, and waits for it, before
-        it renders anything. The hosting types come with the WebAssembly SDK, so there's no package to add.
+        In .NET 11 the WebAssembly app calls <code>StartAsync</code> on every hosted service, and waits for it, before
+        it shows anything. The hosting types come with the WebAssembly SDK, so there's no package to add.
     </p>
 
     <h2><small>Good to know</small></h2>
     <ul class="gk">
-        <li><b>It starts before the first render.</b> So keep <code>StartAsync</code> quick. A <code>BackgroundService</code> is fine: its <code>StartAsync</code> hands back control as soon as your <code>ExecuteAsync</code> starts waiting on something.</li>
+        <li><b>It starts before the first render.</b> So keep <code>StartAsync</code> quick. A <code>BackgroundService</code> is fine: its <code>StartAsync</code> returns as soon as your <code>ExecuteAsync</code> starts waiting on something.</li>
         <li><b>One thread.</b> In the browser, .NET runs on a single thread. Waiting, like this check, is fine. A long calculation freezes the page.</li>
         <li><b>One copy per tab.</b> It starts with the first WebAssembly component on the page. A reload or a new tab starts a fresh copy. Closing the tab ends it without calling <code>StopAsync</code>.</li>
-        <li><b>Sometimes a component survives a page change.</b> When you follow a link, Blazor usually swaps in the new page without a full reload. If the new page has the same WebAssembly component in the same place, Blazor keeps it instead of throwing it away. So if you put Fig. 1's bell on every page, its timer would keep going. It would still stop on any page without the bell.</li>
+        <li><b>Sometimes a component survives a page change.</b> When you follow a link, Blazor usually swaps in the new page without a full reload. If the new page has the same WebAssembly component in the same place, Blazor keeps it. So if you put the bell from Fig. 2 on every page, its timer would keep going. It would still stop on any page without the bell.</li>
     </ul>
 </article>

@@ -3,6 +3,10 @@
 
 <PageTitle>Pause hidden tabs · Field Guide</PageTitle>
 
+<style>
+    .autopause-bad { color: var(--bad); }
+</style>
+
 <article class="l-article" data-learn>
     <h1 class="l-title">Pause hidden tabs</h1>
     <p class="l-sub">Staff leave tabs open all day. Why does each hidden one still use memory on your server?</p>
@@ -14,39 +18,78 @@
     </p>
 
     <p>
-        With Interactive Server, each open tab has a <i>circuit</i> on the server: its components, their state and a
+        With Interactive Server, each open tab has a <i>circuit</i> on the server: its components, their data and a
         live connection. A hidden tab keeps its circuit until it's closed. Pausing frees it. The tab's
-        <code>[PersistentState]</code> values are saved in the browser, and restored on a new circuit when the tab
+        <code>[PersistentState]</code> values are saved in the browser, and put back on a new circuit when the tab
         comes back.
     </p>
     <p>
-        Below is a stock take. Posting its count to the warehouse system takes 20 seconds. Fig. 1 pauses the .NET 10
-        way: its own script pauses the tab once it has been hidden for 10 seconds.
+        The catch is when to pause. Here's a stock take. Posting the count to the warehouse takes 20 seconds. The user
+        presses <b>Post count</b>, switches to another tab, and comes back 30 seconds later. Both versions pause after
+        the tab has been hidden for 10 seconds:
     </p>
 
-    <DemoFigure Number="1" Title="The stock take, paused by your own script" Url="demo/auto-pause/stock-take/net10"
+    <figure class="fig anim" data-anim>
+        <figcaption class="fig-title">Fig. 1 · The user posts the count, then hides the tab for 30 seconds</figcaption>
+        <button type="button" class="fig-replay" data-replay hidden>replay ↻</button>
+        <div class="lanes">
+            <div class="lane">
+                <div class="lane-h bad">.NET 10 · your own pause script</div>
+                <ol class="steps">
+                    <li style="--d:0.3s"><b>0 s</b> Post count pressed, tab hidden</li>
+                    <li style="--d:1.2s"><b>10 s</b> the script pauses the tab <span class="autopause-bad" style="--d:1.5s">saved as "Not posted"</span></li>
+                    <li style="--d:2.1s"><b>20 s</b> the warehouse gets the count <span class="autopause-bad" style="--d:2.4s">but the tab is already paused</span></li>
+                    <li style="--d:3s"><b>30 s</b> tab shown again <span class="autopause-bad" style="--d:3.3s">"Not posted"</span></li>
+                </ol>
+                <div class="tabs">
+                    <div class="tab paused" style="--d:1.2s"><b>Stock take</b><span class="was">posting…</span><span class="now">paused at 10 s</span></div>
+                </div>
+                <div class="verdict bad" style="--d:3.6s">✗ The tab says "Not posted", but the warehouse has the count. The user posts it again.</div>
+            </div>
+            <div class="lane">
+                <div class="lane-h ok">.NET 11 · AutoPause</div>
+                <ol class="steps">
+                    <li style="--d:0.3s"><b>0 s</b> Post count pressed, tab hidden</li>
+                    <li style="--d:1.2s"><b>10 s</b> time to pause, but the post isn't done <span class="wait" style="--d:1.5s">… waits</span></li>
+                    <li style="--d:2.1s"><b>20 s</b> the warehouse gets the count, then the tab pauses <span class="done" style="--d:2.4s">✓ saved as "Posted"</span></li>
+                    <li style="--d:3s"><b>30 s</b> tab shown again <span class="done" style="--d:3.3s">✓ "Posted at …"</span></li>
+                </ol>
+                <div class="tabs">
+                    <div class="tab paused" style="--d:2.1s"><b>Stock take</b><span class="was">posting…</span><span class="now">paused at 20 s</span></div>
+                </div>
+                <div class="verdict ok" style="--d:3.6s">✓ The tab says "Posted at …". The count is posted once.</div>
+            </div>
+        </div>
+        <p class="fig-cap">
+            Both free the server's memory while the tab is hidden. The difference is when. The script pauses on the
+            clock, in the middle of the post. AutoPause waits for the post to finish, so the result is saved too.
+        </p>
+    </figure>
+
+    <p>You can try both. Each demo needs about 30 seconds in another tab.</p>
+
+    <DemoFigure Number="2" Title="The stock take, paused by your own script" Url="demo/auto-pause/stock-take/net10"
                 Label=".NET 10: your own pause script" Side="before">
         <Caption>
-            Press <b>Post count</b>, then switch to another browser tab for about 30 seconds. Come back. The tab
-            says <b>Not posted</b>, but the line under it says the warehouse has the count. The pause cut the post
-            off halfway, so a user would post it again.
+            Press <b>Post count</b>, switch to another tab for about 30 seconds, then come back. It says
+            <b>Not posted</b>, but the line under it says the warehouse has the count.
+        </Caption>
+    </DemoFigure>
+
+    <DemoFigure Number="3" Title="The same stock take, with AutoPause" Url="demo/auto-pause/stock-take"
+                Label=".NET 11: AutoPause">
+        <Caption>
+            Do the same. This time it says <b>Posted at</b> a time. The line at the top says the tab was paused for
+            about 10 seconds, not 20, because it waited for the post.
         </Caption>
     </DemoFigure>
 
     <h2><small>The problem</small>The pause lands mid-post</h2>
-    <p>The script only watches the clock. Here's what happened while the tab was hidden:</p>
-    <div class="fig">
-        <span class="fig-title">The 30 seconds the tab was hidden</span>
-        <pre class="snip"> 0 s  Post count pressed, tab hidden     <span class="dim">PostAsync starts: 20 s to go</span>
-10 s  <span class="err">script calls Blazor.pauseCircuit()</span>  <span class="dim">state saved: Posted = null</span>
-      circuit gone
-20 s  warehouse takes the count           <span class="err">Posted is set on a circuit that's gone</span>
-30 s  tab shown, resumeCircuit()          <span class="err">new circuit: "Not posted"</span></pre>
-    </div>
     <p>
-        <code>Posted</code> is only set when the click handler returns. But the pause saved the state ten seconds
-        earlier. The post did finish on the server, but the new circuit never heard about it. So the user sees
-        "Not posted" and posts again.
+        <code>Posted</code> is only set when the click handler returns, 20 seconds after the click. The script
+        paused the tab at 10 seconds, so it saved <code>Posted</code> while it was still empty. The post did finish
+        on the server, but the tab had already gone. When the tab comes back, it starts again from what was saved:
+        "Not posted".
     </p>
 
     <h2><small>The fix</small>Let AutoPause pick the moment</h2>
@@ -68,35 +111,26 @@
         finish. Then it pauses, with the result saved.
     </p>
 
-    <DemoFigure Number="2" Title="The same stock take, with AutoPause" Url="demo/auto-pause/stock-take"
-                Label=".NET 11: AutoPause">
-        <Caption>
-            Do the same: press <b>Post count</b> and switch away for about 30 seconds. Come back. This time it says
-            <b>Posted at</b> a time. A resumed tab looks just like one that never paused, so the line at the top
-            tells you it did pause: for about 10 seconds, not 20, because AutoPause waited for the post to finish.
-        </Caption>
-    </DemoFigure>
+    <p>Here's the code behind the two demos.</p>
 
-    <p>Here's the script behind Fig. 1, the page behind Fig. 2, and the post they share.</p>
-
-    <CodeFigure Number="3" Path="wwwroot/js/auto-pause-net10.js" Feature="circuit-auto-pause">
+    <CodeFigure Number="4" Path="wwwroot/js/auto-pause-net10.js" Feature="circuit-auto-pause">
         <Caption>
-            Fig. 1's .NET 10 pause script. Highlighted: 10 seconds after the tab hides, it calls
-            <code>Blazor.pauseCircuit()</code>, no matter what's going on.
+            Fig. 2's pause script. Highlighted: 10 seconds after the tab hides, it calls
+            <code>Blazor.pauseCircuit()</code>, whatever is going on.
         </Caption>
     </CodeFigure>
 
-    <CodeFigure Number="4" Path="Components/Guide/Demos/CircuitPause/StockTake.razor" Feature="circuit-auto-pause">
+    <CodeFigure Number="5" Path="Components/Guide/Demos/CircuitPause/StockTake.razor" Feature="circuit-auto-pause">
         <Caption>
-            Fig. 2's page. Highlighted: the new code. It turns on AutoPause with <code>&lt;ConfigureBrowser&gt;</code>,
-            which is also new in .NET 11. The count sheet is the same one Fig. 1 uses.
+            Fig. 3's page. Highlighted: the new code. It turns on AutoPause with <code>&lt;ConfigureBrowser&gt;</code>,
+            which is also new in .NET 11. The count sheet is the same one Fig. 2 uses.
         </Caption>
     </CodeFigure>
 
-    <CodeFigure Number="5" Path="Components/Guide/Demos/CircuitPause/StockPost.razor" Feature="circuit-auto-pause">
+    <CodeFigure Number="6" Path="Components/Guide/Demos/CircuitPause/StockPost.razor" Feature="circuit-auto-pause">
         <Caption>
-            Highlighted, but not new: a plain click handler that takes 20 seconds. <code>Posted</code> is a
-            <code>[PersistentState]</code> value, but it's only set when the handler returns.
+            The post both demos share. Highlighted, but not new: a plain click handler that takes 20 seconds.
+            <code>Posted</code> is a <code>[PersistentState]</code> value, but it's only set when the handler returns.
         </Caption>
     </CodeFigure>
 
@@ -120,7 +154,7 @@
         </div>
     </div>
     <p>
-        The script works, but it pauses whatever the user is doing, like typing a note or a click that's still being handled.
+        The script works, but it pauses whatever the user is doing: typing a note, or waiting on a click.
         Checking for that was up to you.
     </p>
 
@@ -128,12 +162,12 @@
     <p>
         In .NET 11 the AutoPause package watches the tab for you. Once the tab has been hidden long enough, it checks
         that nothing is in progress. If something is, it checks again every half second. Then it calls the same
-        <code>Blazor.pauseCircuit()</code>, and resumes when the tab comes back. That's what Fig. 2 runs.
+        <code>Blazor.pauseCircuit()</code>, and resumes when the tab comes back. That's what Fig. 3 runs.
     </p>
 
     <h2><small>Good to know</small></h2>
     <ul class="gk">
-        <li><b>It waits for typing too.</b> It won't pause while the user has typed something the server hasn't received yet, so a half-typed note is safe. It also holds off while sound is playing, or while Picture-in-Picture or a Web Lock is in use.</li>
+        <li><b>It waits for typing too.</b> It won't pause while the user has typed something the server hasn't received yet, so a half-typed note is safe. It also waits while sound is playing, or while Picture-in-Picture or a Web Lock is in use.</li>
         <li><b>Only <code>[PersistentState]</code> survives.</b> A resumed tab gets a new circuit, so components start over and reload their data. The saved state waits in the browser, encrypted.</li>
         <li><b>For every page, use <code>Program.cs</code>:</b> <code>app.MapRazorComponents&lt;App&gt;().WithBrowserOptions(o =&gt; o.AddAutoPause())</code>. The default wait is 2 minutes.</li>
         <li><b>Pick one way.</b> If <code>Program.cs</code> calls <code>WithBrowserOptions</code> and a page uses <code>&lt;ConfigureBrowser&gt;</code>, that page's settings leak to every page, for everyone. So use one or the other, not both. (That's how .NET 11 RC2 behaves; it may change.) This app only uses <code>&lt;ConfigureBrowser&gt;</code>.</li>
