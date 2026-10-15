@@ -18,7 +18,7 @@ A Blazor showcase of .NET 11 features for line-of-business developers. See READM
 
 ## The Field Guide
 
-The main way to learn a feature: `/guide` lists them, and each has a walkthrough at `/learn/{id}`, one page read top to bottom like an article, with the real demos as its figures: the .NET 10 way running and failing, why, the fix, the same demo with the fix, the code, the .NET 10 way in detail, .NET 11, and Good to know. The old three-step pages (`/guide/{id}`, `/try`, `/code`) redirect there. The aim is clarity, not completeness: one idea per sentence.
+The main way to learn a feature, and the site's home page: `/` (also `/guide`) lists them and links to the app's dashboard at `/app`, and each has a walkthrough at `/learn/{id}`, one page read top to bottom like an article, with the real demos as its figures: the .NET 10 way running and failing, why, the fix, the same demo with the fix, the code, the .NET 10 way in detail, .NET 11, and Good to know. The old three-step pages (`/guide/{id}`, `/try`, `/code`) redirect there. The aim is clarity, not completeness: one idea per sentence.
 
 - **An entry** is `Showcase/Guide/{id}.md`, front matter only (the id must match a write-up in `Showcase/Features/`): `id`, `title`, `group`, `order`, `hook` (index card line), `mode`, `demo` (the .NET 11 demo, no leading slash), and `before` and `labels` (the .NET 10 demo, and both demos' labels as `.NET 10: … | .NET 11: …`).
 - **A walkthrough** is a Razor page at `/learn/{id}` with `@layout LearnLayout`. Copy `Components/Learn/Walkthroughs/NestedValidation.razor`. Styles are `wwwroot/css/learn.css`, all under `.learn`.

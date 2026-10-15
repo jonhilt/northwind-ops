@@ -72,7 +72,7 @@ public partial class PageTests(AppFactory app) : IClassFixture<AppFactory>
     [Fact]
     public async Task Environment_banner_shows_outside_production()
     {
-        var html = await client.GetStringAsync("/");
+        var html = await client.GetStringAsync("/app");
 
         Assert.Contains("class=\"env-banner\"", html);
         Assert.Contains("DEVELOPMENT", html);
@@ -93,7 +93,7 @@ public class ProductionTests
     public async Task Environment_banner_is_not_rendered_in_production()
     {
         using var app = new AppFactory { Environment = "Production" };
-        var html = await app.CreateClient().GetStringAsync("/");
+        var html = await app.CreateClient().GetStringAsync("/app");
 
         Assert.DoesNotContain("env-banner", html);
     }

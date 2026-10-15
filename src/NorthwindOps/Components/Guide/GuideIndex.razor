@@ -1,45 +1,54 @@
+@page "/"
 @page "/guide"
-@layout GuideLayout
+@layout LearnLayout
 @inject GuideRegistry Guide
 @inject FeatureRegistry Features
 
 <PageTitle>Field Guide · Northwind Ops</PageTitle>
 
-<header class="gi-head">
-    <h1>What's new in Blazor for .NET 11</h1>
-    <p>Pick a feature. See the problem it solves, try it for real, then read the code.</p>
-</header>
+<article class="l-article guide-index">
+    <h1 class="l-title">Field Guide</h1>
+    <p class="l-sub">What's new in Blazor for .NET 11, one feature at a time.</p>
+    <p class="l-meta">@Guide.All.Count features · each one about 5 minutes</p>
 
-@foreach (var group in Guide.All.GroupBy(e => e.Group))
-{
-    <section class="gi-group">
-        <h2>@group.Key</h2>
-        <div class="gi-cards">
+    <p>
+        Each page shows the problem first: the .NET 10 way, running and going wrong. Then the same demo on .NET 11,
+        and the few lines that fix it.
+    </p>
+    <p class="gi-app">
+        Every demo comes from <a href="app">Northwind Ops</a>, a small orders-and-suppliers app built on .NET 11.
+        Open it to see the features working together, and press <b>X</b> on any screen to see which ones it uses.
+    </p>
+
+    @foreach (var group in Guide.All.GroupBy(e => e.Group))
+    {
+        <h2><small>@group.Key</small></h2>
+        <ul class="gi-list">
             @foreach (var entry in group)
             {
-                <a class="gi-card" href="learn/@entry.Id">
-                    <span class="mode">@entry.Mode</span>
-                    <h3>@entry.Title</h3>
-                    <p>@entry.Hook</p>
-                </a>
+                <li>
+                    <a href="learn/@entry.Id">
+                        <span class="gi-title">@entry.Title</span>
+                        <span class="gi-mode">@entry.Mode</span>
+                        <span class="gi-hook">@entry.Hook</span>
+                    </a>
+                </li>
             }
-        </div>
-    </section>
-}
+        </ul>
+    }
 
-@if (others.Count > 0)
-{
-    <section class="gi-group gi-more">
-        <h2>More in Northwind Ops</h2>
-        <p>Not in the guide yet. Each one has a full write-up, and X-ray shows you where it's used in the app.</p>
-        <ul>
+    @if (others.Count > 0)
+    {
+        <h2><small>More in Northwind Ops</small></h2>
+        <p>Not in the guide yet. Each has a write-up, and X-ray shows where the app uses it.</p>
+        <ul class="gi-more">
             @foreach (var feature in others)
             {
                 <li><a href="xray/@feature.Id">@feature.Title</a></li>
             }
         </ul>
-    </section>
-}
+    }
+</article>
 
 @code {
     List<Feature> others = [];

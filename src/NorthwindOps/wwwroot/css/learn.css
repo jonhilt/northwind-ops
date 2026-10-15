@@ -97,3 +97,16 @@
 #blazor-error-ui { display: none; position: fixed; bottom: 0; left: 0; width: 100%; z-index: 1000; padding: 10px 20px; background: var(--bad-bg); color: var(--bright); font: 14px var(--mono); }
 #blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: 16px; }
 .l-new { border-left: 3px solid var(--amber); padding: 6px 14px; color: var(--soft); font-size: 14px; }
+
+/* The guide's index: one list per group, each feature a row. */
+.guide-index h2 { margin-top: 44px; }
+.gi-list { list-style: none; padding: 0; margin: 0; border-top: 1px solid #2c2a26; }
+.gi-list li { border-bottom: 1px solid #2c2a26; }
+.gi-list a { display: grid; grid-template-columns: 1fr auto; gap: 2px 16px; padding: 12px 10px; text-decoration: none; }
+.gi-list a:hover { background: var(--panel); }
+.gi-title { color: var(--bright); font-weight: 600; }
+.gi-list a:hover .gi-title { color: var(--amber); }
+.gi-mode { color: var(--faint); font-size: 12px; align-self: center; text-transform: uppercase; letter-spacing: 0.06em; }
+.gi-hook { grid-column: 1 / -1; color: var(--soft); font-size: 14px; }
+.gi-more { columns: 2; padding-left: 20px; font-size: 14px; }
+.gi-app { border-left: 3px solid var(--amber); padding: 6px 14px; color: var(--soft); font-size: 14px; }

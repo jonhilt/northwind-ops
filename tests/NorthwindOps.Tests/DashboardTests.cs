@@ -14,9 +14,9 @@ public partial class DashboardTests(AppFactory app) : IClassFixture<AppFactory>
     [Fact]
     public async Task Kpi_tiles_come_from_the_cache_on_the_next_request()
     {
-        var first = await client.GetStringAsync("/");
+        var first = await client.GetStringAsync("/app");
         var runs = Queries.KpiQueryRuns;
-        var second = await client.GetStringAsync("/");
+        var second = await client.GetStringAsync("/app");
 
         Assert.True(runs >= 1);
         Assert.Equal(runs, Queries.KpiQueryRuns); // the slow query didn't run again
@@ -29,7 +29,7 @@ public partial class DashboardTests(AppFactory app) : IClassFixture<AppFactory>
     [Fact]
     public async Task Kpi_tiles_show_the_figures()
     {
-        var html = await client.GetStringAsync("/");
+        var html = await client.GetStringAsync("/app");
 
         Assert.Contains("Orders today", html);
         Assert.Contains("Open orders", html);
@@ -40,7 +40,7 @@ public partial class DashboardTests(AppFactory app) : IClassFixture<AppFactory>
     [Fact]
     public async Task Dashboard_is_static_with_three_interactive_server_islands()
     {
-        var html = await client.GetStringAsync("/");
+        var html = await client.GetStringAsync("/app");
 
         Assert.Contains("Static SSR · Interactive Server islands", html);
         Assert.Equal(3, ServerMarker().Matches(html).Count); // the feed and the two panels
@@ -51,7 +51,7 @@ public partial class DashboardTests(AppFactory app) : IClassFixture<AppFactory>
     [Fact]
     public async Task Panels_prerender_the_pages_static_tables_inside_the_interactive_component()
     {
-        var html = await client.GetStringAsync("/");
+        var html = await client.GetStringAsync("/app");
         var topCustomers = await Queries.GetTopCustomersAsync(8);
 
         // The table is the page's own markup (Home.razor), rendered inside CollapsibleCard's body.
@@ -174,7 +174,7 @@ public partial class DashboardTests(AppFactory app) : IClassFixture<AppFactory>
     [Fact]
     public async Task Every_dashboard_feature_is_outlined_on_the_page()
     {
-        var html = await client.GetStringAsync("/");
+        var html = await client.GetStringAsync("/app");
 
         Assert.Contains("data-xray=\"cacheview\"", html);
         Assert.Contains("data-xray=\"virtualize-anchor-mode\"", html);

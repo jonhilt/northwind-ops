@@ -295,6 +295,15 @@ public partial class GuideTests(AppFactory app) : IClassFixture<AppFactory>
     }
 
     [Fact]
+    public async Task The_guide_is_the_home_page_and_links_to_the_app()
+    {
+        var html = await app.CreateClient().GetStringAsync("/");
+
+        Assert.Contains("<h1 class=\"l-title\">Field Guide</h1>", html);
+        Assert.Contains("href=\"app\"", html);
+    }
+
+    [Fact]
     public async Task Index_links_every_entry()
     {
         var html = await app.CreateClient().GetStringAsync("/guide");
