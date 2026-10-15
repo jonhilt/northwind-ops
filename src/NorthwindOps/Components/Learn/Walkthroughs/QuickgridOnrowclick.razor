@@ -15,14 +15,13 @@
 
     <p>
         Below are the eight most recently active support tickets. Each row has an <b>Open</b> button, the usual
-        .NET 10 approach. Two counters above the grid show how many times you clicked and how many tickets opened.
+        .NET 10 approach.
     </p>
 
     <DemoFigure Number="1" Title="A button in every row" Url="demo/row-click/tickets/net10"
                 Label=".NET 10: a button in every row" Side="before">
         <Caption>
-            Click a subject or a customer. <b>Clicks on the grid</b> goes up, but <b>Tickets opened</b> stays at 0.
-            Only the <b>Open</b> button opens a ticket.
+            Click a subject or a customer. Nothing opens. Only the <b>Open</b> button opens a ticket.
         </Caption>
     </DemoFigure>
 
@@ -76,8 +75,7 @@
     <DemoFigure Number="2" Title="The same list, with OnRowClick" Url="demo/row-click/tickets"
                 Label=".NET 11: OnRowClick">
         <Caption>
-            Click anywhere on a row. The ticket opens below the grid, and the two counts stay equal. The pointer
-            changes over a row, and the open row stays highlighted.
+            Click anywhere on a row. The ticket opens below the grid, and its row stays highlighted.
         </Caption>
     </DemoFigure>
 
@@ -91,7 +89,7 @@
 
     <CodeFigure Number="4" Path="Components/Guide/Demos/RowClick/TicketList.razor" Feature="quickgrid-onrowclick">
         <Caption>
-            Fig. 2's list. Lines 9 and 10 add <code>TGridItem</code> and <code>OnRowClick</code>, and the button
+            Fig. 2's list. Lines 7 and 8 add <code>TGridItem</code> and <code>OnRowClick</code>, and the button
             column is gone. <code>OpenAsync</code> is unchanged from Fig. 3.
         </Caption>
     </CodeFigure>

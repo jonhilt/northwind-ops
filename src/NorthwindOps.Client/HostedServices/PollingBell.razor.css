@@ -21,10 +21,3 @@
 }
 
 .latest { color: var(--ink-soft); }
-
-.checked {
-    margin-left: auto;
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--muted);
-}

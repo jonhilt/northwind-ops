@@ -25,18 +25,16 @@
         them right and reads the values from configuration, but one of the values is missing from config.
     </p>
     <p>
-        A yellow banner appears above the list when the connection drops. It counts the tries and times the waits
-        between them.
+        A yellow banner appears above the list when the connection drops. It counts the tries.
     </p>
 
     <DemoFigure Number="1" Title="Settings in a Blazor.start() script" Url="demo/browser-options/pick-list/net10"
                 Label=".NET 10: Blazor.start() in JavaScript" Side="before">
         <Caption>
-            Press <b>Pick</b> on a line, then <b>Drop my Wi-Fi for 10 seconds</b>. The banner jumps to "11 of 30": ten
-            tries went at once, and the next waited 5 seconds. Those are Blazor's defaults, and nothing warned you.
-            <b>Sent to the browser</b> shows the script with the wrong names.
-            Then choose <b>Settings from config</b>. <b>Sent to the browser</b> shows <code>maxRetries: ,</code> with
-            no number. Blazor didn't start, so <b>Pick</b> does nothing.
+            Press <b>Drop my Wi-Fi for 10 seconds</b>. The banner says "of 30", not "of 20", and jumps straight to
+            11. Those are Blazor's defaults: it ignored the settings, and nothing warned you. Then choose
+            <b>Settings from config</b> and press <b>Pick</b>. Nothing happens. A missing config value broke the
+            script, so Blazor never started.
         </Caption>
     </DemoFigure>
 
@@ -81,10 +79,8 @@ static readonly BrowserOptions warehouseWifi = new()
     <DemoFigure Number="2" Title="The same pick list, settings in C#" Url="demo/browser-options/pick-list"
                 Label=".NET 11: BrowserOptions in C#">
         <Caption>
-            Press <b>Pick</b> on a line, then <b>Drop my Wi-Fi for 10 seconds</b>. The banner reads "Rejoin attempt 1
-            of 20", and it measures a 2-second wait before each try. After 10 seconds it
-            reconnects, and your pick is still there. <b>Sent to the browser</b> shows the C# names in camelCase, and
-            the <code>TimeSpan</code> in milliseconds.
+            Press <b>Drop my Wi-Fi for 10 seconds</b>. The banner says "of 20", and counts up one try every 2
+            seconds. After 10 seconds it reconnects.
         </Caption>
     </DemoFigure>
 

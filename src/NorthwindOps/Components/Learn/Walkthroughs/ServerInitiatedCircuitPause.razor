@@ -28,8 +28,9 @@
                 Label=".NET 10: JS interop" Side="before">
         <Caption>
             Change the <b>Quantity</b> and press <b>Pause this tab from the server</b>. A dialog says <i>The session
-            has been paused by the server</i>. Press <b>Resume</b>, and the order comes back still filled in. But the
-            panel's <b>The server's request</b> row says the server is still waiting for an answer. It always will be.
+            has been paused by the server</i>. Press <b>Resume</b>. The order is still filled in. But you can't see a
+            stuck server call on the page, so a red line at the top tells you: the server is still waiting for an
+            answer. It always will be.
         </Caption>
     </DemoFigure>
 
@@ -75,9 +76,9 @@ public override Task OnCircuitOpenedAsync(Circuit circuit, CancellationToken can
     <DemoFigure Number="2" Title="The same draft, asking through the Circuit" Url="demo/server-pause/new-order"
                 Label=".NET 11: RequestCircuitPauseAsync">
         <Caption>
-            Change the <b>Quantity</b>, press <b>Pause this tab from the server</b>, then <b>Resume</b>. The order
-            comes back as before. This time <b>The server's request</b> says it answered <code>true</code> within a few
-            milliseconds, so server code can move on to the next tab.
+            Do the same: change the <b>Quantity</b>, press <b>Pause this tab from the server</b>, then
+            <b>Resume</b>. The order comes back as before. This time the line at the top says the server got
+            <code>true</code> back in a few milliseconds, so it can move on to the next tab.
         </Caption>
     </DemoFigure>
 

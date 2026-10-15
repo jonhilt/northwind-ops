@@ -27,9 +27,9 @@
     <DemoFigure Number="1" Title="The stock take, paused by your own script" Url="demo/auto-pause/stock-take/net10"
                 Label=".NET 10: your own pause script" Side="before">
         <Caption>
-            Press <b>+</b> on a few products, press <b>Post count</b>, then switch to another tab for about 30
-            seconds. Back here, the counts are all there, but the post says <b>Not posted</b>, even though the
-            warehouse has the count. Press <b>Post count</b> again and, 20 seconds later, the warehouse has it twice.
+            Press <b>Post count</b>, then switch to another browser tab for about 30 seconds. Come back. The tab
+            says <b>Not posted</b>, but the line under it says the warehouse has the count. The pause cut the post
+            off halfway, so a user would post it again.
         </Caption>
     </DemoFigure>
 
@@ -71,10 +71,9 @@
     <DemoFigure Number="2" Title="The same stock take, with AutoPause" Url="demo/auto-pause/stock-take"
                 Label=".NET 11: AutoPause">
         <Caption>
-            Do the same again: press <b>+</b>, press <b>Post count</b>, and switch away for about 30 seconds. Back
-            here, it says <b>Posted at</b> a time, and the warehouse has the count once. AutoPause didn't pause at 10
-            seconds. It waited for the post to finish at 20, so the panel shows the tab was paused for about 10
-            seconds, not 20.
+            Do the same: press <b>Post count</b> and switch away for about 30 seconds. Come back. This time it says
+            <b>Posted at</b> a time. A resumed tab looks just like one that never paused, so the line at the top
+            tells you it did pause: for about 10 seconds, not 20, because AutoPause waited for the post to finish.
         </Caption>
     </DemoFigure>
 

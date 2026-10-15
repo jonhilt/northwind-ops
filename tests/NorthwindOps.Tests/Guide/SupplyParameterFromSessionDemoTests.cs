@@ -25,12 +25,10 @@ public partial class SupplyParameterFromSessionDemoTests(AppFactory app) : IClas
         var review = await Read(await Post(Before, page, "restock-lines", ($"Packs[{first}]", "5"), ($"Packs[{second}]", "7")));
         Assert.Contains("2. Review", review);
         Assert.Contains($"""name="Draft[{first}]" value="5" """.TrimEnd(), review);
-        Assert.Contains("Hidden fields in the page: <b>2</b>", WithoutScopes(review));
 
         // A refresh or a link is a GET: the draft is gone.
         var refreshed = WithoutScopes(await browser.GetStringAsync(Before));
         Assert.Contains("1. Quantities", refreshed);
-        Assert.Contains("Hidden fields in the page: <b>0</b>", refreshed);
         Assert.DoesNotContain("name=\"Draft[", refreshed);
     }
 
@@ -44,6 +42,12 @@ public partial class SupplyParameterFromSessionDemoTests(AppFactory app) : IClas
         var sent = WebUtility.HtmlDecode(await Read(await Post(Before, review, "restock-send", ($"Draft[{first}]", "9999"))));
 
         Assert.Contains("Sent to the supplier: 9999 packs of", sent);
+
+        // The demo's own button posts the same edit, so the reader needn't open DevTools.
+        review = await Read(await Post(Before, page, "restock-lines", ($"Packs[{first}]", "5")));
+        Assert.Contains($"""name="EditedDraft[{first}]" value="9999" """.TrimEnd(), review);
+        var edited = WebUtility.HtmlDecode(await Read(await Post(Before, review, "restock-send-edited", ($"EditedDraft[{first}]", "9999"))));
+        Assert.Contains("Sent to the supplier: 9999 packs of", edited);
     }
 
     [Fact]
@@ -58,7 +62,6 @@ public partial class SupplyParameterFromSessionDemoTests(AppFactory app) : IClas
 
         // A refresh of the review, and the step 1 page, both find the draft on the server.
         var review = WebUtility.HtmlDecode(await browser.GetStringAsync("/demo/session/restock/review"));
-        Assert.Contains($$"""restock-draft = {"{{first}}":5,"{{second}}":7}""", review);
         Assert.Contains("5 packs of", review);
         var lines = await browser.GetStringAsync(After);
         Assert.Contains($"""name="Packs[{first}]" value="5" """.TrimEnd(), lines);
@@ -69,8 +72,7 @@ public partial class SupplyParameterFromSessionDemoTests(AppFactory app) : IClas
         Assert.Equal(HttpStatusCode.Redirect, sent.StatusCode);
         var after = WithoutScopes(await browser.GetStringAsync("/demo/session/restock/review?sent=true"));
         Assert.Contains("Sent to the supplier", after);
-        Assert.Contains("In session:", after);
-        Assert.Contains("<b>nothing</b>", after);
+        Assert.DoesNotContain("value=\"5\"", await browser.GetStringAsync(After));
     }
 
     [Fact]

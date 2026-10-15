@@ -10,7 +10,7 @@
 }
 @if (added is not null)
 {
-    <div class="flash" role="status" data-saved>✓ @added saved. Suppliers using @savedCode now: <b>@owners</b></div>
+    <div class="flash" role="status" data-saved>✓ @added saved.</div>
 }
 
 <h1>New supplier</h1>
@@ -33,7 +33,7 @@
     readonly NewSupplierFormNet10 Input = new();
     EditContext form = default!;
     ValidationMessageStore messages = default!;
-    string? added, savedCode, owners, rejected, error;
+    string? added, rejected, error;
 
     protected override void OnInitialized()
     {
@@ -76,7 +76,5 @@
             return;
         }
         added = $"{Input.Company} ({Input.Code})";
-        (savedCode, owners) = (Input.Code, string.Join(", ", await db.Set<Supplier>()
-            .Where(s => s.Code == Input.Code).Select(s => s.Company).ToListAsync()));
     }
 }

@@ -19,16 +19,15 @@
     </p>
     <p>
         The page is static SSR: the server remembers nothing between requests. The quick .NET 10 answer is to carry
-        step 1's numbers into step 2 as hidden form fields. That's what this page does. The grey strip at the top
-        shows what the server has in session.
+        step 1's numbers into step 2 as hidden form fields. That's what this page does.
     </p>
 
     <DemoFigure Number="1" Title="Two steps, carried in hidden fields" Url="demo/session/restock/net10"
                 Label=".NET 10: hidden fields" Side="before">
         <Caption>
-            Enter some quantities and press <b>Review order →</b>, then press <b>⟳</b>: you're back on an empty
-            step 1. Now review again, use DevTools to change a hidden field to <code>9999</code>, and press
-            <b>Send to supplier</b>. It sends 9999 packs, past step 1's 99-pack limit.
+            Enter some quantities and press <b>Review order →</b>. Then press <b>⟳</b> above the frame. You're back
+            on an empty step 1. Review again and press <b>Send with one hidden field edited to 9999</b>. That's
+            what anyone can do in DevTools. It sends 9999 packs, past step 1's 99-pack limit.
         </Caption>
     </DemoFigure>
 
@@ -74,9 +73,9 @@ Navigation.NavigateTo("demo/session/restock/review");</pre>
     <DemoFigure Number="2" Title="The same order, kept in session" Url="demo/session/restock"
                 Label=".NET 11: [SupplyParameterFromSession]" Side="after">
         <Caption>
-            Enter some quantities and press <b>Review order →</b>. The strip shows <code>restock-draft</code> with
-            your numbers. Press <b>⟳</b> or <b>← Change quantities</b>: your numbers are still there. Review
-            again and press <b>Send to supplier</b>: the strip empties.
+            Enter some quantities and press <b>Review order →</b>. Press <b>⟳</b> above the frame, or
+            <b>← Change quantities</b>. Your numbers are still there. Review again and press
+            <b>Send to supplier</b>. The draft is gone, and step 1 is empty again.
         </Caption>
     </DemoFigure>
 

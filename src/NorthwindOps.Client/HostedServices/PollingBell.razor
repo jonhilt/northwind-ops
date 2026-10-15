@@ -9,13 +9,9 @@
     {
         <span class="latest">Latest: <b>@update.Order</b> · @update.Detail</span>
     }
-    <span class="checked" data-checks>
-        checked the server @(checks)× since @since.ToString("HH:mm:ss")
-    </span>
 </div>
 
 @code {
-    readonly DateTime since = DateTime.Now;
     int count, checks;
     long lastSeen;
     OrderUpdate? latest;

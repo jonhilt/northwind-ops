@@ -32,13 +32,11 @@ public partial class VirtualizeAnchorModeDemoTests(AppFactory app) : IClassFixtu
     [Theory]
     [InlineData("/demo/anchor-mode/inbox")]
     [InlineData("/demo/anchor-mode/inbox/net10")]
-    public async Task Both_inboxes_start_from_the_same_300_messages_with_the_readout(string url)
+    public async Task Both_inboxes_start_from_the_same_300_messages(string url)
     {
         var html = await app.CreateClient().GetStringAsync(url);
 
         Assert.Contains("300 messages", html);
         Assert.Contains("data-newest=\"299\"", html);
-        Assert.Contains("data-feed-readout", html);
-        Assert.Contains("FeedReadout", html);
     }
 }

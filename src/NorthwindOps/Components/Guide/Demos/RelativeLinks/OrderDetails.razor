@@ -1,11 +1,8 @@
 @*
-    The open tab's content, and the address it was reached at. It's the same on both
-    sides, so only the links differ.
+    The open tab's content. It's the same on both sides, so only the links differ.
 *@
 @inject IDbContextFactory<NorthwindDb> DbFactory
 @inject NavigationManager Navigation
-
-<p class="address">You are at <code>@(new Uri(Navigation.Uri).AbsolutePath)</code></p>
 
 @if (order is null) { }
 else if (Tab == "lines")

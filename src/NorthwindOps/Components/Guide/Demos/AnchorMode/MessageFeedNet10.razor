@@ -1,7 +1,8 @@
 @implements IDisposable
+@inject IJSRuntime JS
 
 <p class="count" data-newest="@messages[^1].N">@messages.Count messages</p>
-<div class="feed" style="height: 300px; overflow-y: auto">
+<div class="feed" style="height: 300px; overflow-y: auto" @ref="feed">
     @* xray:virtualize-anchor-mode *@
     @* .NET 10: no AnchorMode. It keeps the scroll position, so new rows land below. *@
     <Virtualize Items="messages" Context="m">
@@ -17,10 +18,16 @@
     List<InboxMessage> messages = InboxMessage.Earlier();
     Timer? timer;
 
-    protected override void OnAfterRender(bool firstRender)
+    ElementReference feed;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender) return;
+        // Start at the newest message, like the .NET 11 feed. Nothing keeps it there after that.
+        var module = await JS.InvokeAsync<IJSObjectReference>("import", "./Components/Guide/Demos/AnchorMode/MessageFeedNet10.razor.js");
+        await module.InvokeVoidAsync("scrollToEnd", feed);
         // The same arrivals: a message every 2.5 seconds.
-        if (firstRender) timer = new(_ => InvokeAsync(Arrive), null, 2500, 2500);
+        timer = new(_ => InvokeAsync(Arrive), null, 2500, 2500);
     }
 
     void Arrive()

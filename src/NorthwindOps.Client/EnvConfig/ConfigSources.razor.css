@@ -1,9 +1,0 @@
-.sources { margin-top: 14px; border-collapse: collapse; font-size: 12px; }
-.sources th, .sources td {
-    padding: 4px 8px;
-    border-bottom: 1px solid var(--line);
-    text-align: left;
-}
-.sources th { white-space: nowrap; }
-.sources td { overflow-wrap: anywhere; }
-.sources thead th { color: var(--ink-soft); font-weight: 600; }

@@ -26,10 +26,9 @@
     <DemoFigure Number="1" Title="The invoice on .NET 10" Url="demo/wasm-culture/invoice/net10"
                 Label=".NET 10 · recorded" Side="before">
         <Caption>
-            Each row is one moment. The first row is what the server sent: <b>1.234,56</b> and <b>Freitag</b>. The
-            second row is the same component once WebAssembly started: <b>1,234.56</b> and <b>Friday</b>. The third
-            row passed the culture in as a parameter. Only the total used it, so the total stayed German and the date
-            turned English. Its Culture column says <b>en-US</b>: the parameter didn't change the browser's culture.
+            A recording, one row per moment. The server sent <b>1.234,56</b> and <b>Freitag</b>. Once WebAssembly
+            started, the same invoice said <b>1,234.56</b> and <b>Friday</b>. The last row passed the culture in as a
+            parameter: the total stayed German, but the date still turned English.
         </Caption>
     </DemoFigure>
 
@@ -70,9 +69,8 @@ app.UseRequestLocalization(...);
     <DemoFigure Number="2" Title="An invoice on .NET 11" Url="demo/wasm-culture/invoice?culture=de-DE"
                 Label=".NET 11 · live">
         <Caption>
-            Wait for <b>Running on WebAssembly</b>. The badge says <b>Formatting in de-DE</b>, whatever your browser's
-            language, and <b>Server rendered</b> matches <b>WebAssembly now</b>. Pick <b>fr-FR</b> and the page
-            reloads in French. The amounts are plain numbers with no currency sign, so they follow whichever culture you pick.
+            It opens in German. When the badge says <b>Running on WebAssembly</b>, the total and the due date are still
+            German, whatever your browser's language. Click <b>fr-FR</b> and the page reloads in French.
         </Caption>
     </DemoFigure>
 

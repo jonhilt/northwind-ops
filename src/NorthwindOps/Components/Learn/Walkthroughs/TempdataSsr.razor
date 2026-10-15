@@ -19,16 +19,14 @@
         between requests.
     </p>
     <p>
-        This version uses the quick .NET 10 trick: it puts <code>?saved=…</code> in the address. The
-        <b>Carried by</b> line under the list shows how the message arrived.
+        This version uses the quick .NET 10 trick: it puts <code>?saved=…</code> in the address.
     </p>
 
     <DemoFigure Number="1" Title="The list, with a flag in the URL" Url="demo/tempdata/orders/net10"
                 Label=".NET 10: a flag in the URL" Side="before">
         <Caption>
-            Click the link <code>…/net10?saved=99999</code> under the list. It says "Order 99999 saved", but that
-            order doesn't exist. Now save a real order, then press <b>⟳</b> in the frame's address bar: it says
-            "saved" again.
+            Click the link <code>…/net10?saved=99999</code> above the list. It says "Order 99999 saved", but that
+            order doesn't exist. Now save a real order and press <b>⟳</b> above the frame. It says "saved" again.
         </Caption>
     </DemoFigure>
 
@@ -74,8 +72,8 @@ message = <span class="hl">TempData?.Get("flash")</span> as string;</pre>
     <DemoFigure Number="2" Title="The same list, with TempData" Url="demo/tempdata/orders"
                 Label=".NET 11: TempData">
         <Caption>
-            Save an order. The list says "Order … saved", there's no flag in the address, and <b>Carried by</b>
-            shows a TempData cookie. Press <b>⟳</b>: the message is gone.
+            Save an order. The list says "Order … saved", with no flag in the address. Press <b>⟳</b> above the
+            frame. The message is gone.
         </Caption>
     </DemoFigure>
 

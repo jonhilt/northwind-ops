@@ -4,12 +4,11 @@
 
 @* Deutsch adds ?culture=de-DE, which request localization reads (see Program.cs) *@
 <nav class="languages">
-    <a href="demo/displayname/suppliers/net10">English</a>
-    <a href="demo/displayname/suppliers/net10?culture=de-DE">Deutsch</a>
+    <a href="demo/displayname/suppliers/net10" class="@(german ? null : "on")">English</a>
+    <a href="demo/displayname/suppliers/net10?culture=de-DE" class="@(german ? "on" : null)">Deutsch</a>
 </nav>
 
 <h1>Suppliers</h1>
-<FormLabels />
 
 <QuickGrid Items="suppliers">
     @* xray:displayname-component *@
@@ -22,6 +21,9 @@
 </QuickGrid>
 
 @code {
+    // Marks the language picked, so you can see German is on even where the headers stay English.
+    static bool german => System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "de";
+
     IQueryable<Supplier> suppliers = Enumerable.Empty<Supplier>().AsQueryable();
 
     protected override async Task OnInitializedAsync()

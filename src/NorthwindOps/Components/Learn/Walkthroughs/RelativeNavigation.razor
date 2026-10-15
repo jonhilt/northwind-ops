@@ -18,15 +18,14 @@
         Customer. Each tab is a <code>NavLink</code> with a short link like <code>href="lines"</code>.
     </p>
     <p>
-        Here the option is off, which behaves just like .NET 10. Watch the tabs and the <b>You are at</b> line
-        under them.
+        Here the option is off, which behaves just like .NET 10.
     </p>
 
     <DemoFigure Number="1" Title="Tabs written as plain relative links" Url="demo/relative-nav/net10/orders/12047/summary"
                 Label='Option off, as in .NET 10' Side="before">
         <Caption>
-            Notice no tab is underlined, even though you're on Summary. Click <b>Lines</b>. The address becomes
-            <code>/lines</code>, and you get <b>Not Found</b>.
+            No tab is underlined, even though you're on Summary. Click <b>Lines</b>. The address above the frame
+            becomes <code>/lines</code>, and you get <b>Not Found</b>.
         </Caption>
     </DemoFigure>
 
@@ -65,9 +64,9 @@ Navigation.NavigateTo("summary",
     <DemoFigure Number="2" Title="The same tabs, relative to the page" Url="demo/relative-nav/orders/12047"
                 Label=".NET 11: RelativeToCurrentUri" Side="after">
         <Caption>
-            <b>Summary</b> is underlined. Click <b>Lines</b>: the order's lines show, at
-            <code>/demo/relative-nav/orders/12047/lines</code>. Click <b>← Orders</b> and open another order: the
-            same tabs now point to that one.
+            <b>Summary</b> is underlined. Click <b>Lines</b>. The order's lines show, and the address ends in
+            <code>/orders/12047/lines</code>. Click <b>← Orders</b> and open another order. The same tabs work
+            for that one too.
         </Caption>
     </DemoFigure>
 

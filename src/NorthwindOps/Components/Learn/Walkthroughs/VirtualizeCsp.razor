@@ -26,9 +26,7 @@
     <DemoFigure Number="1" Title="The order list, replayed from .NET 10" Url="demo/virtualize-csp/orders/net10"
                 Label=".NET 10 · recorded" Side="before">
         <Caption>
-            Scroll the list to the end. It stops at <b>Order #19</b>, not #1000, with no error on screen. Open
-            DevTools → Console to see why: "Applying inline style violates the following Content Security Policy
-            directive".
+            Scroll the list. It says 1,000 orders, but it stops at <b>Order #19</b>. No error on screen.
         </Caption>
     </DemoFigure>
 
@@ -70,8 +68,8 @@
     <DemoFigure Number="2" Title="An order list on .NET 11, same policy" Url="demo/virtualize-csp/orders"
                 Label=".NET 11 · live">
         <Caption>
-            Scroll to the end: you reach the oldest order. The policy is on, and the list still works. You can
-            tell it's on because the dashed line above the list stays grey: its inline red style is blocked.
+            Scroll the list. It goes all the way to the oldest order. The policy is on here too: the line above
+            the list asks to be red, and it stays grey because the policy blocks it.
         </Caption>
     </DemoFigure>
 

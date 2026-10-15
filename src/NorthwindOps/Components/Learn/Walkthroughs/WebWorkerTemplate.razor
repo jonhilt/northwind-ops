@@ -18,17 +18,16 @@
         in the browser, and lists the top five products.
     </p>
     <p>
-        A clock on the page ticks ten times a second. Each run shows how long it took, and how many ticks the clock
-        managed. Fig. 1 runs the work on the page's UI thread, the way a .NET 10 app would. It behaves the same on
+        A clock on the page ticks ten times a second, and each run says how long it took. Fig. 1 runs the work on the page's UI thread, the way a .NET 10 app would. It behaves the same on
         .NET 10 and .NET 11.
     </p>
 
     <DemoFigure Number="1" Title="The report on the UI thread" Url="demo/web-worker/order-lines/net10"
                 Label="No worker: on the UI thread" Side="before">
         <Caption>
-            When it says <b>Ready</b>, press <b>Total on the UI thread</b>. The clock freezes until the results appear,
-            and it ticked <b>0</b> times. While it runs, every clock on the page stops. Then
-            press <b>Total, pausing every 1,000 lines</b>: the clock keeps ticking, but the run takes longer.
+            When it says <b>Ready</b>, click <b>Total on the UI thread</b>. The clock freezes until the top five
+            appear. Then click <b>Total, pausing every 1,000 lines</b>: the clock keeps ticking, but the run takes
+            longer.
         </Caption>
     </DemoFigure>
 
@@ -82,9 +81,9 @@ var json = await worker.<span class="hl">InvokeAsync&lt;string&gt;</span>(
     <DemoFigure Number="2" Title="The same report, in a Web Worker" Url="demo/web-worker/order-lines"
                 Label=".NET 11 template: in a Web Worker">
         <Caption>
-            When it says <b>Ready</b>, press <b>Total in a Web Worker</b>. You get the same top five, the clock never
-            misses a tick, and the run takes about as long as Fig. 1's first one. Press <b>Call a misspelled
-            method</b> to see a typo (<code>TotalOrderLine</code>) fail at run time with "Method not found".
+            When it says <b>Ready</b>, click <b>Total in a Web Worker</b>. The clock keeps ticking, and you get the
+            same top five about as fast as Fig. 1's first run. Click <b>Call a misspelled method</b> to see a typo
+            (<code>TotalOrderLine</code>) fail with "Method not found".
         </Caption>
     </DemoFigure>
 
@@ -113,8 +112,8 @@ var json = await worker.<span class="hl">InvokeAsync&lt;string&gt;</span>(
 
     <h2><small>The .NET 10 way</small>Pause, offload, or write the worker yourself</h2>
     <p>
-        This isn't a .NET 10 bug. On the UI thread the run took 7.9 s. The clock ticked 0 of about 79 times,
-        and the page didn't redraw once. You had three ways out:
+        This isn't a .NET 10 bug. In one run on the UI thread, the total took 7.9 s. The clock didn't
+        move and the page didn't redraw once. You had three ways out:
     </p>
     <div class="fig">
         <span class="fig-title">Three .NET 10 workarounds, and what they cost</span>
@@ -122,7 +121,7 @@ var json = await worker.<span class="hl">InvokeAsync&lt;string&gt;</span>(
             <div class="box">
                 <pre class="snip">if (++lines % 1000 == 0)
     <span class="hl">await Task.Delay(1);</span></pre>
-                <span class="why">Fig. 1's second button: every tick counted (92 of 92), but 9.2 s instead of 7.9 s</span>
+                <span class="why">Fig. 1's second button: the clock kept ticking, but 9.2 s instead of 7.9 s</span>
                 <div class="verdict bad">✗ about 17% slower, and every heavy loop needs its own pauses</div>
             </div>
             <div class="box">

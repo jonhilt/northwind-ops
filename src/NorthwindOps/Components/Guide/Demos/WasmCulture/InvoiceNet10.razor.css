@@ -1,4 +1,3 @@
 .moments { font-size: 13px; }
 .moments tbody th { font-weight: 600; text-align: left; }
 .flipped td, .miss { color: var(--bad); font-weight: 600; }
-.note { margin: 0; font-size: 13px; color: var(--muted); }

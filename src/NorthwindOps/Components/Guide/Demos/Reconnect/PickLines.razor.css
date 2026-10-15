@@ -3,5 +3,3 @@
 .picks .bin { font-family: var(--mono); font-size: 13px; color: var(--muted); }
 .picks td button { margin: 0; padding: 4px 14px; font-size: 13px; }
 .picks .done { color: var(--ok); font-weight: 600; font-size: 13px; }
-
-.count { margin: 10px 0 0; font-weight: 600; }

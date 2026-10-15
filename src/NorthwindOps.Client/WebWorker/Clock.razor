@@ -1,6 +1,6 @@
 @*
     A clock that ticks ten times a second on the browser's UI thread.
-    While that thread is busy, it stops. Ticks counts how many times it has ticked.
+    While that thread is busy, it stops.
 *@
 @implements IDisposable
 
@@ -12,8 +12,6 @@
     DateTime? now;
     Timer? timer;
 
-    public int Ticks { get; private set; }
-
     protected override void OnAfterRender(bool firstRender)
     {
         if (firstRender) timer = new(_ => InvokeAsync(Tick), null, 0, 100);
@@ -22,7 +20,6 @@
     void Tick()
     {
         now = DateTime.Now;
-        Ticks++;
         StateHasChanged();
     }
 

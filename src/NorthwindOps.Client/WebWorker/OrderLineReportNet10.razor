@@ -3,18 +3,17 @@
 @using NorthwindOps.Worker
 @inject NavigationManager Navigation
 
-<Clock @ref="clock" />
+<Clock />
 <button disabled="@busy" @onclick="OnUiThread">Total on the UI thread</button>
 <button disabled="@busy" @onclick="WithPauses">Total, pausing every 1,000 lines</button>
 <p role="status">@status</p>
-<ReportRuns Runs="runs" />
+<TopProducts Totals="totals" />
 
 @code {
-    Clock clock = default!;
     bool busy = true;
     string status = "Downloading the order lines…";
     byte[] csv = [];
-    List<ReportRun> runs = [];
+    OrderLineTotals? totals;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -52,9 +51,8 @@
     {
         (busy, status) = (true, $"{how}…");
         await Task.Delay(50); // let that show before the work starts
-        var (ticks, timer) = (clock.Ticks, Stopwatch.StartNew());
-        var totals = JsonSerializer.Deserialize<OrderLineTotals>(await total())!;
-        runs.Add(new(how, timer.Elapsed, clock.Ticks - ticks, totals));
-        (busy, status) = (false, "Ready.");
+        var timer = Stopwatch.StartNew();
+        totals = JsonSerializer.Deserialize<OrderLineTotals>(await total())!;
+        (busy, status) = (false, $"{how}: done in {timer.Elapsed.TotalSeconds:0.0} s.");
     }
 }

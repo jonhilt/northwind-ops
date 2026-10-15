@@ -27,12 +27,12 @@
         <Caption>
             <p>
                 <b>Try 1: save quickly.</b> Type any company, type <code>EXOT-01</code> as the <b>Supplier code</b>,
-                and click <b>Save supplier</b> within a second. Save goes ahead, and only the database stops the
-                duplicate: a red banner shows its error. "Already used" turns up under the field a moment later.
+                and click <b>Save supplier</b> straight away. Save goes ahead. A red banner shows the database
+                refusing the duplicate. "Already used" turns up under the field a moment later, too late.
             </p>
             <p>
-                <b>Try 2: change it quickly.</b> Press <b>Start over</b>. Type <code>EXOT-01</code> and press Tab.
-                Within a second, change it to <code>ZZZZ-99</code> and press Tab. Wait two seconds: "already used"
+                <b>Try 2: change it quickly.</b> Press <b>Start over</b>. Type <code>EXOT-01</code> and press Tab,
+                then straight away change it to <code>ZZZZ-99</code> and press Tab. A moment later "already used"
                 appears under <code>ZZZZ-99</code>, a code nobody has. It's the answer meant for <code>EXOT-01</code>.
             </p>
         </Caption>
@@ -102,13 +102,13 @@ public string? Code { get; set; }
         <Caption>
             <p>
                 <b>Try 1 again.</b> Type a company and <code>EXOT-01</code>, then click <b>Save supplier</b> straight
-                away. The button greys out and says <b>Checking…</b> for about a second and a half. Then the field says
-                "Supplier code is already used by another supplier." Nothing saves.
+                away. The button greys out and says <b>Checking…</b>. Then the field says the code is already used,
+                and nothing saves.
             </p>
             <p>
-                <b>Try 2 again.</b> Press <b>Start over</b>, type <code>EXOT-01</code> and Tab, then quickly change it
-                to <code>ZZZZ-99</code> and Tab. "Checking…" shows, then clears with no message: the newer edit
-                cancelled the old check.
+                <b>Try 2 again.</b> Press <b>Start over</b>. Type <code>EXOT-01</code> and press Tab, then straight
+                away change it to <code>ZZZZ-99</code> and press Tab. "Checking…" shows, then clears with no message:
+                the newer edit cancelled the old check.
             </p>
         </Caption>
     </DemoFigure>

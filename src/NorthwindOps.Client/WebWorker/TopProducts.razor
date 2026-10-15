@@ -1,0 +1,13 @@
+@using NorthwindOps.Worker
+
+@* The top five products from the last run. *@
+<ol class="top">
+    @foreach (var p in Totals?.TopProducts ?? [])
+    {
+        <li>@p.Product <b>$@p.Revenue.ToString("N0")</b></li>
+    }
+</ol>
+
+@code {
+    [Parameter] public OrderLineTotals? Totals { get; set; }
+}

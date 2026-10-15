@@ -5,7 +5,7 @@
 
 @if (added is not null)
 {
-    <div class="flash" role="status" data-saved>✓ @added saved. Suppliers using @savedCode now: <b>@owners</b></div>
+    <div class="flash" role="status" data-saved>✓ @added saved.</div>
 }
 
 <h1>New supplier</h1>
@@ -34,7 +34,7 @@
 @code {
     readonly NewSupplierForm Input = new();
     EditContext form = default!;
-    string? added, savedCode, owners;
+    string? added;
 
     protected override void OnInitialized()
     {
@@ -54,7 +54,5 @@
         db.Add(new Supplier { Company = Input.Company!, Code = Input.Code });
         await db.SaveChangesAsync();
         added = $"{Input.Company} ({Input.Code})";
-        (savedCode, owners) = (Input.Code, string.Join(", ", await db.Set<Supplier>()
-            .Where(s => s.Code == Input.Code).Select(s => s.Company).ToListAsync()));
     }
 }

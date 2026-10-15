@@ -44,7 +44,7 @@ public partial class CacheviewDemoTests(AppFactory app) : IClassFixture<AppFacto
 
     static int Queries(string html) => int.Parse(QueriesRun().Match(html).Groups[1].Value);
 
-    [GeneratedRegex("report queries run <b data-queries[^>]*>(\\d+)</b>")]
+    [GeneratedRegex("data-queries[^>]*>(\\d+)</span>")]
     private static partial Regex QueriesRun();
 
     [GeneratedRegex("Figures calculated at <b[^>]*>[0-9:]+</b>")]

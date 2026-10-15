@@ -21,8 +21,6 @@ public partial class BrowserOptionsDemoTests(AppFactory app) : IClassFixture<App
         // Its own page, so this app's App.razor (which starts Blazor automatically) isn't in it.
         Assert.Single(Regex.Matches(html, "_framework/blazor.web.js"));
         Assert.Contains("data-demo-body", html);
-        Assert.Contains("data-sent", html);
-        Assert.Contains("data-gaps", html);
         // Its two ways are full page loads: Blazor.start() runs once per page.
         Assert.Contains("data-enhance-nav=\"false\"", html);
 
@@ -50,8 +48,6 @@ public partial class BrowserOptionsDemoTests(AppFactory app) : IClassFixture<App
         Assert.Contains("\"reconnectionMaxRetries\":20", json);
         Assert.Contains("\"reconnectionRetryIntervalMilliseconds\":2000", json);
         Assert.DoesNotContain("Blazor.start", html);
-        Assert.Contains("data-sent", html);
-        Assert.Contains("data-gaps", html);
     }
 
     [GeneratedRegex("'nonce-([^']+)'")]

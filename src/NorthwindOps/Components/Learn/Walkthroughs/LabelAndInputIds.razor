@@ -21,22 +21,18 @@
         The form labels its fields in two common .NET 10 ways. <b>Company name</b> uses an <code>id</code> typed by hand
         on both the label and the input, with a typo: <code>supplier-<b>compnay</b></code> on the label,
         <code>supplier-company</code> on the input. <b>Email</b> wraps its input, and its label text is typed by hand.
-        A panel under the form shows which label is linked to each input, and what has focus.
     </p>
 
     <DemoFigure Number="1" Title="The form, labelled by hand" Url="demo/labels/suppliers/new/net10"
                 Label=".NET 10: ids and names typed by hand" Side="before">
         <Caption>
-            The panel starts with two red rows: the Company label points at an id that doesn't exist, and the input
-            has no label. Now try two things. First, click <b>Company name</b>: nothing gets focus. Then press
-            <b>Save supplier</b> with the form empty. The email label says <b>Email</b>, but its message says
-            "Contact email", and the panel's Email row turns red.
+            Click the words <b>Company name</b>. Nothing happens: the cursor doesn't go into the field. Now press
+            <b>Save supplier</b> with the form empty. The label says <b>Email</b>, but its message says
+            "Contact email".
         </Caption>
     </DemoFigure>
     <p>
-        Clicking the <b>Email</b> label works, because the label wraps its input. The panel's Email row shows
-        <code>id="Input_Email"</code> in italics: .NET 10 wouldn't render that id, it's there only because this
-        demo runs on .NET 11.
+        Clicking the <b>Email</b> label does put the cursor in its field, because the label wraps its input.
     </p>
 
     <h2><small>The problem</small>Every label is typed twice</h2>
@@ -76,9 +72,8 @@
     <DemoFigure Number="2" Title="The same form, with Label For" Url="demo/labels/suppliers/new"
                 Label=".NET 11: Label For">
         <Caption>
-            Click <b>Company name</b>. The cursor lands in the field, and the panel shows the label and input both
-            using <code>Input_Company</code>. Press <b>Save supplier</b> with the form empty: the label and the
-            message both say "Contact email".
+            Click the words <b>Company name</b>. The cursor goes into the field. Press <b>Save supplier</b> with the
+            form empty: the label and the message both say "Contact email".
         </Caption>
     </DemoFigure>
 

@@ -3,9 +3,6 @@
 @inject IDbContextFactory<NorthwindDb> DbFactory
 
 @* .NET 10, hidden fields: both steps share one URL, and the draft lives in the page. *@
-<p class="kept">
-    In session: <b>nothing</b> · Hidden fields in the page: <b>@(draft?.Count ?? 0)</b>
-</p>
 @if (sent is not null)
 {
     <div class="flash" role="status">✓ Sent to the supplier: @sent</div>
@@ -42,6 +39,15 @@ else
         }
         <button type="submit">Send to supplier</button>
     </form>
+    @* Not part of the workaround: the same form with one hidden field edited, as anyone could in DevTools. *@
+    <form method="post" @formname="restock-send-edited" @onsubmit="Send" data-enhance class="edited">
+        <AntiforgeryToken />
+        @foreach (var (id, packs) in draft)
+        {
+            <input type="hidden" name="EditedDraft[@id]" value="@(id == draft.Keys.First() ? 9999 : packs)" />
+        }
+        <button type="submit">Send with one hidden field edited to 9999</button>
+    </form>
     @* A link is a fresh GET: nothing is posted, so the draft is lost. So is a refresh. *@
     <p><a href="demo/session/restock/net10">← Change quantities</a></p>
 }
@@ -60,12 +66,16 @@ else
     public Dictionary<int, int>? Draft { get; set; }
     // /xray:supply-parameter-from-session
 
+    // Not part of the workaround: what the "edited" button posts.
+    [SupplyParameterFromForm(FormName = "restock-send-edited")]
+    public Dictionary<int, int>? EditedDraft { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         await using var db = await DbFactory.CreateDbContextAsync();
         products = await db.Products.Where(p => !p.Discontinued)
             .OrderBy(p => p.UnitsInStock).ThenBy(p => p.Id).Take(4).ToListAsync();
-        draft = Draft; // on Send, step 2 renders again, or its form isn't found (a 400)
+        draft = Draft ?? EditedDraft; // on Send, step 2 renders again, or its form isn't found (a 400)
     }
 
     void Review() => draft = products.Where(p => Packs?.GetValueOrDefault(p.Id) > 0)

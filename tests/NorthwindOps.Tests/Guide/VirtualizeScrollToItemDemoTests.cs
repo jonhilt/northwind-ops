@@ -14,7 +14,6 @@ public partial class VirtualizeScrollToItemDemoTests(AppFactory app) : IClassFix
         Assert.Empty(MessageNumber().Matches(html));
         Assert.Contains("data-asked=\"300\"", html);
         Assert.Contains("IncidentNet10.razor", html); // the scrollToOffset script
-        Assert.Contains("data-thread-readout", html);
     }
 
     [Fact]
@@ -26,7 +25,6 @@ public partial class VirtualizeScrollToItemDemoTests(AppFactory app) : IClassFix
         Assert.Contains(300, numbers);
         Assert.DoesNotContain(1, numbers);
         Assert.InRange(numbers.Count, 1, 60); // still virtualized: a window, not the whole thread
-        Assert.Contains("data-thread-readout", html);
     }
 
     [Fact]

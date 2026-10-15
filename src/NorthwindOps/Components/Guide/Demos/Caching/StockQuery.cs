@@ -19,10 +19,10 @@ public static class StockQuery
     }
 }
 
-/// <summary>What each demo page counts: visitors served, and how many report queries they ran.</summary>
+/// <summary>What each demo page counts: how many report queries it has run.</summary>
 public sealed class ReportTally
 {
     public static readonly ReportTally Net10 = new(), Net11 = new();
 
-    public int Visitors, Queries;
+    public int Queries;
 }

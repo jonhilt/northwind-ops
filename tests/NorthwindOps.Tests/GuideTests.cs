@@ -251,10 +251,9 @@ public partial class GuideTests(AppFactory app) : IClassFixture<AppFactory>
         Assert.Contains("1.234,56", before);
         Assert.Contains("1,234.56", before);
 
-        // The live invoice persists what the server rendered, for WebAssembly to show beside its own values.
+        // The live invoice prerenders in the request's culture, for WebAssembly to carry on in.
         var after = WebUtility.HtmlDecode(await client.GetStringAsync("/demo/wasm-culture/invoice?culture=de-DE"));
-        Assert.Contains("Server, now", after);
-        Assert.Matches("<td[^>]*>de-DE</td>", after);
+        Assert.Matches("Formatting in <b[^>]*>de-DE</b>", after);
     }
 
     [Fact]
@@ -267,8 +266,6 @@ public partial class GuideTests(AppFactory app) : IClassFixture<AppFactory>
 
         Assert.Equal(8, Regex.Matches(before, "<button type=\"button\" class=\"open\"").Count);
         Assert.DoesNotContain("class=\"open\"", after);
-        Assert.Contains("data-tally", before);
-        Assert.Contains("data-tally", after);
     }
 
     [Fact]

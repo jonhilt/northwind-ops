@@ -16,23 +16,21 @@
 
     <p>
         Below is an <i>Orders</i> page with a bell at the top. The bell runs in the browser and asks the server for
-        order updates every 3 seconds. It shows how many times it has checked, since when, and how many updates it
-        found. The <i>Customers</i> page has no bell.
+        order updates every 3 seconds, and counts the new ones it finds. The <i>Customers</i> page has no bell.
     </p>
     <p>
         This first bell runs its own timer. When you leave the page, the timer goes with it. That's normal for a
         component, and it's why you'd move the checking into a service. But in .NET 10, a service registered with
         <code>AddHostedService</code> never ran. Fig. 1 shows both. At the top is the live bell. Below it is a table
-        recorded from a .NET 10 app, counting how often each version checked.
+        recorded from a real .NET 10 app, because this app runs .NET 11 and can't show it live.
     </p>
 
     <DemoFigure Number="1" Title="A bell that polls by itself" Url="demo/hosted-services/orders/net10"
                 Label=".NET 10: the bell polls by itself" Side="before">
         <Caption>
-            Wait about ten seconds until the bell says <b>checked the server 3×</b>. Click <b>Customers</b>, wait, then
-            click <b>Orders</b>: the bell starts counting again from zero, with a new <b>since</b> time. Now look at
-            the recorded table. Its <b>AddHostedService</b> row stayed at <b>0</b> the whole time, with no error. That's
-            the line Fig. 2 uses.
+            Watch the bell count new updates for a few seconds. Click <b>Customers</b>, then <b>Orders</b>: the bell
+            is back at <b>0</b>. The table under it is the recording. Its <b>AddHostedService</b> row, the line Fig. 2
+            uses, stayed at <b>0</b>: on .NET 10 that service never ran, and nothing said so.
         </Caption>
     </DemoFigure>
 
@@ -75,8 +73,8 @@ builder.Services.AddSingleton&lt;OrderWatcher&gt;();
     <DemoFigure Number="2" Title="The same pages, with a hosted watcher" Url="demo/hosted-services/orders"
                 Label=".NET 11: AddHostedService">
         <Caption>
-            Wait until the bell says <b>checked the server 3×</b>. Click <b>Customers</b>, wait, then click
-            <b>Orders</b>. The <b>since</b> time is the same and the count kept going while you were away.
+            Watch the bell count new updates for a few seconds. Click <b>Customers</b>, then <b>Orders</b>: the count
+            didn't reset. It kept going while you were away.
         </Caption>
     </DemoFigure>
 

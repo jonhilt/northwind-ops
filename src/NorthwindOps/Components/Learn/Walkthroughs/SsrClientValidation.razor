@@ -25,8 +25,9 @@
     <DemoFigure Number="1" Title="A static form, checked on the server" Url="demo/client-validation/suppliers/new/net10"
                 Label=".NET 10: checked on the server" Side="before">
         <Caption>
-            Type <code>sales@@</code> into <b>Email</b> and press Tab: nothing happens. Leave <b>Company</b> empty and
-            press <b>Save supplier</b>. <b>Posts to the server</b> goes to 1, and both errors come back with the page.
+            Type <code>sales@@</code> into <b>Email</b> and press Tab: nothing happens. Press <b>Save supplier</b>.
+            Both errors come back from the server, and <b>Posts to the server</b> goes to 1. The page doesn't flash,
+            so that count is the only sign the form made a trip.
         </Caption>
     </DemoFigure>
 
@@ -70,8 +71,8 @@
                 Label=".NET 11: checked in the browser">
         <Caption>
             Type <code>sales@@</code> into <b>Email</b> and press Tab: an error appears at once. Press
-            <b>Save supplier</b> with <b>Company</b> empty: both fields are flagged, and <b>Posts to the server</b>
-            stays at 0. Fix both and save: one post, the one that adds the supplier.
+            <b>Save supplier</b>: both fields are flagged, and <b>Posts to the server</b> stays at 0. The browser
+            stopped the post.
         </Caption>
     </DemoFigure>
 

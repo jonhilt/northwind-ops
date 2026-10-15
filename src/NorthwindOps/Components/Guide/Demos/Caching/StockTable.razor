@@ -8,7 +8,7 @@
         }
     </tbody>
 </table>
-<p class="stamp">Figures calculated at <b>@CalculatedAt.ToString("HH:mm:ss")</b></p>
+<p class="stamp" data-calculated="@CalculatedAt.ToString("o")">Figures calculated at <b>@CalculatedAt.ToString("HH:mm:ss")</b></p>
 
 @code {
     [Parameter] public List<CategoryStock> Rows { get; set; } = [];

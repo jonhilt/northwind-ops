@@ -24,7 +24,6 @@ public partial class TempdataSsrDemoTests(AppFactory app) : IClassFixture<AppFac
         {
             var list = await client.GetStringAsync($"/demo/tempdata/orders/net10?saved={newest}");
             Assert.Contains($"Order {newest} saved", list);
-            Assert.Contains($"the address, /demo/tempdata/orders/net10?saved={newest}", list);
         }
 
         // And the flag says whatever the link says: the list offers one to try.
@@ -40,14 +39,14 @@ public partial class TempdataSsrDemoTests(AppFactory app) : IClassFixture<AppFac
         var newest = OrderLink().Match(await client.GetStringAsync("/demo/tempdata/orders")).Groups[1].Value;
         var save = await SaveAsync(client, $"/demo/tempdata/orders/{newest}", "From the .NET 11 side");
         Assert.EndsWith("/demo/tempdata/orders", save.Headers.Location!.ToString());
+        Assert.Contains(save.Headers.GetValues("Set-Cookie"), // encrypted, not "Order … saved"
+            c => c.StartsWith(".AspNetCore.Components.TempData=CfDJ8", StringComparison.Ordinal));
 
         var list = await client.GetStringAsync("/demo/tempdata/orders");
         Assert.Contains($"Order {newest} saved", list);
-        Assert.Contains("Carried by: an encrypted TempData cookie, CfDJ8", list); // encrypted, not "Order … saved"
 
         var refreshed = await client.GetStringAsync("/demo/tempdata/orders");
         Assert.DoesNotContain($"Order {newest} saved", refreshed);
-        Assert.Contains("Carried by: no TempData cookie", refreshed);
     }
 
     static async Task<HttpResponseMessage> SaveAsync(HttpClient client, string url, string note)

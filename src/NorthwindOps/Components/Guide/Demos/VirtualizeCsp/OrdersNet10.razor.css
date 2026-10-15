@@ -2,4 +2,3 @@
 .list { height: 400px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; }
 .row { height: 40px; line-height: 40px; padding: 0 14px; border-bottom: 1px solid var(--line); box-sizing: border-box; }
 .count { margin: 0 0 10px; color: var(--muted); }
-.measured { margin: 0; font-size: 13px; font-weight: 600; color: var(--bad); }

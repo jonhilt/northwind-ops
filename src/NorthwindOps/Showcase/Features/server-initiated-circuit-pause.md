@@ -14,7 +14,7 @@ summary: Server code can now ask a browser to pause its circuit. The browser sav
 1. Open the new order demo at `/demo/server-pause/new-order`, or step through it in the Field Guide.
 2. Pick a customer and a product, and change the quantity.
 3. Press **Pause this tab from the server**. Server code calls `RequestCircuitPauseAsync` on this tab's circuit. The browser saves the draft and closes the circuit, and the reconnect dialog says the session has been paused by the server. Other visitors' circuits aren't touched.
-4. Press **Resume**. The panel shows a new circuit id, and the order is still filled in.
+4. Press **Resume**. The order is still filled in, and a line above it says the server got `true` back in a few milliseconds.
 
 ## The .NET 10 way
 
@@ -49,4 +49,4 @@ Gotchas:
 - **Draining a server.** Keep the open circuits in a singleton (add in `OnCircuitOpenedAsync`, remove in `OnCircuitClosedAsync`), and when `IHostApplicationLifetime.ApplicationStopping` fires, call `RequestCircuitPauseAsync` on each one and wait a few seconds for the browsers to save before the host shuts down.
 - **The state lives in the browser.** It's encrypted with Data Protection, so the server that resumes it needs the same keys. Persist your key ring (to a shared folder, Redis, Azure Blob Storage and so on) if a restart or another server should be able to read it.
 - **Only persisted state survives.** Fields that aren't `[PersistentState]` start again, and `OnInitializedAsync` runs again on the new circuit.
-- **The demo pauses only your tab.** Its button calls `RequestCircuitPauseAsync` on the circuit of the tab that pressed it. The panel's "this server" line counts every circuit on the server, as a drain would see them.
+- **The demo pauses only your tab.** Its button calls `RequestCircuitPauseAsync` on the circuit of the tab that pressed it.

@@ -21,9 +21,9 @@ public partial class WebWorkerTemplateDemoTests(AppFactory app) : IClassFixture<
 
         Assert.Equal(["Total on the UI thread", "Total, pausing every 1,000 lines"], Buttons(before));
         Assert.Equal(["Total in a Web Worker", "Call a misspelled method"], Buttons(after));
-        // Both sides count the clock's ticks against each run.
-        Assert.Contains("data-runs", before);
-        Assert.Contains("data-runs", after);
+        // Both sides show the clock that stops while the UI thread is busy.
+        Assert.Contains("Clock on the UI thread", before);
+        Assert.Contains("Clock on the UI thread", after);
     }
 
     [Fact]

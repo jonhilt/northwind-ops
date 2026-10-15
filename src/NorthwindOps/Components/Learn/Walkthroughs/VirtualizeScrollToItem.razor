@@ -19,15 +19,15 @@
     </p>
     <p>
         This is the .NET 10 way: guess each message's height, work out a pixel position, and scroll there with a bit
-        of JavaScript. Message #300 is yellow. The readout under the list says where it ended up.
+        of JavaScript. Message #300 is yellow.
     </p>
 
     <DemoFigure Number="1" Title="The thread, scrolled to an offset" Url="demo/scroll-to-item/incident/net10?message=300"
                 Label=".NET 10: scroll to an offset" Side="before">
         <Caption>
-            It has already missed: #300's header is above the box, out of sight. Press <b>⟳</b> to reload and watch
-            it sit at #1, then jump. Then type <code>35</code> into <b>Jump to message #</b> and press <b>Go</b>: it
-            lands a few messages past #35.
+            It has already missed. Only the yellow end of #300 shows at the top. Its header is above the box, out
+            of sight. Type <code>35</code> into <b>Jump to message #</b> and press <b>Go</b>: it lands a few messages
+            past #35.
         </Caption>
     </DemoFigure>
 
@@ -73,9 +73,8 @@
     <DemoFigure Number="2" Title="The same thread, with InitialItemIndex" Url="demo/scroll-to-item/incident?message=300"
                 Label=".NET 11: InitialItemIndex">
         <Caption>
-            Press <b>⟳</b>: #300 is at the top, yellow, straight away. Type <code>35</code> into
-            <b>Jump to message #</b> and press <b>Go</b>: #35 is at the top. <b>On the page</b> shows about 30 of
-            420 messages, so it's still virtualized.
+            #300 is at the top, yellow, from the start. Type <code>35</code> into <b>Jump to message #</b> and
+            press <b>Go</b>: #35 is at the top.
         </Caption>
     </DemoFigure>
 

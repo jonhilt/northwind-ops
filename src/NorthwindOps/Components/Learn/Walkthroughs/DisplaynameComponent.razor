@@ -19,17 +19,15 @@
         model names each field with <code>[Display]</code>, in English and German.
     </p>
     <p>
-        The grid's headers are done the .NET 10 way: two have a typed <code>Title</code>, and one has none. Above
-        the grid, a dashed <b>Guide readout</b> lists the model's current names, so you can compare. It isn't part of
-        the technique.
+        The grid's headers are done the .NET 10 way: two have a typed <code>Title</code>, and one has none. The
+        model calls that third field <b>Main contact</b>, or <b>Hauptansprechpartner</b> in German.
     </p>
 
     <DemoFigure Number="1" Title="The grid, with typed headers" Url="demo/displayname/suppliers/net10"
                 Label=".NET 10: headers typed as Title" Side="before">
         <Caption>
-            The third header shows the property name, <b>Contact</b> (the grid prints headers in capitals), but the
-            readout says Main contact. Click
-            <b>Deutsch</b> at the top of the frame. The readout switches to German, but every header stays English.
+            The third header shows the property name, <b>Contact</b>, not the model's Main contact. (The grid prints
+            headers in capitals.) Click <b>Deutsch</b> at the top of the frame. Every header stays in English.
         </Caption>
     </DemoFigure>
 
@@ -46,7 +44,7 @@ SupplierForm.Contact  <span class="dim">[Display] Main contact / Hauptansprechpa
     </div>
     <p>
         The model's <code>[Display]</code> names use <code>ResourceType</code> (see Fig. 4), so they come out in
-        the current request's language, and the readout switches to German. A typed <code>Title</code> is fixed text. If you rename or translate a field on the model, the grid
+        the current request's language. A typed <code>Title</code> is fixed text. If you rename or translate a field on the model, the grid
         keeps the old words. Leave <code>Title</code> out and QuickGrid shows the raw property name.
     </p>
 
@@ -97,8 +95,8 @@ SupplierForm.Contact  <span class="dim">[Display] Main contact / Hauptansprechpa
     <DemoFigure Number="2" Title="The same grid, with DisplayName" Url="demo/displayname/suppliers"
                 Label=".NET 11: DisplayName">
         <Caption>
-            The third header now says <b>Main contact</b>, matching the readout. Click <b>Deutsch</b> at the top of
-            the frame: the headers switch to German too. The German comes from the model's resource file, not the grid.
+            The third header now says <b>Main contact</b>, the model's name. Click <b>Deutsch</b> at the top of
+            the frame: the headers switch to German. The German comes from the model's resource file, not the grid.
         </Caption>
     </DemoFigure>
 
@@ -107,14 +105,13 @@ SupplierForm.Contact  <span class="dim">[Display] Main contact / Hauptansprechpa
     <CodeFigure Number="3" Path="Components/Guide/Demos/DisplayNames/Suppliers.razor" Feature="displayname-component">
         <Caption>
             Fig. 2's grid. Each header points at <code>SupplierForm</code>, the form's model, not the grid's row type.
-            <code>&lt;FormLabels /&gt;</code> is the Guide readout, not part of the technique.
         </Caption>
     </CodeFigure>
 
     <CodeFigure Number="4" Path="Components/Guide/Demos/DisplayNames/SupplierForm.cs" Feature="displayname-component">
         <Caption>
             Not new: the model, where each name is set once. <code>ResourceType</code> makes each name a key that's
-            looked up in the request's language. The readouts in both figures use it too.
+            looked up in the request's language.
         </Caption>
     </CodeFigure>
 

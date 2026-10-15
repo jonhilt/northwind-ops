@@ -20,15 +20,16 @@
         page was built. <b>Figures calculated at</b> shows when the report last ran.
     </p>
     <p>
-        The <b>Five visitors at once</b> button sends five requests at the same moment, like a busy morning. Then it
-        reloads and shows how many report queries those five ran.
+        The <b>Five visitors at once</b> button waits for the cached figures to expire, then sends five requests at
+        the same moment, like a busy morning. The queries run on the server, where you can't see them, so it then
+        shows how many those five ran.
     </p>
 
     <DemoFigure Number="1" Title="The report caches its own data" Url="demo/cacheview/stock/net10"
                 Label=".NET 10: IMemoryCache in the component" Side="before">
         <Caption>
-            Press <b>⟳</b> a few times. <b>Figures calculated at</b> stays put, so the cache works. Now wait until <b>Figures calculated at</b>
-            is over 10 seconds old and press <b>Five visitors at once</b>. You'll see <b>5 visitors, 5 queries ran</b>.
+            Press <b>Five visitors at once</b>. You'll see <b>5 visitors, 5 queries ran</b>: every visitor ran the
+            slow report.
         </Caption>
     </DemoFigure>
 
@@ -69,8 +70,8 @@ visitor 5  GetOrCreateAsync("stock-report")  <span class="err">miss → runs the
     <DemoFigure Number="2" Title="The same page, with CacheView" Url="demo/cacheview/stock"
                 Label=".NET 11: CacheView">
         <Caption>
-            Press <b>⟳</b> a few times. It looks the same as Fig. 1. Now wait until <b>Figures calculated at</b> is
-            over 10 seconds old and press <b>Five visitors at once</b>. You'll see <b>5 visitors, 1 query ran</b>.
+            Press <b>Five visitors at once</b>. You'll see <b>5 visitors, 1 query ran</b>: the other four waited for
+            it.
         </Caption>
     </DemoFigure>
 

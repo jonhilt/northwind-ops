@@ -33,9 +33,8 @@
     <DemoFigure Number="1" Title="The list on .NET 10" Url="demo/env-config/orders/net10"
                 Label=".NET 10 · recorded" Side="before">
         <Caption>
-            This is a recording, not a live run. The <b>Variable</b> column shows that the server's
-            value, <b>demo/env-config/api/orders</b>, arrived. But <b>Config[key]</b> still gave the staging URL, so the list
-            failed to load. The grey note is the .NET 10 workaround, covered below.
+            A recording, not a live run. The list called the staging URL and failed to load. The table shows why: the
+            server's value arrived (<b>Variable</b>), but <b>Config[key]</b> still gave the file's staging URL.
         </Caption>
     </DemoFigure>
 
@@ -83,10 +82,9 @@ apiUrl = Config["Orders:ApiUrl"];</pre>
     <DemoFigure Number="2" Title="The same list on .NET 11" Url="demo/env-config/orders"
                 Label=".NET 11 · live">
         <Caption>
-            Wait for <b>Running on WebAssembly</b>. <b>Config[key]</b> now shows the server's value, and the orders
-            load. <code>Orders:PageSize</code> has no variable, so it still comes from the file. Then click
-            <b>Build's own settings</b>, which stops the server sending the variable. The app falls back to the
-            staging URL, and the list fails to load, as it did on .NET 10.
+            It calls the server's address, <b>demo/env-config/api/orders</b>, and the orders load. Click <b>Build's own
+            settings</b> to stop the server sending the variable: the app falls back to the staging URL and the list
+            fails, as it did on .NET 10.
         </Caption>
     </DemoFigure>
 

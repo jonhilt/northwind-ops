@@ -1,1 +1,2 @@
 .languages { display: flex; gap: 12px; margin-bottom: 10px; font-size: 13px; }
+.languages .on { font-weight: 700; text-decoration: none; color: inherit; }

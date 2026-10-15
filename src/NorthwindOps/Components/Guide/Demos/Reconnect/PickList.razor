@@ -12,14 +12,12 @@
 <p class="rejoin">
     Rejoin attempt <b id="components-reconnect-current-attempt"></b>
     of <b id="components-reconnect-max-retries"></b>
-    <RetryGaps />
 </p>
 
 @* The page is static. Only the pick list runs on the server, over a connection. *@
 <PickLines @rendermode="InteractiveServer" />
 
 <WifiDropout />
-<SentToBrowser />
 
 @code {
     // xray:browser-options

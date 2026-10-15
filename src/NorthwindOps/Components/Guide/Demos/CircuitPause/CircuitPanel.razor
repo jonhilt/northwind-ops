@@ -1,42 +1,30 @@
-@* The pause demos' status panel: this tab's circuit, and how many circuits this server holds. *@
-@implements IDisposable
+@* The pause demos' one-line status. A tab that resumes looks just like one that never paused,
+   so this says when it did. And a server request that never gets an answer can't be seen
+   from the page, so this says what became of it. Nothing shows until there's something to say. *@
 @inject CircuitTracker Tracker
 @inject CircuitBoard Board
 @inject PersistentComponentState State
+@implements IDisposable
 
-<dl class="circuit-panel">
-    <dt>This tab</dt>
-    <dd>
-        Circuit <code>@CircuitId?[..6]</code>
-        @if (Resumes == 0)
+@if (request is not null)
+{
+    <p class="circuit-panel" data-request="@(request.Answer ?? "waiting")">
+        @if (request.Answer is null)
         {
-            <span class="muted">&nbsp;· not paused yet</span>
+            <span class="stuck">The server asked this tab to pause @Since(request.At) ago, and is still waiting for an answer.</span>
         }
         else
         {
-            <span class="resumed" data-resumes="@Resumes">
-                &nbsp;· paused for @(pausedFor?.TotalSeconds.ToString("0 s") ?? "a while"),
-                then resumed on a new circuit@(Resumes > 1 ? $" ({Resumes} times)" : "")
-            </span>
+            <span>The server asked this tab to pause, and got <code>@request.Answer</code> back in @request.After!.Value.TotalMilliseconds.ToString("0") ms.</span>
         }
-    </dd>
-    @if (request is not null)
-    {
-        <dt>The server's request</dt>
-        <dd data-request="@(request.Answer ?? "waiting")">
-            @if (request.Answer is null)
-            {
-                <span class="stuck">asked @Since(request.At) ago, and still waiting for an answer</span>
-            }
-            else
-            {
-                <span>answered <code>@request.Answer</code> in @request.After!.Value.TotalMilliseconds.ToString("0") ms</span>
-            }
-        </dd>
-    }
-    <dt>This server</dt>
-    <dd>@Count(Board.Open, "circuit") open · @Count(Board.Paused, "tab") paused</dd>
-</dl>
+    </p>
+}
+else if (Resumes > 0)
+{
+    <p class="circuit-panel resumed" data-resumes="@Resumes">
+        This tab was paused for @(pausedFor?.TotalSeconds.ToString("0 s") ?? "a while"), then resumed.
+    </p>
+}
 
 @code {
     // Saved when the circuit pauses, so the resumed tab knows it was here before.
@@ -62,24 +50,9 @@
             if (CircuitId is not null) Board.Pausing(CircuitId);
             return Task.CompletedTask;
         }, RenderMode.InteractiveServer);
-        Board.Changed += Refresh;
     }
 
     static string Since(DateTimeOffset at) => $"{(DateTimeOffset.UtcNow - at).TotalSeconds:0} s";
 
-    static string Count(int n, string noun) => $"{n} {noun}{(n == 1 ? "" : "s")}";
-
-    // Raised from other circuits' threads. If this circuit has gone, there's nothing to redraw,
-    // and an exception escaping an async void method would stop the whole server.
-    async void Refresh()
-    {
-        try { await InvokeAsync(StateHasChanged); }
-        catch { }
-    }
-
-    public void Dispose()
-    {
-        persisting.Dispose();
-        Board.Changed -= Refresh;
-    }
+    public void Dispose() => persisting.Dispose();
 }

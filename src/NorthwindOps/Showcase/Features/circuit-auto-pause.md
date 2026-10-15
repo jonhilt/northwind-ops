@@ -13,7 +13,7 @@ summary: A new opt-in package pauses an Interactive Server circuit once its tab 
 
 1. Open the stock take in the Field Guide: it runs the .NET 10 way (`/demo/auto-pause/stock-take/net10`, your own pause script) beside AutoPause (`/demo/auto-pause/stock-take`). Both pause a tab once it's been hidden for 10 seconds.
 2. Press **+** on a few products on each side, press **Post count** on each, and at once switch to another browser tab for about 30 seconds. The warehouse takes 20 seconds to take a count.
-3. Back again, both panels say the tab was paused, then resumed on a new circuit, and the counts are still there.
+3. Back again, both say the tab was paused, then resumed, and the counts are still there.
 4. The .NET 10 side paused in the middle of the post. The post still finished on the server, so the warehouse has the count, but the tab says **Not posted**. AutoPause waited for the post, then paused: it says **Posted at** a time.
 
 ## The .NET 10 way

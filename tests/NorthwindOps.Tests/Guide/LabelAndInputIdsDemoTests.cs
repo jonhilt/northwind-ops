@@ -20,13 +20,6 @@ public partial class LabelAndInputIdsDemoTests(AppFactory app) : IClassFixture<A
         Assert.Matches(Tag("input", "id=\"Input_Company\""), after);
         Assert.Matches(Tag("label", "for=\"Input_Email\""), after);
         Assert.Matches(Tag("input", "id=\"Input_Email\""), after);
-
-        // Both sides carry the panel that reads the rendered labels.
-        Assert.Contains("data-label-readout", before);
-        Assert.Contains("data-label-readout", after);
-        // Only the .NET 10 side flags the ids .NET 10 didn't render.
-        Assert.Contains("data-net10=\"true\"", before);
-        Assert.DoesNotContain("data-net10", after);
     }
 
     [Theory]

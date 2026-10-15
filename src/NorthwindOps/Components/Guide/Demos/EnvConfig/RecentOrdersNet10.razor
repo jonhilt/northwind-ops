@@ -17,11 +17,5 @@
         <tr><th>Orders:ApiUrl</th><td>https://staging-api.northwind.test/orders</td>
             <td>demo/env-config/api/orders</td>
             <td class="miss"><b>https://staging-api.northwind.test/orders</b></td></tr>
-        <tr><th>Orders:PageSize</th><td>5</td><td>none</td><td><b>5</b></td></tr>
     </table>
-
-    @* .NET 10's own fix: one line in the client, plus a package. *@
-    <p class="note">Configuration providers: <code>JsonStreamConfigurationProvider</code> only.
-        With <code>AddEnvironmentVariables()</code> and its package added, and the same script,
-        <code>Config["Orders:ApiUrl"]</code> was <b>demo/env-config/api/orders</b>.</p>
 </Net10Recording>

@@ -5,18 +5,17 @@
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 
-<Clock @ref="clock" />
+<Clock />
 <button disabled="@busy" @onclick="Total">Total in a Web Worker</button>
 <button disabled="@busy" @onclick="Misspelled">Call a misspelled method</button>
 <p role="status">@status</p>
-<ReportRuns Runs="runs" />
+<TopProducts Totals="totals" />
 
 @code {
-    Clock clock = default!;
     bool busy = true;
     string status = "Downloading the order lines…";
     byte[] csv = [];
-    List<ReportRun> runs = [];
+    OrderLineTotals? totals;
     WebWorkerClient? worker;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -37,16 +36,15 @@
     {
         (busy, status) = (true, "Totalling in the worker…");
         await Task.Delay(50); // let that show before the work starts
-        var (ticks, timer) = (clock.Ticks, Stopwatch.StartNew());
+        var timer = Stopwatch.StartNew();
         // xray:web-worker-template
         // New in .NET 11: call the method by its full name. The template's client numbers
         // the call, copies the bytes over and awaits the reply; this thread stays free.
         var json = await worker!.InvokeAsync<string>(
             "NorthwindOps.Worker.WorkerMethods.TotalOrderLines", [csv]);
         // /xray:web-worker-template
-        var totals = JsonSerializer.Deserialize<OrderLineTotals>(json)!;
-        runs.Add(new("In a Web Worker", timer.Elapsed, clock.Ticks - ticks, totals));
-        (busy, status) = (false, "Ready.");
+        totals = JsonSerializer.Deserialize<OrderLineTotals>(json)!;
+        (busy, status) = (false, $"In a Web Worker: done in {timer.Elapsed.TotalSeconds:0.0} s.");
     }
 
     async Task Misspelled()

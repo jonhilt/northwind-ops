@@ -20,4 +20,3 @@
 .sources td { overflow-wrap: anywhere; }
 .sources thead th { color: var(--ink-soft); font-weight: 600; }
 .miss { color: var(--bad); }
-.note { font-size: 13px; color: var(--muted); }

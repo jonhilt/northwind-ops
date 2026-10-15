@@ -4,12 +4,11 @@
 
 @* Deutsch adds ?culture=de-DE, which request localization reads (see Program.cs) *@
 <nav class="languages">
-    <a href="demo/displayname/suppliers">English</a>
-    <a href="demo/displayname/suppliers?culture=de-DE">Deutsch</a>
+    <a href="demo/displayname/suppliers" class="@(german ? null : "on")">English</a>
+    <a href="demo/displayname/suppliers?culture=de-DE" class="@(german ? "on" : null)">Deutsch</a>
 </nav>
 
 <h1>Suppliers</h1>
-<FormLabels />
 
 <div class="grid">
 <QuickGrid Items="suppliers">
@@ -29,6 +28,9 @@
 </div>
 
 @code {
+    // Marks the language picked, so you can see German is on even where the headers stay English.
+    static bool german => System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "de";
+
     // xray:displayname-component
     // Left null on purpose: DisplayName reads which property () => form.Code names,
     // and never calls the lambda, so nothing dereferences form.

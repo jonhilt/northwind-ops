@@ -3,7 +3,6 @@
 @inject IDbContextFactory<NorthwindDb> DbFactory
 @inject NavigationManager Navigation
 
-<SessionStrip />
 <h1>Restock · 2. Review</h1>
 
 @if (Sent)
@@ -52,7 +51,7 @@ else
         // New in .NET 11: null removes the key from session.
         Draft = null;
         // /xray:supply-parameter-from-session
-        // A real app saves the order too. Then a fresh GET, so the strip is current.
+        // A real app saves the order too. Then a fresh GET, so a refresh doesn't send it again.
         Navigation.NavigateTo("demo/session/restock/review?sent=true");
     }
 }

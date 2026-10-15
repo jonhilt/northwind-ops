@@ -1,9 +1,7 @@
 @using NorthwindOps.Features.Support
 @inject SupportDesk Desk
 
-@* Every click on the grid is counted, so you can compare it with the tickets it opened. *@
-<p class="tally" data-tally>Clicks on the grid: <b>@clicks</b> · Tickets opened: <b>@opened</b></p>
-<div class="tickets" @onclick="() => clicks++">
+<div class="tickets">
     @* .NET 10: no row events, so a button in every row. Only the button opens a ticket. *@
     <QuickGrid Items="tickets" RowClass="Highlight">
         <PropertyColumn Title="Ticket" Property="t => t.Id" Format="'#'0" />
@@ -34,7 +32,6 @@ else
 @code {
     IQueryable<TicketRow> tickets = Enumerable.Empty<TicketRow>().AsQueryable();
     TicketView? open;
-    int clicks, opened;
 
     protected override async Task OnInitializedAsync()
     {
@@ -46,7 +43,6 @@ else
     async Task OpenAsync(TicketRow row)
     {
         open = await Desk.GetAsync(row.Id);
-        opened++;
     }
 
     // Not new: RowClass marks the open ticket's row, so you can see which one you're reading.

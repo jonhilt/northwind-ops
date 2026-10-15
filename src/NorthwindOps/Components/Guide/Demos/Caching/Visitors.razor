@@ -1,12 +1,10 @@
 @*
-    Demo only: counts this page's visitors and the report queries they ran, and sends five at once.
-    The button is plain HTML, wired up by Visitors.razor.js, so it works on this static page.
+    Demo only: sends five visitors at once, just as the cached figures expire, and shows how many report
+    queries they ran between them. The button is plain HTML, wired up by Visitors.razor.js, so it works
+    on this static page. The query count is hidden: only the burst's result is shown.
 *@
-<div class="visitors">
-    <p data-tally>
-        Since the app started: visitors <b>@Tally.Visitors</b>
-        · report queries run <b data-queries>@Tally.Queries</b>
-    </p>
+<div class="visitors" data-now="@DateTime.Now.ToString("o")">
+    <span hidden data-queries>@Tally.Queries</span>
     <button type="button" data-burst>Five visitors at once</button>
     <span class="status" data-burst-status></span>
 </div>
@@ -14,6 +12,4 @@
 
 @code {
     [Parameter, EditorRequired] public ReportTally Tally { get; set; } = default!;
-
-    protected override void OnInitialized() => Interlocked.Increment(ref Tally.Visitors);
 }

@@ -18,19 +18,11 @@
         every 2.5 seconds. The list is a plain <code>Virtualize</code> (it only renders the rows in view) in a 300px
         box, as in .NET 10.
     </p>
-    <p>
-        Under the list is a readout. Its first line says whether you're at the bottom. Its second line keeps score as
-        messages arrive. If you were at the bottom, <b>At the bottom</b> counts whether the list followed. If you'd
-        scrolled up, <b>Scrolled up</b> counts whether it pulled you down.
-    </p>
-
     <DemoFigure Number="1" Title="The inbox, with a plain Virtualize" Url="demo/anchor-mode/inbox/net10"
                 Label=".NET 10: plain Virtualize" Side="before">
         <Caption>
-            It opens at the top, so the first counts land under <b>Scrolled up</b>. Click in the list and press
-            <b>End</b>. Check the readout says <b>at the bottom</b>. If not, press <b>End</b> again or drag the
-            scrollbar down. Then wait for two or three messages: <b>At the bottom</b> stays at <b>0 followed</b>, and
-            <b>newer out of sight</b> climbs.
+            It opens on the newest message. Just watch for a few seconds: new messages arrive below the box, and the
+            list stays where it is. Scroll down to find them.
         </Caption>
     </DemoFigure>
 
@@ -76,9 +68,8 @@
     <DemoFigure Number="2" Title="The same inbox, anchored to the end" Url="demo/anchor-mode/inbox"
                 Label=".NET 11: AnchorMode.End">
         <Caption>
-            It opens on the newest message. Wait for two or three: <b>At the bottom</b> counts each one as
-            <b>followed</b>. Scroll up even one wheel notch and wait again: <b>Scrolled up</b> says
-            <b>0 pulled you down</b>, and what you're reading stays put. Scroll back to the bottom and it follows again.
+            It opens on the newest message too. Just watch: each new message scrolls into view as it arrives. Scroll up
+            a little and it stops following, so what you're reading stays put. Scroll back down and it follows again.
         </Caption>
     </DemoFigure>
 
@@ -100,7 +91,8 @@
 
     <CodeFigure Number="5" Path="Components/Guide/Demos/AnchorMode/MessageFeedNet10.razor" Feature="virtualize-anchor-mode">
         <Caption>
-            Fig. 1's list: the same messages and the same timer, without <code>AnchorMode</code>.
+            Fig. 1's list: the same messages and the same timer, without <code>AnchorMode</code>. The small script it
+            calls only opens it at the newest message; nothing keeps it there.
         </Caption>
     </CodeFigure>
 

@@ -35,14 +35,4 @@ public partial class DisplaynameComponentDemoTests(AppFactory app) : IClassFixtu
         Assert.Equal(["Lieferantencode", "Firmenname", "Hauptansprechpartner"],
             await HeadersAsync("/demo/displayname/suppliers?culture=de-DE"));
     }
-
-    [Theory]
-    [InlineData("/demo/displayname/suppliers/net10?culture=de-DE")]
-    [InlineData("/demo/displayname/suppliers?culture=de-DE")]
-    public async Task Both_sides_show_the_models_names_above_the_grid(string url)
-    {
-        var html = await app.CreateClient().GetStringAsync(url);
-        Assert.Contains("data-form-labels", html);
-        Assert.Matches("<b[^>]*>Hauptansprechpartner</b>", html);
-    }
 }

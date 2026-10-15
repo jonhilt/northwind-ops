@@ -38,16 +38,6 @@ public partial class RelativeNavigationDemoTests(AppFactory app) : IClassFixture
         Assert.Equal("/demo/relative-nav/orders/12047/summary", response.Headers.Location!.AbsolutePath);
     }
 
-    [Theory]
-    [InlineData("/demo/relative-nav/orders/12047/lines")]
-    [InlineData("/demo/relative-nav/net10/orders/12047/summary")]
-    public async Task Each_side_says_which_address_it_is_at(string url)
-    {
-        var html = await app.CreateClient().GetStringAsync(url);
-
-        Assert.Matches($"You are at <code[^>]*>{Regex.Escape(url)}</code>", html);
-    }
-
     [Fact]
     public async Task The_dotnet10_lines_link_lands_on_a_page_that_is_not_there()
     {
