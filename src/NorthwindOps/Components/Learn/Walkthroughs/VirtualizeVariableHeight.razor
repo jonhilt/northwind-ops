@@ -1,7 +1,13 @@
 @page "/learn/virtualize-variable-height"
 @layout LearnLayout
+@using NorthwindOps.Components.Guide.Demos.VariableHeight
 
 <PageTitle>Lists with items of any height · Field Guide</PageTitle>
+
+<style>
+    .learn .chart-card { background: #fff; padding: 12px; }
+    .learn .chart-card .height-chart { display: block; width: 100%; }
+</style>
 
 <article class="l-article" data-learn>
     <h1 class="l-title">Lists with items of any height</h1>
@@ -27,18 +33,17 @@
 &lt;/div&gt;</pre>
     </div>
     <p>
-        On .NET 10, this list made the scrollbar jump, and expanding a message moved the page. .NET 11 fixed that
-        inside <code>Virtualize</code>, so the old behaviour can't run on this site. Fig. 1 is a video of a small
-        .NET 10 app with this markup. Its thread is a stand-in: 420 messages, one-line <b>sync-bot</b> log entries
-        mixed with long emails from <b>Dana</b>.
+        On .NET 10 this list's scrollbar jumped as you scrolled. .NET 11 fixed that inside <code>Virtualize</code>,
+        so the old behaviour can't run on this site. Instead, we ran a small .NET 10 app with this markup, scrolled
+        it down 400px at a time, and measured the list's total height after each step. The thread has 420
+        messages: one-line log entries mixed with long emails.
     </p>
 
-    <DemoFigure Number="1" Title="The thread on .NET 10, recorded" Url="demo/variable-height/incident/net10"
-                Label=".NET 10 · recorded" Side="before">
+    <DemoFigure Number="1" Title="The list's height while you scroll, on .NET 10" Url="demo/variable-height/incident/net10"
+                Label=".NET 10 · measured" Side="before">
         <Caption>
-            Just watch. The video scrolls down the list, then presses <b>Expand all</b>. The scrollbar jumps, which
-            is hard to see on video. The line under the video gives the measured numbers: while scrolling, the
-            list's height swung by <b>13,191px</b>. Then Expand all pushed the message being read <b>274px</b> down.
+            Nothing is added or removed, so the line should be flat. Instead it zigzags by up to 12,550px. The
+            scrollbar's thumb is sized from that height, so it grows, shrinks and jumps under your finger.
         </Caption>
     </DemoFigure>
 
@@ -50,13 +55,13 @@
     </p>
     <div class="fig">
         <span class="fig-title">How .NET 10 sized the messages you can't see</span>
-        <pre class="snip">in view: mostly log lines    <span class="dim">small average</span>  → range <span class="err">shrinks</span>
-scroll on: a few emails      <span class="dim">large average</span>  → range <span class="err">grows</span>
-scroll on: log lines again   <span class="dim">small average</span>  → range <span class="err">shrinks</span></pre>
+        <pre class="snip">in view: mostly log lines    <span class="dim">small average</span>  → list height <span class="err">shrinks</span>
+scroll on: a few emails      <span class="dim">large average</span>  → list height <span class="err">grows</span>
+scroll on: log lines again   <span class="dim">small average</span>  → list height <span class="err">shrinks</span></pre>
     </div>
     <p>
-        So every time you scrolled to a different mix, the whole list changed size. That's the jumping scrollbar in
-        Fig. 1. Sometimes the list even jumped back up while you scrolled down.
+        So every time you scrolled to a different mix, the whole list changed size. That's the zigzag in Fig. 1.
+        Sometimes the list even jumped back up while you scrolled down.
     </p>
     <p>
         .NET 10 also set <code>overflow-anchor: none</code> on the scrolling box. That turns off the browser's
@@ -68,20 +73,32 @@ scroll on: log lines again   <span class="dim">small average</span>  → range <
         There's no new API. Keep the markup above: a scrolling box with a height, and messages at their natural
         size. <code>ItemSize</code> is now just a first guess.
         .NET 11 averages every item it has measured so far, so the size settles down. It also leaves the browser's
-        "keep my place" feature on, so what you're reading stays put. Here's the list live, on this site's real support thread.
+        "keep my place" feature on, so what you're reading stays put. Here's the same app, built for .NET 11 and
+        measured the same way:
     </p>
 
-    <DemoFigure Number="2" Title="The list, live on .NET 11" Url="demo/variable-height/incident"
+    <figure class="fig">
+        <figcaption class="fig-title">Fig. 2 · The list's height while you scroll, on .NET 11</figcaption>
+        <div class="chart-card"><HeightChart Heights="Measured.Net11" Colour="#1a7f37" /></div>
+        <p class="fig-cap">
+            Same axes as Fig. 1. The height creeps up a little as .NET 11 measures more messages, then settles. The
+            scrollbar stays put.
+        </p>
+    </figure>
+
+    <p>And here's the list live, on this site's real support thread.</p>
+
+    <DemoFigure Number="3" Title="The list, live on .NET 11" Url="demo/variable-height/incident"
                 Label=".NET 11 · live">
         <Caption>
-            Scroll the list down and back up. The numbers under it measure the same thing as Fig. 1: the
-            height barely moves. Then, part way down, press <b>Expand all</b>. The message at the top stays where it is.
+            Scroll the list down and back up. The <b>Scroll range</b> under it is the list's height, as in Figs. 1
+            and 2: it barely moves. Then, part way down, press <b>Expand all</b>. The message at the top stays where it is.
         </Caption>
     </DemoFigure>
 
-    <p>Both figures use the same <code>Virtualize</code> markup. Here's Fig. 2's page in full:</p>
+    <p>All three use the same <code>Virtualize</code> markup. Here's Fig. 3's page in full:</p>
 
-    <CodeFigure Number="3" Path="Components/Guide/Demos/VariableHeight/IncidentThread.razor" Feature="virtualize-variable-height">
+    <CodeFigure Number="4" Path="Components/Guide/Demos/VariableHeight/IncidentThread.razor" Feature="virtualize-variable-height">
         <Caption>
             The highlighted <code>Virtualize</code> line is where this happens, but you don't change it. It's the
             same as in .NET 10. What changed is how .NET 11 measures items and keeps your place.
@@ -116,8 +133,8 @@ scroll on: log lines again   <span class="dim">small average</span>  → range <
 
     <h2><small>.NET 11</small>It measures, and keeps your place</h2>
     <p>
-        On .NET 11 the scrollbar stays steady as you scroll, and the list doesn't jump back. Expanding messages
-        above you moves what you're reading by about 1px. That's what Fig. 2 shows.
+        On .NET 11 the scrollbar stays steady as you scroll (Fig. 2), and expanding messages above you leaves what
+        you're reading in place. Try it in Fig. 3.
     </p>
     <p>
         If you used fixed heights, drop the fixed-height box, its <code>overflow: hidden</code> and the dialog. Let

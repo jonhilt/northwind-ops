@@ -1,2 +1,3 @@
-video { width: 100%; border: 1px solid var(--line); border-radius: 10px; }
+.chart-title { margin: 6px 0 0; font-size: 13px; font-weight: 600; }
+::deep .height-chart { display: block; width: 100%; max-width: 640px; }
 .measured { margin: 0; font-size: 13px; color: var(--bad); }

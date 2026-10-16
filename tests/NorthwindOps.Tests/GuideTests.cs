@@ -228,14 +228,16 @@ public partial class GuideTests(AppFactory app) : IClassFixture<AppFactory>
     }
 
     [Fact]
-    public async Task Variable_height_demo_plays_the_dotnet10_recording_beside_a_live_readout()
+    public async Task Variable_height_demo_charts_the_dotnet10_heights_beside_a_live_readout()
     {
         var client = app.CreateClient();
 
+        // The .NET 10 side charts the measured heights: one point a scroll step, swinging 12,550px.
         var before = await client.GetStringAsync("/demo/variable-height/incident/net10");
-        var video = Regex.Match(before, "<video src=\"([^\"]+)\"").Groups[1].Value;
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/" + video)).StatusCode);
-        Assert.Contains("13,191px", before);
+        var points = Regex.Match(before, "<polyline points=\"([^\"]+)\"").Groups[1].Value.Split(' ');
+        Assert.Equal(41, points.Length);
+        Assert.Contains("33,057px", before);
+        Assert.Contains("45,607px", before);
 
         var after = await client.GetStringAsync("/demo/variable-height/incident");
         Assert.Contains("data-scroll-readout", after);

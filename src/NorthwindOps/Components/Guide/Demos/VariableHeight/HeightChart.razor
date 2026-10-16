@@ -1,0 +1,30 @@
+@using System.Globalization
+@* The list's full height (scrollHeight) after each 400px scroll step, as measured by
+   tools/guide-shots/probes/virtualize-variable-height-series.mjs. Every chart uses the same axes, so a
+   steady list draws a near-flat line and a jumpy one draws a zigzag. *@
+<svg class="height-chart" viewBox="0 0 640 250" role="img"
+     aria-label="@($"List height over {Heights.Length - 1} scroll steps: from {Heights.Min():N0} to {Heights.Max():N0} pixels")">
+    @foreach (var px in new[] { 34_000, 38_000, 42_000, 46_000 })
+    {
+        <g>
+            <line x1="@Left" x2="@Right" y1="@Y(px)" y2="@Y(px)" stroke="#ddd" />
+            <text x="@(Left - 8)" y="@Y(px)" dy="4" text-anchor="end" font-size="12" fill="#777">@($"{px:N0}px")</text>
+        </g>
+    }
+    <polyline points="@Points" fill="none" stroke="@Colour" stroke-width="2.5" stroke-linejoin="round" />
+    <text x="@Left" y="242" font-size="12" fill="#777">top of the thread</text>
+    <text x="@Right" y="242" font-size="12" fill="#777" text-anchor="end">@($"{(Heights.Length - 1) * 400:N0}px down")</text>
+</svg>
+
+@code {
+    // The list's height at the top, then after each scroll step.
+    [Parameter, EditorRequired] public int[] Heights { get; set; } = [];
+    [Parameter] public string Colour { get; set; } = "#b42318";
+
+    const int Left = 70, Right = 630, Top = 10, Bottom = 220, Low = 32_000, High = 46_000;
+
+    static string Y(int px) => (Bottom - (double)(px - Low) / (High - Low) * (Bottom - Top)).ToString("0.#", CultureInfo.InvariantCulture);
+
+    string Points => string.Join(" ", Heights.Select((px, i) =>
+        $"{(Left + (double)i / (Heights.Length - 1) * (Right - Left)).ToString("0.#", CultureInfo.InvariantCulture)},{Y(px)}"));
+}
