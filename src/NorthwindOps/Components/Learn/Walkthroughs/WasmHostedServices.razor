@@ -15,48 +15,31 @@
 
     <p>
         Say you have a watcher that asks the server for order updates every 3 seconds, and a bell on the
-        <i>Orders</i> page that shows what it found. Here is the same app on both versions:
+        <i>Orders</i> page that shows what it found. Here's that app on .NET 10, with the watcher registered with
+        <code>AddHostedService</code>:
     </p>
 
     <figure class="fig anim" data-anim>
-        <figcaption class="fig-title">Fig. 1 · The same app starts on .NET 10 and on .NET 11</figcaption>
-        <button type="button" class="fig-replay" data-replay hidden>replay ↻</button>
-        <div class="lanes">
-            <div class="lane">
-                <div class="lane-h bad">.NET 10</div>
-                <ol class="steps">
-                    <li style="--d:0.3s">AddHostedService(watcher) <span class="done" style="--d:0.6s">✓ compiles</span></li>
-                    <li style="--d:1.2s">start the watcher <span class="wait" style="--d:1.5s">… nothing happens</span></li>
-                    <li style="--d:2.4s">show the page <span class="done" style="--d:2.7s">✓</span></li>
-                    <li class="never" style="--d:3.6s">check for updates every 3 s</li>
-                </ol>
-                <div class="tabs">
-                    <div class="tab paused" style="--d:4.2s"><b>Orders</b><span class="was">bell</span><span class="now">bell: 0</span></div>
-                    <div class="tab paused" style="--d:4.8s"><b>Customers</b><span class="was">…</span><span class="now">not checking</span></div>
-                    <div class="tab paused" style="--d:5.4s"><b>Orders again</b><span class="was">bell</span><span class="now">bell: 0</span></div>
-                </div>
-                <div class="verdict bad" style="--d:6s">✗ the watcher never runs. No error, no warning.</div>
+        <figcaption class="fig-title">Fig. 1 · .NET 10: the app starts, and you visit three pages</figcaption>
+        <button type="button" class="fig-replay" data-replay hidden>▶ Play</button>
+        <div class="lane">
+            <div class="lane-h bad">.NET 10</div>
+            <ol class="steps">
+                <li>AddHostedService(watcher) <span class="done" style="--d:0.6s">✓ compiles</span></li>
+                <li>start the watcher <span class="wait" style="--d:1.5s">… nothing happens</span></li>
+                <li>show the page <span class="done" style="--d:2.7s">✓</span></li>
+                <li class="never" style="--d:3.6s">check for updates every 3 s</li>
+            </ol>
+            <div class="tabs">
+                <div class="tab paused" style="--d:4.2s"><b>Orders</b><span class="was">bell</span><span class="now">bell: 0</span></div>
+                <div class="tab paused" style="--d:4.8s"><b>Customers</b><span class="was">…</span><span class="now">not checking</span></div>
+                <div class="tab paused" style="--d:5.4s"><b>Orders again</b><span class="was">bell</span><span class="now">bell: 0</span></div>
             </div>
-            <div class="lane">
-                <div class="lane-h ok">.NET 11</div>
-                <ol class="steps">
-                    <li style="--d:0.3s">AddHostedService(watcher) <span class="done" style="--d:0.6s">✓ compiles</span></li>
-                    <li style="--d:1.2s">start the watcher <span class="done" style="--d:1.5s">✓ started</span></li>
-                    <li style="--d:2.4s">show the page <span class="done" style="--d:2.7s">✓</span></li>
-                    <li style="--d:3.6s">check for updates every 3 s <span class="done" style="--d:3.9s">✓ running</span></li>
-                </ol>
-                <div class="tabs">
-                    <div class="tab" style="--d:4.2s"><b>Orders</b><span>bell counts up</span></div>
-                    <div class="tab" style="--d:4.8s"><b>Customers</b><span>still checking</span></div>
-                    <div class="tab" style="--d:5.4s"><b>Orders again</b><span>count carried on</span></div>
-                </div>
-                <div class="verdict ok" style="--d:6s">✓ the app starts the watcher before the first page.</div>
-            </div>
+            <div class="verdict bad" style="--d:6s">✗ the watcher never runs. No error, no warning.</div>
         </div>
         <p class="fig-cap">
-            Same code on both sides. On .NET 10 the line compiles (once you add the hosting package) and then does
-            nothing, so the bell sits at 0. On .NET 11 the watcher starts with the app and keeps going while you
-            change pages.
+            The line compiles (once you add the hosting package), then does nothing. The app never starts the watcher,
+            so the bell sits at 0 on every page.
         </p>
     </figure>
 
@@ -109,7 +92,30 @@ builder.Services.AddSingleton&lt;OrderWatcher&gt;();
         and the bells would listen to the other, which never checks.
     </p>
 
-    <DemoFigure Number="3" Title="The same pages, with a hosted watcher" Url="demo/hosted-services/orders"
+    <figure class="fig anim" data-anim>
+        <figcaption class="fig-title">Fig. 3 · .NET 11: the same app, the same three pages</figcaption>
+        <button type="button" class="fig-replay" data-replay hidden>▶ Play</button>
+        <div class="lane">
+            <div class="lane-h ok">.NET 11</div>
+            <ol class="steps">
+                <li>AddHostedService(watcher) <span class="done" style="--d:0.6s">✓ compiles</span></li>
+                <li>start the watcher <span class="done" style="--d:1.5s">✓ started</span></li>
+                <li>show the page <span class="done" style="--d:2.7s">✓</span></li>
+                <li>check for updates every 3 s <span class="done" style="--d:3.9s">✓ running</span></li>
+            </ol>
+            <div class="tabs">
+                <div class="tab" style="--d:4.2s"><b>Orders</b><span>bell counts up</span></div>
+                <div class="tab" style="--d:4.8s"><b>Customers</b><span>still checking</span></div>
+                <div class="tab" style="--d:5.4s"><b>Orders again</b><span>count carried on</span></div>
+            </div>
+            <div class="verdict ok" style="--d:6s">✓ the app starts the watcher before the first page.</div>
+        </div>
+        <p class="fig-cap">
+            Same code. This time the watcher starts with the app and keeps checking while you change pages.
+        </p>
+    </figure>
+
+    <DemoFigure Number="4" Title="The same pages, with a hosted watcher" Url="demo/hosted-services/orders"
                 Label=".NET 11: AddHostedService">
         <Caption>
             Wait for the bell to count some updates. Click <b>Customers</b>, then <b>Orders</b>: the count didn't
@@ -119,25 +125,25 @@ builder.Services.AddSingleton&lt;OrderWatcher&gt;();
 
     <p>Here's the code:</p>
 
-    <CodeFigure Number="4" Path="Client/Program.cs" Feature="wasm-hosted-services">
+    <CodeFigure Number="5" Path="Client/Program.cs" Feature="wasm-hosted-services">
         <Caption>The registration: one watcher, started by the app.</Caption>
     </CodeFigure>
 
-    <CodeFigure Number="5" Path="Client/HostedServices/OrderWatcher.cs" Feature="wasm-hosted-services">
+    <CodeFigure Number="6" Path="Client/HostedServices/OrderWatcher.cs" Feature="wasm-hosted-services">
         <Caption>
             A normal <code>BackgroundService</code>, the same kind you'd use on a server. It checks every 3 seconds
             until the tab closes.
         </Caption>
     </CodeFigure>
 
-    <CodeFigure Number="6" Path="Client/HostedServices/OrderBell.razor" Feature="wasm-hosted-services">
+    <CodeFigure Number="7" Path="Client/HostedServices/OrderBell.razor" Feature="wasm-hosted-services">
         <Caption>
-            The bell from Fig. 3. It only listens, so it can come and go without stopping the checks. Nothing here is
+            The bell from Fig. 4. It only listens, so it can come and go without stopping the checks. Nothing here is
             new. The highlights show what replaced the timer.
         </Caption>
     </CodeFigure>
 
-    <CodeFigure Number="7" Path="Client/HostedServices/PollingBell.razor" Feature="wasm-hosted-services">
+    <CodeFigure Number="8" Path="Client/HostedServices/PollingBell.razor" Feature="wasm-hosted-services">
         <Caption>
             For comparison, the bell from Fig. 2. Its timer starts with the bell, and <code>Dispose</code> stops it.
         </Caption>

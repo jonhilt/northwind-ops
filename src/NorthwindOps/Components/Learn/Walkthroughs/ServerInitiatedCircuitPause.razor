@@ -20,43 +20,26 @@
     </p>
 
     <figure class="fig anim" data-anim>
-        <figcaption class="fig-title">Fig. 1 · A deploy asks three tabs to pause</figcaption>
-        <button type="button" class="fig-replay" data-replay hidden>replay ↻</button>
-        <div class="lanes">
-            <div class="lane">
-                <div class="lane-h bad">.NET 10 · ask through JS interop</div>
-                <ol class="steps">
-                    <li style="--d:0.3s">ask tab 1 <span class="wait" style="--d:1.2s">… waiting for a reply</span></li>
-                    <li class="never" style="--d:3s">ask tab 2</li>
-                    <li class="never" style="--d:3s">ask tab 3</li>
-                    <li class="never" style="--d:3s">restart the server</li>
-                </ol>
-                <div class="tabs">
-                    <div class="tab paused" style="--d:0.9s"><b>Tab 1</b><span class="was">live</span><span class="now">paused ✓</span></div>
-                    <div class="tab"><b>Tab 2</b><span>live</span></div>
-                    <div class="tab"><b>Tab 3</b><span>live</span></div>
-                </div>
-                <div class="verdict bad" style="--d:3.6s">✗ stuck on tab 1, forever. The restart never runs.</div>
+        <figcaption class="fig-title">Fig. 1 · .NET 10: a deploy script asks three tabs to pause</figcaption>
+        <button type="button" class="fig-replay" data-replay hidden>▶ Play</button>
+        <div class="lane">
+            <div class="lane-h bad">.NET 10 · ask through JS interop</div>
+            <ol class="steps">
+                <li>ask tab 1 <span class="wait" style="--d:1.2s">… waiting for a reply</span></li>
+                <li class="never" style="--d:3s">ask tab 2</li>
+                <li class="never" style="--d:3s">ask tab 3</li>
+                <li class="never" style="--d:3s">restart the server</li>
+            </ol>
+            <div class="tabs">
+                <div class="tab paused" style="--d:0.9s"><b>Tab 1</b><span class="was">live</span><span class="now">paused ✓</span></div>
+                <div class="tab"><b>Tab 2</b><span>live</span></div>
+                <div class="tab"><b>Tab 3</b><span>live</span></div>
             </div>
-            <div class="lane">
-                <div class="lane-h ok">.NET 11 · RequestCircuitPauseAsync()</div>
-                <ol class="steps">
-                    <li style="--d:0.3s">ask tab 1 <span class="done" style="--d:0.6s">✓ asked</span></li>
-                    <li style="--d:1.2s">ask tab 2 <span class="done" style="--d:1.5s">✓ asked</span></li>
-                    <li style="--d:2.1s">ask tab 3 <span class="done" style="--d:2.4s">✓ asked</span></li>
-                    <li style="--d:3s">restart the server <span class="done" style="--d:3.3s">✓</span></li>
-                </ol>
-                <div class="tabs">
-                    <div class="tab paused" style="--d:0.9s"><b>Tab 1</b><span class="was">live</span><span class="now">paused ✓</span></div>
-                    <div class="tab paused" style="--d:1.8s"><b>Tab 2</b><span class="was">live</span><span class="now">paused ✓</span></div>
-                    <div class="tab paused" style="--d:2.7s"><b>Tab 3</b><span class="was">live</span><span class="now">paused ✓</span></div>
-                </div>
-                <div class="verdict ok" style="--d:3.6s">✓ every tab asked, and the server restarts.</div>
-            </div>
+            <div class="verdict bad" style="--d:3.6s">✗ stuck on tab 1, forever. The restart never runs.</div>
         </div>
         <p class="fig-cap">
-            Pausing works the same on both: a paused tab saves its form and picks up again later. The difference is what the
-            script hears back. On .NET 10 no reply comes, so the script never gets past the first tab.
+            Tab 1 pauses and saves its form, so the pause itself works. But the script is still waiting for tab 1 to
+            reply, and no reply ever comes. It never gets to tab 2.
         </p>
     </figure>
 
@@ -98,12 +81,36 @@ public override Task OnCircuitOpenedAsync(Circuit circuit, CancellationToken can
         couldn't ask: the circuit had closed, hadn't finished starting, or had lost its connection.
     </p>
 
+    <figure class="fig anim" data-anim>
+        <figcaption class="fig-title">Fig. 2 · .NET 11: the same deploy script, asking through the Circuit</figcaption>
+        <button type="button" class="fig-replay" data-replay hidden>▶ Play</button>
+        <div class="lane">
+            <div class="lane-h ok">.NET 11 · RequestCircuitPauseAsync()</div>
+            <ol class="steps">
+                <li>ask tab 1 <span class="done" style="--d:0.6s">✓ asked</span></li>
+                <li>ask tab 2 <span class="done" style="--d:1.5s">✓ asked</span></li>
+                <li>ask tab 3 <span class="done" style="--d:2.4s">✓ asked</span></li>
+                <li>restart the server <span class="done" style="--d:3.3s">✓</span></li>
+            </ol>
+            <div class="tabs">
+                <div class="tab paused" style="--d:0.9s"><b>Tab 1</b><span class="was">live</span><span class="now">paused ✓</span></div>
+                <div class="tab paused" style="--d:1.8s"><b>Tab 2</b><span class="was">live</span><span class="now">paused ✓</span></div>
+                <div class="tab paused" style="--d:2.7s"><b>Tab 3</b><span class="was">live</span><span class="now">paused ✓</span></div>
+            </div>
+            <div class="verdict ok" style="--d:3.6s">✓ every tab asked, and the server restarts.</div>
+        </div>
+        <p class="fig-cap">
+            Each call returns as soon as the request goes out, so the script moves straight on to the next tab. Every
+            tab saves its form, and the restart runs.
+        </p>
+    </figure>
+
     <p>
         Here is the real code: an order form we paused both ways. One parameter picks how it asks for the
         pause: the .NET 10 way or the .NET 11 way.
     </p>
 
-    <CodeFigure Number="2" Path="Components/Guide/Demos/CircuitPause/OrderDraft.razor" Feature="server-initiated-circuit-pause">
+    <CodeFigure Number="3" Path="Components/Guide/Demos/CircuitPause/OrderDraft.razor" Feature="server-initiated-circuit-pause">
         <Caption>
             Three blocks are highlighted, and only the last is the fix. The <code>[PersistentState]</code> properties
             are what the tab saves when it pauses. They work as they did in .NET 10. The <code>ViaJavaScript</code>
@@ -112,7 +119,7 @@ public override Task OnCircuitOpenedAsync(Circuit circuit, CancellationToken can
         </Caption>
     </CodeFigure>
 
-    <CodeFigure Number="3" Path="Components/Guide/Demos/CircuitPause/CircuitTracker.cs" Feature="server-initiated-circuit-pause">
+    <CodeFigure Number="4" Path="Components/Guide/Demos/CircuitPause/CircuitTracker.cs" Feature="server-initiated-circuit-pause">
         <Caption>
             Where the circuit comes from. Nothing highlighted here is new: circuit handlers have always been given
             their <code>Circuit</code>. Each tab gets its own tracker, so it never sees another visitor's tab.
@@ -158,8 +165,8 @@ window.remotePause =
 
     <h2><small>Good to know</small></h2>
     <ul class="gk">
-        <li><b><code>true</code> isn't "paused".</b> It means the request went out, not that the tab has finished saving. To know when it has, watch for the circuit to close, as Fig. 3's <code>OnCircuitClosedAsync</code> does.</li>
-        <li><b>Pausing every tab before a restart?</b> That's the real deploy case. The component in Fig. 2 asks only its own tab, so it never pauses another visitor. To ask every tab, keep a single list of open circuits: add each one in <code>OnCircuitOpenedAsync</code> and remove it in <code>OnCircuitClosedAsync</code>. When the app starts shutting down (<code>IHostApplicationLifetime.ApplicationStopping</code>), call <code>RequestCircuitPauseAsync</code> on each. Then give the browsers a few seconds to save, with a time limit, before the process exits.</li>
+        <li><b><code>true</code> isn't "paused".</b> It means the request went out, not that the tab has finished saving. To know when it has, watch for the circuit to close, as Fig. 4's <code>OnCircuitClosedAsync</code> does.</li>
+        <li><b>Pausing every tab before a restart?</b> That's the real deploy case. The component in Fig. 3 asks only its own tab, so it never pauses another visitor. To ask every tab, keep a single list of open circuits: add each one in <code>OnCircuitOpenedAsync</code> and remove it in <code>OnCircuitClosedAsync</code>. When the app starts shutting down (<code>IHostApplicationLifetime.ApplicationStopping</code>), call <code>RequestCircuitPauseAsync</code> on each. Then give the browsers a few seconds to save, with a time limit, before the process exits.</li>
         <li><b>Keep your Data Protection keys.</b> The paused state waits in the browser, encrypted. The new server needs the same keys to read it.</li>
         <li><b>A page can finish its work first.</b> Before a tab pauses, Blazor runs any <code>onCircuitPausing</code> callback you've registered in the browser.</li>
     </ul>

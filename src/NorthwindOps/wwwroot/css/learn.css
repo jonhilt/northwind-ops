@@ -111,12 +111,12 @@
 .gi-more { columns: 2; padding-left: 20px; font-size: 14px; }
 .gi-app { border-left: 3px solid var(--amber); padding: 6px 14px; color: var(--soft); font-size: 14px; }
 
-/* Animated figures (data-anim): the markup is the last frame. While .playing, each element with a --d
-   delay starts hidden (or live) and arrives at its last frame after that delay. learn.js adds .playing
-   when the figure scrolls into view, and again on replay. */
-.fig-replay { position: absolute; top: -11px; right: 12px; background: var(--bg); border: 0; padding: 0 8px; font: 12px/22px var(--mono); color: var(--soft); cursor: pointer; }
-.fig-replay:hover { color: var(--amber); }
-.lanes { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+/* Animated figures (data-anim): each tells one story. The markup is the last frame. learn.js adds .armed,
+   which holds every element with a --d delay at its first frame (hidden, or still live) until the reader
+   presses Play (.playing); then each arrives at its last frame after its delay, stretched by --pace. */
+.anim { --pace: 1.4; }
+.fig-replay { position: absolute; top: -12px; right: 12px; border: 1px solid var(--amber); background: var(--bg); padding: 0 10px; font: 600 12px/22px var(--mono); color: var(--amber); cursor: pointer; }
+.fig-replay:hover { background: var(--amber); color: var(--bg); }
 .lane { border: 1px solid var(--edge); background: #171614; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
 .lane-h { font-size: 12px; font-weight: 600; padding: 2px 8px; align-self: flex-start; }
 .lane-h.bad { background: var(--bad-bg); color: var(--bad); }
@@ -133,15 +133,16 @@
 .tab .was { opacity: 0; }
 .lane .verdict { margin-top: 0; font-size: 12.5px; }
 
-.anim.playing [style*="--d"] { animation: anim-in 0.4s both; animation-delay: var(--d); }
-.anim.playing .tab.paused { animation: anim-pause 0.4s both; animation-delay: var(--d); }
-.anim.playing .tab.paused .was { animation: anim-out 0.2s both; animation-delay: var(--d); }
-.anim.playing .tab.paused .now { animation: anim-in 0.4s both; animation-delay: var(--d); }
-.anim.playing .steps .never { animation: anim-strike 0.5s both; animation-delay: var(--d); }
-.anim.playing .steps .wait { animation: anim-in 0.4s both, anim-pulse 1.2s ease-in-out var(--d) 3; animation-delay: var(--d), var(--d); }
+.anim.armed [style*="--d"] { animation: anim-in 0.4s both; animation-delay: calc(var(--d) * var(--pace)); }
+.anim.armed .tab.paused { animation: anim-pause 0.4s both; animation-delay: calc(var(--d) * var(--pace)); }
+.anim.armed .tab.paused .was { animation: anim-out 0.2s both; animation-delay: calc(var(--d) * var(--pace)); }
+.anim.armed .tab.paused .now { animation: anim-in 0.4s both; animation-delay: calc(var(--d) * var(--pace)); }
+.anim.armed .steps .never { animation: anim-strike 0.5s both; animation-delay: calc(var(--d) * var(--pace)); }
+.anim.armed .steps .wait { animation: anim-in 0.4s both, anim-pulse 1.2s ease-in-out 0s 3; animation-delay: calc(var(--d) * var(--pace)), calc(var(--d) * var(--pace)); }
 @keyframes anim-in { from { opacity: 0; transform: translateY(4px); } }
 @keyframes anim-out { from { opacity: 1; } to { opacity: 0; } }
 @keyframes anim-pause { from { background: var(--good-bg); color: var(--good); } }
 @keyframes anim-strike { from { color: var(--text); text-decoration-color: transparent; } }
 @keyframes anim-pulse { 50% { opacity: 0.35; } }
-@media (max-width: 900px) { .lanes { grid-template-columns: 1fr; } }
+.anim.armed:not(.playing) * { animation-play-state: paused !important; }
+

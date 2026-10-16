@@ -1,20 +1,14 @@
-// Walkthrough pages: highlights their code, and plays animated figures (data-anim) when they first
-// scroll into view, or from their replay button. Runs on full loads and after enhanced navigation.
+// Walkthrough pages: highlights their code, and wires animated figures (data-anim): each waits on its
+// first frame until the reader presses Play. Runs on full loads and after enhanced navigation.
 // (guide.js wires their live demo frames.)
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-function play(figure) {
-    figure.classList.remove("playing");
+function play(figure, button) {
+    figure.classList.remove("armed", "playing");
     void figure.offsetWidth; // restart the CSS animations
-    figure.classList.add("playing");
+    figure.classList.add("armed", "playing");
+    button.textContent = "↻ Replay";
 }
-
-const seen = new IntersectionObserver(entries => {
-    for (const entry of entries.filter(e => e.isIntersecting)) {
-        seen.unobserve(entry.target);
-        play(entry.target);
-    }
-}, { threshold: 0.5 });
 
 function enhance() {
     const article = document.querySelector("[data-learn]");
@@ -25,8 +19,9 @@ function enhance() {
         figure.dataset.wired = "true";
         const replay = figure.querySelector("[data-replay]");
         replay.hidden = false;
-        replay.addEventListener("click", () => play(figure));
-        seen.observe(figure);
+        replay.textContent = "▶ Play";
+        replay.addEventListener("click", () => play(figure, replay));
+        figure.classList.add("armed");
     }
 }
 

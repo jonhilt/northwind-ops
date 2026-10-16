@@ -25,62 +25,39 @@
     </p>
     <p>
         The catch is when to pause. Here's a stock take. Posting the count to the warehouse takes 20 seconds. The user
-        presses <b>Post count</b>, switches to another tab, and comes back 30 seconds later. Both versions pause after
-        the tab has been hidden for 10 seconds:
+        presses <b>Post count</b>, switches to another tab, and comes back 30 seconds later. In .NET 10 you pause a
+        hidden tab with a script of your own. This one pauses after the tab has been hidden for 10 seconds:
     </p>
 
     <figure class="fig anim" data-anim>
-        <figcaption class="fig-title">Fig. 1 · The user posts the count, then hides the tab for 30 seconds</figcaption>
-        <button type="button" class="fig-replay" data-replay hidden>replay ↻</button>
-        <div class="lanes">
-            <div class="lane">
-                <div class="lane-h bad">.NET 10 · your own pause script</div>
-                <ol class="steps">
-                    <li style="--d:0.3s"><b>0 s</b> Post count pressed, tab hidden</li>
-                    <li style="--d:1.2s"><b>10 s</b> the script pauses the tab <span class="autopause-bad" style="--d:1.5s">saved as "Not posted"</span></li>
-                    <li style="--d:2.1s"><b>20 s</b> the warehouse gets the count <span class="autopause-bad" style="--d:2.4s">but the tab is already paused</span></li>
-                    <li style="--d:3s"><b>30 s</b> tab shown again <span class="autopause-bad" style="--d:3.3s">"Not posted"</span></li>
-                </ol>
-                <div class="tabs">
-                    <div class="tab paused" style="--d:1.2s"><b>Stock take</b><span class="was">posting…</span><span class="now">paused at 10 s</span></div>
-                </div>
-                <div class="verdict bad" style="--d:3.6s">✗ The tab says "Not posted", but the warehouse has the count. The user posts it again.</div>
+        <figcaption class="fig-title">Fig. 1 · .NET 10: the user posts the count, then hides the tab for 30 seconds</figcaption>
+        <button type="button" class="fig-replay" data-replay hidden>▶ Play</button>
+        <div class="lane">
+            <div class="lane-h bad">.NET 10 · your own pause script</div>
+            <ol class="steps">
+                <li style="--d:0.3s"><b>0 s</b> Post count pressed, tab hidden</li>
+                <li style="--d:1.2s"><b>10 s</b> the script pauses the tab <span class="autopause-bad" style="--d:1.5s">saved as "Not posted"</span></li>
+                <li style="--d:2.1s"><b>20 s</b> the warehouse gets the count <span class="autopause-bad" style="--d:2.4s">but the tab is already paused</span></li>
+                <li style="--d:3s"><b>30 s</b> tab shown again <span class="autopause-bad" style="--d:3.3s">"Not posted"</span></li>
+            </ol>
+            <div class="tabs">
+                <div class="tab paused" style="--d:1.2s"><b>Stock take</b><span class="was">posting…</span><span class="now">paused at 10 s</span></div>
             </div>
-            <div class="lane">
-                <div class="lane-h ok">.NET 11 · AutoPause</div>
-                <ol class="steps">
-                    <li style="--d:0.3s"><b>0 s</b> Post count pressed, tab hidden</li>
-                    <li style="--d:1.2s"><b>10 s</b> time to pause, but the post isn't done <span class="wait" style="--d:1.5s">… waits</span></li>
-                    <li style="--d:2.1s"><b>20 s</b> the warehouse gets the count, then the tab pauses <span class="done" style="--d:2.4s">✓ saved as "Posted"</span></li>
-                    <li style="--d:3s"><b>30 s</b> tab shown again <span class="done" style="--d:3.3s">✓ "Posted at …"</span></li>
-                </ol>
-                <div class="tabs">
-                    <div class="tab paused" style="--d:2.1s"><b>Stock take</b><span class="was">posting…</span><span class="now">paused at 20 s</span></div>
-                </div>
-                <div class="verdict ok" style="--d:3.6s">✓ The tab says "Posted at …". The count is posted once.</div>
-            </div>
+            <div class="verdict bad" style="--d:3.6s">✗ The tab says "Not posted", but the warehouse has the count. The user posts it again.</div>
         </div>
         <p class="fig-cap">
-            Both free the server's memory while the tab is hidden. The difference is when. The script pauses on the
-            clock, in the middle of the post. AutoPause waits for the post to finish, so the result is saved too.
+            The script pauses on the clock, in the middle of the post. The tab is saved before the post finishes, so it
+            comes back saying "Not posted".
         </p>
     </figure>
 
-    <p>You can try both. Each demo needs about 30 seconds in another tab.</p>
+    <p>You can try it. The demo needs about 30 seconds in another tab.</p>
 
     <DemoFigure Number="2" Title="The stock take, paused by your own script" Url="demo/auto-pause/stock-take/net10"
                 Label=".NET 10: your own pause script" Side="before">
         <Caption>
             Press <b>Post count</b>, switch to another tab for about 30 seconds, then come back. It says
             <b>Not posted</b>, but the line under it says the warehouse has the count.
-        </Caption>
-    </DemoFigure>
-
-    <DemoFigure Number="3" Title="The same stock take, with AutoPause" Url="demo/auto-pause/stock-take"
-                Label=".NET 11: AutoPause">
-        <Caption>
-            Do the same. This time it says <b>Posted at</b> a time. The line at the top says the tab was paused for
-            about 10 seconds, not 20, because it waited for the post.
         </Caption>
     </DemoFigure>
 
@@ -111,23 +88,53 @@
         finish. Then it pauses, with the result saved.
     </p>
 
+    <figure class="fig anim" data-anim>
+        <figcaption class="fig-title">Fig. 3 · .NET 11: the same post, with AutoPause</figcaption>
+        <button type="button" class="fig-replay" data-replay hidden>▶ Play</button>
+        <div class="lane">
+            <div class="lane-h ok">.NET 11 · AutoPause</div>
+            <ol class="steps">
+                <li style="--d:0.3s"><b>0 s</b> Post count pressed, tab hidden</li>
+                <li style="--d:1.2s"><b>10 s</b> time to pause, but the post isn't done <span class="wait" style="--d:1.5s">… waits</span></li>
+                <li style="--d:2.1s"><b>20 s</b> the warehouse gets the count, then the tab pauses <span class="done" style="--d:2.4s">✓ saved as "Posted"</span></li>
+                <li style="--d:3s"><b>30 s</b> tab shown again <span class="done" style="--d:3.3s">✓ "Posted at …"</span></li>
+            </ol>
+            <div class="tabs">
+                <div class="tab paused" style="--d:2.1s"><b>Stock take</b><span class="was">posting…</span><span class="now">paused at 20 s</span></div>
+            </div>
+            <div class="verdict ok" style="--d:3.6s">✓ The tab says "Posted at …". The count is posted once.</div>
+        </div>
+        <p class="fig-cap">
+            AutoPause waits for the post to finish before it pauses, so the result is saved too.
+        </p>
+    </figure>
+
+    <DemoFigure Number="4" Title="The same stock take, with AutoPause" Url="demo/auto-pause/stock-take"
+                Label=".NET 11: AutoPause">
+        <Caption>
+            Press <b>Post count</b>, switch to another tab for about 30 seconds, then come back. This
+            time it says <b>Posted at</b> a time. The line at the top says the tab was paused for about 10 seconds,
+            not 20, because it waited for the post.
+        </Caption>
+    </DemoFigure>
+
     <p>Here's the code behind the two demos.</p>
 
-    <CodeFigure Number="4" Path="wwwroot/js/auto-pause-net10.js" Feature="circuit-auto-pause">
+    <CodeFigure Number="5" Path="wwwroot/js/auto-pause-net10.js" Feature="circuit-auto-pause">
         <Caption>
             Fig. 2's pause script. Highlighted: 10 seconds after the tab hides, it calls
             <code>Blazor.pauseCircuit()</code>, whatever is going on.
         </Caption>
     </CodeFigure>
 
-    <CodeFigure Number="5" Path="Components/Guide/Demos/CircuitPause/StockTake.razor" Feature="circuit-auto-pause">
+    <CodeFigure Number="6" Path="Components/Guide/Demos/CircuitPause/StockTake.razor" Feature="circuit-auto-pause">
         <Caption>
-            Fig. 3's page. Highlighted: the new code. It turns on AutoPause with <code>&lt;ConfigureBrowser&gt;</code>,
+            Fig. 4's page. Highlighted: the new code. It turns on AutoPause with <code>&lt;ConfigureBrowser&gt;</code>,
             which is also new in .NET 11. The count sheet is the same one Fig. 2 uses.
         </Caption>
     </CodeFigure>
 
-    <CodeFigure Number="6" Path="Components/Guide/Demos/CircuitPause/StockPost.razor" Feature="circuit-auto-pause">
+    <CodeFigure Number="7" Path="Components/Guide/Demos/CircuitPause/StockPost.razor" Feature="circuit-auto-pause">
         <Caption>
             The post both demos share. Highlighted, but not new: a plain click handler that takes 20 seconds.
             <code>Posted</code> is a <code>[PersistentState]</code> value, but it's only set when the handler returns.
@@ -162,7 +169,7 @@
     <p>
         In .NET 11 the AutoPause package watches the tab for you. Once the tab has been hidden long enough, it checks
         that nothing is in progress. If something is, it checks again every half second. Then it calls the same
-        <code>Blazor.pauseCircuit()</code>, and resumes when the tab comes back. That's what Fig. 3 runs.
+        <code>Blazor.pauseCircuit()</code>, and resumes when the tab comes back. That's what Fig. 4 runs.
     </p>
 
     <h2><small>Good to know</small></h2>
