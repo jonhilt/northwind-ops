@@ -1,5 +1,6 @@
-// Walkthrough pages: highlights their code, and wires animated figures (data-anim): each waits on its
-// first frame until the reader presses Play. Runs on full loads and after enhanced navigation.
+// Walkthrough pages: highlights their code, and wires animated figures (data-anim): each rests on its last
+// frame, the outcome, until the reader presses Play to watch it from the start. Runs on full loads and after
+// enhanced navigation.
 // (guide.js wires their live demo frames.)
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -21,7 +22,6 @@ function enhance() {
         replay.hidden = false;
         replay.textContent = "▶ Play";
         replay.addEventListener("click", () => play(figure, replay));
-        figure.classList.add("armed");
     }
 }
 

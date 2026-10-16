@@ -114,8 +114,8 @@ public override Task OnCircuitOpenedAsync(Circuit circuit, CancellationToken can
     </figure>
 
     <p>
-        Here is the real code: an order form we paused both ways. One parameter picks how it asks for the
-        pause: the .NET 10 way or the .NET 11 way.
+        The figures above are drawings. Here is the real code we tested them with: an order form with a button that
+        asks the server to pause its own tab. One parameter picks the .NET 10 way or the .NET 11 way.
     </p>
 
     <CodeFigure Number="3" Path="Components/Guide/Demos/CircuitPause/OrderDraft.razor" Feature="server-initiated-circuit-pause">
@@ -156,8 +156,7 @@ public override Task OnCircuitOpenedAsync(Circuit circuit, CancellationToken can
 window.remotePause =
     () =&gt; { Blazor.pauseCircuit(); };</pre>
                 <span class="why">called from server code, it returns before the circuit closes; the tab pauses with its data</span>
-                <div class="verdict ok">✓ works</div>
-                <div class="verdict bad">✗ but it's a script to ship, and you don't learn whether the tab was asked</div>
+                <div class="verdict ok">✓ works, but it's a script to ship, and you don't learn whether the tab was asked</div>
             </div>
         </div>
     </div>

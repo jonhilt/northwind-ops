@@ -111,9 +111,10 @@
 .gi-more { columns: 2; padding-left: 20px; font-size: 14px; }
 .gi-app { border-left: 3px solid var(--amber); padding: 6px 14px; color: var(--soft); font-size: 14px; }
 
-/* Animated figures (data-anim): each tells one story. The markup is the last frame. learn.js adds .armed,
-   which holds every element with a --d delay at its first frame (hidden, or still live) until the reader
-   presses Play (.playing); then each arrives at its last frame after its delay, stretched by --pace. */
+/* Animated figures (data-anim): each tells one story. The markup is the last frame, and the figure rests
+   there, showing the outcome, until the reader presses Play. learn.js then adds .armed and .playing: every
+   element with a --d delay starts at its first frame (hidden, or still live) and arrives after its delay,
+   stretched by --pace. */
 .anim { --pace: 1.4; }
 .fig-replay { position: absolute; top: -12px; right: 12px; border: 1px solid var(--amber); background: var(--bg); padding: 0 10px; font: 600 12px/22px var(--mono); color: var(--amber); cursor: pointer; }
 .fig-replay:hover { background: var(--amber); color: var(--bg); }
