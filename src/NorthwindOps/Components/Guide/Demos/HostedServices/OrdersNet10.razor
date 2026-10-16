@@ -11,7 +11,7 @@
 @* The same page with the .NET 10 bell: it polls by itself, so its timer lives on this page. *@
 <PollingBell @rendermode="new InteractiveWebAssemblyRenderMode(prerender: false)" />
 
-@* One .NET 10 app running this bell's timer, the .NET 11 line and workaround 2. *@
+@* One .NET 10 app running three watchers: this bell's timer, AddHostedService, and one started by hand. *@
 <Net10Recording Sdk="10.0.102" Request="Orders → Customers → Orders, three watchers"
                 Repro="wasm-hosted-services"
                 Note="Each watcher's ticks, one a second, read from the page by Playwright.">
@@ -23,7 +23,7 @@
                 <td>5</td><td>gone</td><td class="bad">1</td></tr>
             <tr class="dead"><th>AddHostedService <i>the .NET 11 line</i></th>
                 <td>0</td><td>0</td><td>0</td></tr>
-            <tr><th>Started by hand <i>workaround 2</i></th>
+            <tr><th>Started by hand <i>StartAsync in Program.cs</i></th>
                 <td>5</td><td>8</td><td>10</td></tr>
         </tbody>
     </table>

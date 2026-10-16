@@ -8,9 +8,9 @@
     <p class="l-sub">Your WebAssembly page totals a big CSV export. How do you keep it responsive while it works?</p>
     <p class="l-meta">.NET 11 · WebAssembly · Interactive WebAssembly · about 6 minutes</p>
     <p class="l-new">
-        <b>What's new in .NET 11:</b> a project template, <code>blazorwebworker</code>. It writes the code to run .NET
-        in a Web Worker into your project, as source you own. No framework API changed. You could do this in .NET 10,
-        but you had to write that code yourself.
+        <b>What's new in .NET 11:</b> a project template, <code>blazorwebworker</code>. It adds the code to run your
+        C# in a Web Worker, so heavy work doesn't freeze the page. .NET 10 had no template and no client for this:
+        you wrote the worker code yourself.
     </p>
 
     <p>
@@ -18,16 +18,21 @@
         in the browser, and lists the top five products.
     </p>
     <p>
-        A clock on the page ticks ten times a second, and each run says how long it took. Fig. 1 runs the work on the page's UI thread, the way a .NET 10 app would. It behaves the same on
-        .NET 10 and .NET 11.
+        A clock on the page ticks ten times a second, and each run says how long it took. Fig. 1 has no worker, as
+        in .NET 10. Its first button runs the totals right in the component:
     </p>
+    <div class="fig">
+        <span class="fig-title">Fig. 1's component, with no worker</span>
+        <pre class="snip">Task OnUiThread() =&gt; Run("On the UI thread",
+    () =&gt; Task.FromResult(<span class="err">WorkerMethods.TotalOrderLines(csv)</span>));</pre>
+    </div>
 
     <DemoFigure Number="1" Title="The report on the UI thread" Url="demo/web-worker/order-lines/net10"
                 Label="No worker: on the UI thread" Side="before">
         <Caption>
-            When it says <b>Ready</b>, click <b>Total on the UI thread</b>. The clock freezes until the top five
-            appear. Then click <b>Total, pausing every 1,000 lines</b>: the clock keeps ticking, but the run takes
-            longer.
+            When it says <b>Ready</b>, click <b>Total on the UI thread</b>. This is the freeze: the clock stops until
+            the top five appear. The other button, <b>Total, pausing every 1,000 lines</b>, is a .NET 10 workaround:
+            the clock keeps ticking, but the run takes longer.
         </Caption>
     </DemoFigure>
 
@@ -112,14 +117,14 @@ var json = await worker.<span class="hl">InvokeAsync&lt;string&gt;</span>(
 
     <h2><small>The .NET 10 way</small>Pause, offload, or write the worker yourself</h2>
     <p>
-        This isn't a .NET 10 bug. In one run on the UI thread, the total took 7.9 s. The clock didn't
-        move and the page didn't redraw once. You had three ways out:
+        In one run on the UI thread, the total took 7.9 s. The clock didn't move and the page didn't redraw once.
+        In .NET 10 you had three ways out:
     </p>
     <div class="fig">
         <span class="fig-title">Three .NET 10 workarounds, and what they cost</span>
         <div class="flow">
             <div class="box">
-                <pre class="snip">if (++lines % 1000 == 0)
+                <pre class="snip">if (tally.Lines % 1000 == 0)
     <span class="hl">await Task.Delay(1);</span></pre>
                 <span class="why">Fig. 1's second button: the clock kept ticking, but 9.2 s instead of 7.9 s</span>
                 <div class="verdict bad">✗ about 17% slower, and every heavy loop needs its own pauses</div>
@@ -141,7 +146,8 @@ const { getAssemblyExports, getConfig } =
         </div>
     </div>
     <p>
-        The third is the real fix, and it worked in .NET 10. It was just a lot of code to write and maintain.
+        The third is what .NET 11 does too: a worker. .NET 10 could run one, but you wrote and kept up all that
+        code yourself.
     </p>
 
     <h2><small>.NET 11</small>The worker, written for you</h2>

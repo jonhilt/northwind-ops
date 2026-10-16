@@ -39,7 +39,7 @@ else
     }
 
     // xray:quickgrid-onrowclick
-    // New in .NET 11: QuickGrid calls this with the clicked row's item, wherever on the row you click.
+    // Unchanged from .NET 10. QuickGrid now calls it for a click anywhere on a row.
     async Task OpenAsync(TicketRow row)
     {
         open = await Desk.GetAsync(row.Id);

@@ -8,23 +8,36 @@
     <p class="l-sub">Your form checks the company name. Does it check the contacts?</p>
     <p class="l-meta">.NET 11 · Forms · Static SSR · about 5 minutes</p>
     <p class="l-new">
-        <b>What's new in .NET 11:</b> nested validation came in .NET 10, but the attribute that turns it on was
-        experimental. In .NET 11, <code>[ValidatableType]</code> is a supported API.
+        <b>What's new in .NET 11:</b> <code>[ValidatableType]</code>, the attribute that makes a form check the
+        objects inside its model, is now a supported API. In .NET 10 the same thing worked, but the attribute was
+        experimental, and the way the docs showed it didn't build. This page shows what the attribute does, then
+        what changed.
     </p>
 
     <p>
         Below is a <i>New supplier</i> form. A supplier has a company name, an address and a list of contacts. Every
         field is <code>[Required]</code>, and the emails are <code>[EmailAddress]</code> too.
     </p>
+    <p>Here's the model, with no attribute on it:</p>
+    <div class="fig">
+        <span class="fig-title">The model: nothing marks it</span>
+        <pre class="snip">public sealed class SupplierDraft : ISupplierForm
+{
+    [Required, StringLength(40)] public string? Company { get; set; }
+    <span class="err">public AddressForm Address { get; set =&gt; field = value ?? new(); } = new();</span>
+    <span class="err">public List&lt;ContactForm&gt; Contacts { get; set =&gt; field = value ?? []; } = [new(), new()];</span>
+}</pre>
+    </div>
     <p>
         The form starts with three mistakes: the city is empty, Ann's email is <code>sales@@</code>, and Bo has no
         email. Try to save it.
     </p>
 
-    <DemoFigure Number="1" Title="The form, as most apps write it" Url="demo/nested-validation/without"
+    <DemoFigure Number="1" Title="The form, without the attribute" Url="demo/nested-validation/without"
                 Label="Without [ValidatableType]" Side="before">
         <Caption>
-            Press <b>Save supplier</b>. It saves, bad emails and all. The green banner shows what went in.
+            Press <b>Save supplier</b>. It saves: the empty city, the bad email and the missing one. The green
+            banner shows what went in.
         </Caption>
     </DemoFigure>
 
@@ -46,9 +59,12 @@
     </p>
 
     <h2><small>The fix</small>Mark the model</h2>
-    <p>Put <code>[ValidatableType]</code> on the form's model, and register validation once in <code>Program.cs</code>.</p>
+    <p>
+        Put <code>[ValidatableType]</code> on the form's model, and register validation once in <code>Program.cs</code>.
+        In .NET 11 this builds. In .NET 10 the same <code>using</code> line broke the build (more below).
+    </p>
     <div class="fig">
-        <span class="fig-title">The whole fix</span>
+        <span class="fig-title">The whole fix, in .NET 11</span>
         <pre class="snip"><span class="hl">using Microsoft.Extensions.Validation;</span>
 
 <span class="hl">[ValidatableType]</span>
@@ -81,11 +97,10 @@ public sealed class NewSupplierForm { ... }
         </Caption>
     </CodeFigure>
 
-    <h2><small>The .NET 10 way</small>It worked, but the attribute was experimental</h2>
+    <h2><small>The .NET 10 way</small>An experimental attribute</h2>
     <p>
-        All of this worked in .NET 10: <code>AddValidation()</code>, the generated code, and the attribute. The
-        catch was the attribute. The official attribute was experimental, so the SDK also added a hidden copy to each
-        Blazor project. How you wrote it decided which of the two you got:
+        In .NET 10 the official attribute was experimental. The SDK also added a hidden copy of it to each Blazor
+        project. How you wrote it decided which one you got:
     </p>
     <div class="fig">
         <span class="fig-title">Three ways to write it in .NET 10, and what the build said</span>
@@ -109,8 +124,8 @@ public sealed class NewSupplierForm { ... }
         </div>
     </div>
     <p>
-        So the only version that built cleanly used the hidden copy. The official one, from the docs, needed a pragma
-        to get past the experimental error ASP0029.
+        The bare attribute worked, but it wasn't the one the docs described, and the official one needed a
+        <code>#pragma</code> to build. Nothing about it said "safe to rely on".
     </p>
 
     <h2><small>.NET 11</small>One supported attribute</h2>
@@ -123,7 +138,7 @@ public sealed class NewSupplierForm { ... }
     <h2><small>Good to know</small></h2>
     <ul class="gk">
         <li><b>Only the top model needs the attribute.</b> The types inside it are found through its properties.</li>
-        <li><b>Mark a class and its base class gets checked everywhere it's used,</b> even where nothing marks it.</li>
+        <li><b>Marking a class turns checks on for its base class too,</b> wherever that base class is used, even where nothing marks it.</li>
         <li><b>Forget <code>AddValidation()</code> and only the top level is checked.</b> <code>DataAnnotationsValidator</code> won't look inside it.</li>
         <li><b>The mark only works in the project that calls <code>AddValidation()</code>.</b> Mark a model in a shared class library and nothing gets checked. .NET 11 warns you about this with ASP0038.</li>
     </ul>

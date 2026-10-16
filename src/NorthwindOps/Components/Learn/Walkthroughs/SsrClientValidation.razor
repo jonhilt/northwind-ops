@@ -17,17 +17,27 @@
         no WebAssembly. <b>Company</b> is <code>[Required]</code>, and <b>Email</b> is
         <code>[Required, EmailAddress]</code>. Under the heading, the form counts how many posts reach the server.
     </p>
+    <p>Here's the form as you'd write it on .NET 10:</p>
+    <div class="fig">
+        <span class="fig-title">The .NET 10 form</span>
+        <pre class="snip">&lt;EditForm Model="Input" FormName="new-supplier" OnValidSubmit="SaveAsync" Enhance&gt;
+    <span class="err">&lt;DataAnnotationsValidator /&gt;</span>
+    &lt;label for="email"&gt;Email&lt;/label&gt;
+    &lt;InputText id="email" @@bind-Value="Input!.Email" /&gt;
+    &lt;ValidationMessage For="() =&gt; Input!.Email" /&gt;
+    &lt;button type="submit"&gt;Save supplier&lt;/button&gt;
+&lt;/EditForm&gt;</pre>
+    </div>
     <p>
-        This first form behaves like a .NET 10 form. It runs on .NET 11 with the browser check turned off (Fig. 5
-        shows how).
+        On .NET 10 that validator only checks on the server. The demo below is the .NET 10 behaviour, reproduced:
+        it runs on .NET 11 with the browser check turned off (Fig. 5 shows how).
     </p>
 
     <DemoFigure Number="1" Title="A static form, checked on the server" Url="demo/client-validation/suppliers/new/net10"
-                Label=".NET 10: checked on the server" Side="before">
+                Label=".NET 10 behaviour, reproduced" Side="before">
         <Caption>
             Type <code>sales@@</code> into <b>Email</b> and press Tab: nothing happens. Press <b>Save supplier</b>.
-            Both errors come back from the server, and <b>Posts to the server</b> goes to 1. The page doesn't flash,
-            so that count is the only sign the form made a trip.
+            Both errors come back from the server, and <b>Posts to the server</b> goes to 1: one round trip.
         </Caption>
     </DemoFigure>
 
@@ -44,12 +54,16 @@
     <p>
         <code>&lt;DataAnnotationsValidator /&gt;</code> runs on the server, when the form posts. The HTML says nothing
         about the rules, so the browser has nothing to check. The user hears nothing until they press Save. Then
-        every mistake costs a round trip: send the form, check it, redraw the whole page. Enhanced navigation (the
-        <code>Enhance</code> parameter) avoids a full page flash, but the round trip still happens. On a busy public form or a slow phone, it adds up.
+        every mistake costs a round trip: send the form, check it, send the page back. <code>Enhance</code> patches
+        the new page in, so it doesn't flash, but the round trip still happens. On a busy public form or a slow
+        phone, it adds up.
     </p>
 
-    <h2><small>The fix</small>Nothing to add</h2>
-    <p>You write the same form as on .NET 10. What changes is the HTML it produces:</p>
+    <h2><small>The fix</small>Upgrade to .NET 11</h2>
+    <p>
+        The fix is the upgrade itself. You keep the same form. On .NET 11 the same
+        <code>&lt;DataAnnotationsValidator /&gt;</code> also writes the rules into the HTML:
+    </p>
     <div class="fig">
         <span class="fig-title">The whole fix: no new code, on .NET 11</span>
         <pre class="snip"><span class="dim">&lt;!-- you write: unchanged from .NET 10 --&gt;</span>
@@ -62,7 +76,6 @@
 <span class="ok">&lt;blazor-client-validation-data data-rules="…"&gt;</span></pre>
     </div>
     <p>
-        In .NET 11, <code>DataAnnotationsValidator</code> on a static form also writes the model's rules into the page.
         <code>blazor.web.js</code>, the script every Blazor Web App already loads, reads them. It checks each field as
         you leave it, and blocks a submit that has errors.
     </p>
@@ -77,8 +90,8 @@
     </DemoFigure>
 
     <p>
-        Both demos share one model, and their pages differ by one parameter. Fig. 3 and Fig. 4 highlight code you
-        already have, where the new behaviour comes from; the only new API, in Fig. 5, turns it off.
+        Both demos share one model, and their pages differ by one parameter. Fig. 3 and Fig. 4 highlight lines that
+        are the same as on .NET 10. The only line that differs, in Fig. 5, turns the browser check off.
     </p>
 
     <CodeFigure Number="3" Path="Components/Guide/Demos/ClientValidation/NewSupplierForm.cs" Feature="ssr-client-validation">
@@ -110,7 +123,7 @@
             <div class="box">
                 <pre class="snip">&lt;DataAnnotationsValidator /&gt;</pre>
                 <span class="why">let the server catch it, as Fig. 1 does</span>
-                <div class="verdict bad">✗ every mistake costs a post and a redraw of the whole page</div>
+                <div class="verdict bad">✗ every mistake costs a round trip to the server</div>
             </div>
             <div class="box">
                 <pre class="snip"><span class="err">@@rendermode InteractiveServer</span></pre>

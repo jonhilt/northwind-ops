@@ -19,8 +19,20 @@
     </p>
     <p>
         Only the database can check that second rule. Here it takes 1.5 seconds on purpose, like a busy server. This
-        form does the check the .NET 10 way: in code that runs when the field changes.
+        form does the check the .NET 10 way, in a handler that runs when the field changes:
     </p>
+    <div class="fig">
+        <span class="fig-title">The .NET 10 check: an async handler nothing waits for</span>
+        <pre class="snip">form.OnFieldChanged += <span class="err">async (_, e) =&gt;</span>
+{
+    if (e.FieldIdentifier.FieldName != nameof(Input.Code)) return;
+    messages.Clear(e.FieldIdentifier);
+    <span class="err">if (await IsTakenAsync(Input.Code))</span>
+        messages.Add(e.FieldIdentifier, "Supplier code is already used by another supplier.");
+    form.NotifyValidationStateChanged();
+    StateHasChanged();
+};</pre>
+    </div>
 
     <DemoFigure Number="1" Title="The code check, in a field-changed handler" Url="demo/async-validation/suppliers/new/net10"
                 Label=".NET 10: a field-changed handler" Side="before">
@@ -34,6 +46,8 @@
                 <b>Try 2: change it quickly.</b> Press <b>Start over</b>. Type <code>EXOT-01</code> and press Tab,
                 then straight away change it to <code>ZZZZ-99</code> and press Tab. A moment later "already used"
                 appears under <code>ZZZZ-99</code>, a code nobody has. It's the answer meant for <code>EXOT-01</code>.
+                It stays: the newer check finds nothing wrong, and the handler only clears messages when an edit
+                starts.
             </p>
         </Caption>
     </DemoFigure>
@@ -94,7 +108,7 @@ public string? Code { get; set; }
         <code>IsValidationPending</code> works two ways. Give it a field, and it's true while that field's check
         runs: that drives the "Checking…" beside the box. Give it nothing, and it's true only while Save is waiting
         for the whole form. That's what disables the button: it greys out when you click Save, and comes back when
-        every check has answered. Tabbing out of the field doesn't disable it.
+        every check has answered. Leaving the field starts a check too, but the button stays on.
     </p>
 
     <DemoFigure Number="2" Title="The same form, with an async attribute" Url="demo/async-validation/suppliers/new"
@@ -173,7 +187,8 @@ public string? Code { get; set; }
     </div>
     <p>
         Most apps used the first two together: the handler for early feedback, and the save handler to catch what it
-        missed. That fixes Try 1. Try 2's wrong message stays, and the rule is now written twice, both in the page instead of on the model.
+        missed. That fixes Try 1, but not Try 2: nothing cancels the old lookup, so its answer still lands on the
+        newer value. And the rule is now written twice, both times in the page instead of on the model.
     </p>
 
     <h2><small>.NET 11</small>Validation that can wait</h2>

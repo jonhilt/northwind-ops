@@ -14,9 +14,20 @@
     </p>
 
     <p>
-        Below are the eight most recently active support tickets. Each row has an <b>Open</b> button, the usual
-        .NET 10 approach.
+        Below are the eight most recently active support tickets. In .NET 10 a row can't be clicked, so each row
+        gets an <b>Open</b> button:
     </p>
+    <div class="fig">
+        <span class="fig-title">The .NET 10 grid</span>
+        <pre class="snip">&lt;QuickGrid Items="tickets" RowClass="Highlight"&gt;
+    &lt;PropertyColumn Title="Ticket" Property="t =&gt; t.Id" Format="'#'0" /&gt;
+    &lt;PropertyColumn Title="Subject" Property="t =&gt; t.Subject" /&gt;
+    &lt;PropertyColumn Title="Customer" Property="t =&gt; t.Company" /&gt;
+    &lt;TemplateColumn&gt;
+        <span class="err">&lt;button type="button" class="open" @@onclick="() =&gt; OpenAsync(context)"&gt;Open&lt;/button&gt;</span>
+    &lt;/TemplateColumn&gt;
+&lt;/QuickGrid&gt;</pre>
+    </div>
 
     <DemoFigure Number="1" Title="A button in every row" Url="demo/row-click/tickets/net10"
                 Label=".NET 10: a button in every row" Side="before">
@@ -129,9 +140,8 @@
 
     <h2><small>.NET 11</small>Now it's a real parameter</h2>
     <p>
-        Fig. 2 runs exactly the markup from the third .NET 10 attempt above. In .NET 11, QuickGrid has a real
-        <code>OnRowClick</code> parameter, so that markup now works.
-        If you see an <code>onrowclick</code> attribute in the page's HTML, you're still on .NET 10.
+        In .NET 11, <code>OnRowClick</code> is a real QuickGrid parameter, so the grid calls your method. If you
+        see an <code>onrowclick</code> attribute in the page's HTML, you're still on .NET 10.
     </p>
 
     <h2><small>Good to know</small></h2>

@@ -14,12 +14,18 @@
     </p>
 
     <p>
-        Below is order 12047, at <code>…/orders/12047/summary</code>. It has three tabs: Summary, Lines and
-        Customer. Each tab is a <code>NavLink</code> with a short link like <code>href="lines"</code>.
+        Below is order 12047, at <code>…/orders/12047/summary</code>. It has three tabs, each a <code>NavLink</code>
+        with a short link:
     </p>
-    <p>
-        Here the option is off, which behaves just like .NET 10.
-    </p>
+    <div class="fig">
+        <span class="fig-title">The tabs, written the .NET 10 way</span>
+        <pre class="snip">&lt;nav class="tabs"&gt;
+    <span class="err">&lt;NavLink href="summary"&gt;Summary&lt;/NavLink&gt;</span>
+    <span class="err">&lt;NavLink href="lines"&gt;Lines&lt;/NavLink&gt;</span>
+    <span class="err">&lt;NavLink href="customer"&gt;Customer&lt;/NavLink&gt;</span>
+&lt;/nav&gt;</pre>
+    </div>
+    <p>The demo runs on .NET 11 with the new option off, which behaves as .NET 10 did.</p>
 
     <DemoFigure Number="1" Title="Tabs written as plain relative links" Url="demo/relative-nav/net10/orders/12047/summary"
                 Label='Option off, as in .NET 10' Side="before">
@@ -57,8 +63,7 @@ Navigation.NavigateTo("summary",
     <p>
         With the option on, Blazor drops the last part of the current URL and adds your path. From
         <code>…/12047/summary</code>, <code>lines</code> becomes <code>…/12047/lines</code>. The tabs don't need to
-        know the order id. One more thing: the page below was opened at <code>…/orders/12047</code>, with no tab,
-        and sent itself on to the Summary tab. That redirect comes up again after the code.
+        know the order id.
     </p>
 
     <DemoFigure Number="2" Title="The same tabs, relative to the page" Url="demo/relative-nav/orders/12047"
@@ -80,18 +85,19 @@ Navigation.NavigateTo("summary",
     </CodeFigure>
 
     <p>
-        The redirect is where the option can trip you up. It drops the last part of the URL, and on a page opened
-        without a tab, that last part is the order id:
+        One catch. Fig. 2's page was opened at <code>…/orders/12047</code>, with no tab, and redirected itself to
+        the Summary tab with <code>NavigateTo</code>. The option drops the last part of the URL, and here that last
+        part is the order id:
     </p>
     <div class="fig">
         <span class="fig-title">NavigateTo with the option on, from three addresses</span>
-        <pre class="snip"><span class="dim">current page            path              goes to</span>
-…/orders/12047/lines    "summary"      →  …/orders/12047/summary   <span class="ok">✓</span>
-…/orders/12047/         "summary"      →  …/orders/12047/summary   <span class="ok">✓ trailing slash</span>
-…/orders/12047          "summary"      →  …/orders/summary         <span class="err">the id was dropped</span>
-…/orders/12047          "12047/summary" → …/orders/12047/summary   <span class="ok">✓ name the id again</span></pre>
+        <pre class="snip"><span class="dim">current page          path             goes to</span>
+…/orders/12047/lines  "summary"        …/orders/12047/summary  <span class="ok">✓</span>
+…/orders/12047/       "summary"        …/orders/12047/summary  <span class="ok">✓</span>
+…/orders/12047        "summary"        …/orders/summary        <span class="err">✗ id dropped</span>
+…/orders/12047        "12047/summary"  …/orders/12047/summary  <span class="ok">✓ id added back</span></pre>
     </div>
-    <p>Fig. 2's page can be opened either way, so it checks for the slash first:</p>
+    <p>The page can be opened with or without a trailing slash, so it checks for the slash first:</p>
 
     <CodeFigure Number="4" Path="Components/Guide/Demos/RelativeLinks/OrderPage.razor" Feature="relative-navigation">
         <Caption>

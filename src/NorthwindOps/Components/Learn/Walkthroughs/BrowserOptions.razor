@@ -29,9 +29,19 @@
     </p>
     <p>
         In .NET 10 you ask for that in a <code>Blazor.start()</code> script. Misspell a name and Blazor quietly uses
-        its defaults. Say a page asks for 20 tries, 2 seconds apart, but gets two names wrong. Here's the Wi-Fi
-        dropping for 10 seconds:
+        its defaults. Say a page asks for 20 tries, 2 seconds apart, but gets two names wrong:
     </p>
+    <div class="fig">
+        <span class="fig-title">The .NET 10 page's start-up script</span>
+        <pre class="snip">&lt;script src="_framework/blazor.web.js" autostart="false"&gt;&lt;/script&gt;
+&lt;script&gt;
+    Blazor.start({ circuit: { reconnectionOptions: {
+        <span class="err">maxRetry: 20,</span>
+        <span class="err">retryIntervalMs: 2000</span>
+    } } });
+&lt;/script&gt;</pre>
+    </div>
+    <p>Here's the Wi-Fi dropping for 10 seconds:</p>
 
     <figure class="fig anim" data-anim>
         <figcaption class="fig-title">Fig. 1 · .NET 10: the Wi-Fi drops for 10 seconds</figcaption>
@@ -41,7 +51,7 @@
             <ol class="steps">
                 <li class="never" style="--d:3.3s">asks for 20 tries, 2 seconds apart</li>
                 <li style="--d:0.3s">the Wi-Fi drops</li>
-                <li style="--d:0.7s">10 tries straight away <span style="--d:1s">· the banner says <b>11 of 30</b></span></li>
+                <li style="--d:0.7s">10 tries straight away <span style="--d:1s">· the banner says <b>attempt 11 of 30</b></span></li>
                 <li style="--d:2.1s">then one try every 5 seconds</li>
             </ol>
             <div class="browseroptions-time" aria-label="Tries in the first 12 seconds">
@@ -77,9 +87,9 @@
     <DemoFigure Number="2" Title="Settings in a Blazor.start() script" Url="demo/browser-options/pick-list/net10"
                 Label=".NET 10: Blazor.start() in JavaScript" Side="before">
         <Caption>
-            Press <b>Drop my Wi-Fi for 10 seconds</b>. The banner says "of 30", not "of 20", and jumps straight to
-            11: Blazor's defaults. Then choose <b>Settings from config</b> and press <b>Pick</b>. Nothing happens.
-            A value missing from config broke the script, so Blazor never started.
+            Press <b>Drop my Wi-Fi for 10 seconds</b>. Within a second the banner says <b>Rejoin attempt 11 of
+            30</b>: the 10 quick tries are already used up, and there are 30 tries, not 20. Those are Blazor's
+            defaults.
         </Caption>
     </DemoFigure>
 
@@ -98,7 +108,7 @@ maxRetries: ,              <span class="err">SyntaxError: Blazor never starts</s
     <p>
         The settings are a plain JavaScript object. A wrong name is just an extra property nobody reads. And because
         the page starts Blazor itself, a broken script means Blazor never starts. The page looks fine until someone
-        clicks.
+        clicks. To see it, choose <b>Settings from config</b> in Fig. 2 and press <b>Pick</b>. Nothing happens.
     </p>
 
     <h2><small>The fix</small>Put the settings in C#</h2>
@@ -191,7 +201,7 @@ retryIntervalMilliseconds: 2000</pre>
             <div class="box">
                 <pre class="snip"><span class="err">maxRetry</span>: 20,
 <span class="err">retryIntervalMs</span>: 2000</pre>
-                <span class="why">"11 of 30" after a second, then trying again in 5 seconds</span>
+                <span class="why">"Rejoin attempt 11 of 30" after a second, then a try every 5 seconds</span>
                 <div class="verdict bad">✗ the defaults, with no warning</div>
             </div>
             <div class="box">

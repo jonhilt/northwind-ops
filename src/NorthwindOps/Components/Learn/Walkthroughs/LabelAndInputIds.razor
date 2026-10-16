@@ -18,10 +18,16 @@
         The model names both with <code>[Display]</code>.
     </p>
     <p>
-        The form labels its fields in two common .NET 10 ways. <b>Company name</b> uses an <code>id</code> typed by hand
-        on both the label and the input, with a typo: <code>supplier-<b>compnay</b></code> on the label,
-        <code>supplier-company</code> on the input. <b>Email</b> wraps its input, and its label text is typed by hand.
+        The form labels its fields in two common .NET 10 ways. <b>Company name</b> types an <code>id</code> on both
+        the label and the input, with a typo. <b>Email</b> wraps its input, and its label text is typed by hand:
     </p>
+    <div class="fig">
+        <span class="fig-title">The .NET 10 form</span>
+        <pre class="snip">&lt;label for="<span class="err">supplier-compnay</span>"&gt;Company name&lt;/label&gt;
+&lt;InputText id="supplier-company" @@bind-Value="Input!.Company" /&gt;
+
+&lt;label&gt;<span class="err">Email</span> &lt;InputText @@bind-Value="Input!.Email" type="email" /&gt;&lt;/label&gt;</pre>
+    </div>
 
     <DemoFigure Number="1" Title="The form, labelled by hand" Url="demo/labels/suppliers/new/net10"
                 Label=".NET 10: ids and names typed by hand" Side="before">
@@ -42,8 +48,8 @@
         <pre class="snip">&lt;label for="<span class="err">supplier-compnay</span>"&gt;Company name&lt;/label&gt;
 &lt;input id="supplier-company" name="Input.Company"&gt;   <span class="err">no label points here</span>
 
-&lt;label&gt;<span class="err">Email</span> &lt;input name="Input.Email"&gt;&lt;/label&gt;   <span class="ok">✓ focus works</span>
-<span class="dim">The Contact email field is required.</span>           <span class="err">not the label's name</span></pre>
+&lt;label&gt;Email &lt;input name="Input.Email"&gt;&lt;/label&gt;   <span class="ok">✓ clicking "Email" focuses the input</span>
+<span class="dim">The Contact email field is required.</span>      <span class="err">✗ says "Contact email", the label says "Email"</span></pre>
     </div>
     <p>
         <code>&lt;InputText&gt;</code> didn't render an <code>id</code>, so you had to type the same id on the label
@@ -121,12 +127,12 @@
     <p>
         <code>&lt;Label For&gt;</code> uses <code>[Display(Name)]</code>. If that's missing, it uses
         <code>[DisplayName]</code>, then the property name. Either way, the label and its messages use the same
-        name, and there's no id to mistype. Just don't set your own id on the input (see Good to know).
+        name, and there's no id to mistype. If you set your own id on an input, see Good to know.
     </p>
 
     <h2><small>Good to know</small></h2>
     <ul class="gk">
-        <li><b>Don't give the input your own id.</b> Your <code>id</code> replaces the generated one, but <code>&lt;Label For&gt;</code> still writes <code>for="Input_Company"</code>, which now matches nothing. If you need your own id, put the input inside the label: <code>&lt;Label For="..."&gt;&lt;InputText id="..." ... /&gt;&lt;/Label&gt;</code>. A label that wraps its input doesn't need a <code>for</code>.</li>
+        <li><b>Need your own id on an input?</b> Then put the input inside the label: <code>&lt;Label For="..."&gt;&lt;InputText id="..." ... /&gt;&lt;/Label&gt;</code>. A label that wraps its input doesn't need a <code>for</code>. With the input beside the label instead, it breaks: your <code>id</code> replaces the generated one, but <code>&lt;Label For&gt;</code> still writes <code>for="Input_Company"</code>, which then matches nothing.</li>
         <li><b>The id follows the property path.</b> A nested field is <code>Input_Address_City</code>. A field in a list is <code>Input_Contacts[0]_Name</code>; escape the <code>[</code> and <code>]</code> if you use it in CSS.</li>
         <li><b>Inputs now render an id.</b> Check your CSS, scripts and test selectors for clashes with the new ids.</li>
         <li><b>Your own inputs</b> built on <code>InputBase&lt;T&gt;</code> should render <code>id="@@IdAttributeValue"</code>, so labels can find them.</li>

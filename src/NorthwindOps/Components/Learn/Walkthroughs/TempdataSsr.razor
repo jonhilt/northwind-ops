@@ -18,9 +18,20 @@
         say "Order … saved" once. These pages are static SSR: the server builds each page and remembers nothing
         between requests.
     </p>
-    <p>
-        This version uses the quick .NET 10 trick: it puts <code>?saved=…</code> in the address.
-    </p>
+    <p>This version uses the quick .NET 10 trick: it puts <code>?saved=…</code> in the address.</p>
+    <div class="fig">
+        <span class="fig-title">The .NET 10 pages</span>
+        <pre class="snip"><span class="dim">// The edit page, after saving</span>
+Navigation.NavigateTo(<span class="err">$"demo/tempdata/orders/net10?saved={Id}"</span>);
+
+<span class="dim">// The list</span>
+<span class="err">[SupplyParameterFromQuery] public int? Saved { get; set; }</span>
+
+@@if (Saved is not null)
+{
+    &lt;div class="flash" role="status"&gt;✓ Order @@Saved saved&lt;/div&gt;
+}</pre>
+    </div>
 
     <DemoFigure Number="1" Title="The list, with a flag in the URL" Url="demo/tempdata/orders/net10"
                 Label=".NET 10: a flag in the URL" Side="before">
@@ -33,10 +44,10 @@
     <h2><small>The problem</small>The message lives in the address</h2>
     <p>The list doesn't get a message from the save. It just reads the address:</p>
     <div class="fig">
-        <span class="fig-title">What the list sees</span>
-        <pre class="snip">POST /orders/11078   <span class="dim">→ 302 Location: /orders?saved=11078</span>
-GET  /orders?saved=11078   <span class="ok">✓ "Order 11078 saved"</span>
-GET  /orders?saved=11078   <span class="dim">(refresh)</span>   <span class="err">"Order 11078 saved" again</span>
+        <span class="fig-title">What the list sees, when you save order 12218 (paths shortened)</span>
+        <pre class="snip">POST /orders/12218   <span class="dim">→ 302 Location: /orders?saved=12218</span>
+GET  /orders?saved=12218   <span class="ok">✓ "Order 12218 saved"</span>
+GET  /orders?saved=12218   <span class="dim">(refresh)</span>   <span class="err">"Order 12218 saved" again</span>
 GET  /orders?saved=99999   <span class="dim">(a shared link)</span>   <span class="err">"Order 99999 saved", nothing saved</span></pre>
     </div>
     <p>
@@ -106,7 +117,7 @@ message = <span class="hl">TempData?.Get("flash")</span> as string;</pre>
     $"Order {Id} saved",
     new() { MaxAge = <span class="err">TimeSpan.FromSeconds(5)</span> });</pre>
                 <span class="why">the list reads it, then deletes it</span>
-                <div class="verdict ok">✓ shows once; but it's plain text anyone can fake, and a slow redirect can outlast 5 seconds</div>
+                <div class="verdict bad">✗ shows once, but it's plain text anyone can fake, and a slow redirect can outlast 5 seconds</div>
             </div>
             <div class="box">
                 <pre class="snip">[CascadingParameter] ITempData? TempData
@@ -116,8 +127,8 @@ message = <span class="hl">TempData?.Get("flash")</span> as string;</pre>
         </div>
     </div>
     <p>
-        The cookie works. Drop the <code>MaxAge</code> and encrypt the value, and it's safe. But every app had to
-        write that by hand.
+        The cookie comes closest. Encrypt the value and drop the <code>MaxAge</code>, and it's safe. But every app
+        had to write that by hand.
     </p>
 
     <h2><small>.NET 11</small>TempData, built in</h2>

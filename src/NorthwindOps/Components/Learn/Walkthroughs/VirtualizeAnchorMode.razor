@@ -16,7 +16,23 @@
     <p>
         Below is a support inbox. It loads 300 messages, #10900 to #11199, some of them long. Then a new one arrives
         every 2.5 seconds. The list is a plain <code>Virtualize</code> (it only renders the rows in view) in a 300px
-        box, as in .NET 10.
+        box. This is the .NET 10 code:
+    </p>
+    <div class="fig">
+        <span class="fig-title">The .NET 10 list</span>
+        <pre class="snip">&lt;div class="feed" style="height: 300px; overflow-y: auto"&gt;
+    <span class="err">&lt;Virtualize Items="messages" Context="m"&gt;</span>
+        ...
+    &lt;/Virtualize&gt;
+&lt;/div&gt;
+
+<span class="dim">// every 2.5 seconds</span>
+messages.Add(InboxMessage.Make(messages.Count));
+StateHasChanged();</pre>
+    </div>
+    <p>
+        The site runs on .NET 11, but a <code>Virtualize</code> without <code>AnchorMode</code> behaves just as it did
+        in .NET 10. So Fig. 1 shows the .NET 10 behaviour.
     </p>
     <DemoFigure Number="1" Title="The inbox, with a plain Virtualize" Url="demo/anchor-mode/inbox/net10"
                 Label=".NET 10: plain Virtualize" Side="before">
@@ -43,9 +59,7 @@
         <code>Virtualize</code> can't tell them apart, so it never scrolls.
     </p>
     <p>
-        Fig. 1 shows what .NET 10 does, but it's actually running on .NET 11. A <code>Virtualize</code> without
-        <code>AnchorMode</code> still does this. Upgrading
-        won't make an existing list follow its end. You have to opt in.
+        Upgrading to .NET 11 doesn't change this. An existing list won't follow its end until you opt in.
     </p>
 
     <h2><small>The fix</small>Anchor the list to its end</h2>
@@ -91,8 +105,9 @@
 
     <CodeFigure Number="5" Path="Components/Guide/Demos/AnchorMode/MessageFeedNet10.razor" Feature="virtualize-anchor-mode">
         <Caption>
-            Fig. 1's list: the same messages and the same timer, without <code>AnchorMode</code>. The small script it
-            calls only opens it at the newest message; nothing keeps it there.
+            Fig. 1's list: the same messages and the same timer, without <code>AnchorMode</code>. Its small script
+            runs once, to open the list at the newest message. It isn't the follow-the-end JavaScript below, and
+            nothing keeps the list at the bottom.
         </Caption>
     </CodeFigure>
 
@@ -134,8 +149,8 @@ if (atBottom) await JS.InvokeVoidAsync(
     <p>
         Fig. 2 uses <code>End</code>, for a list that grows at the bottom. <code>VirtualizeAnchorMode</code> has two
         other values. <code>Start</code> is the default. It's for lists with the newest item at the top: if you're at
-        the top when items are added there, they stay in view. It does nothing for items added at the end, which is why
-        Fig. 1 doesn't follow. <code>None</code> turns this off, so the list never scrolls by itself. You can also
+        the top when items are added there, they stay in view. It does nothing for items added at the end. That's why a list
+        without <code>AnchorMode</code>, like Fig. 1, still doesn't follow. <code>None</code> turns this off, so the list never scrolls by itself. You can also
         combine them: <code>Start | End</code> follows new items at whichever end you're at.
     </p>
 

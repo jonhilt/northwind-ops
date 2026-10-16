@@ -19,8 +19,20 @@
         in the markup is ignored.
     </p>
     <p>
-        This site runs .NET 11, where the bug is fixed. So Fig. 1 replays the exact markup a .NET 10 app produced, under
-        that policy. It's a <code>Virtualize</code> list of 1,000 orders, each 40px tall. Your browser blocks it the same way.
+        We built a small .NET 10 app with a <code>Virtualize</code> list of 1,000 test orders, each 40px tall, under
+        that policy. Here's the list it rendered:
+    </p>
+    <div class="fig">
+        <span class="fig-title">What .NET 10 rendered, and what the browser did with it</span>
+        <pre class="snip">&lt;div <span class="err">style="height: 0px; flex-shrink: 0;"</span>&gt;&lt;/div&gt;       <span class="err">refused</span>
+&lt;div class="row"&gt;Order #1&lt;/div&gt;
+<span class="dim">... Order #2 to #18 ...</span>
+&lt;div class="row"&gt;Order #19&lt;/div&gt;
+&lt;div <span class="err">style="height: 39240px; flex-shrink: 0;"</span>&gt;&lt;/div&gt;   <span class="err">refused: 0px</span></pre>
+    </div>
+    <p>
+        This site runs .NET 11, where the bug is fixed. So Fig. 1 serves that recorded markup, with the same policy.
+        The markup is recorded, but the blocking is live: your browser refuses the spacers right now.
     </p>
 
     <DemoFigure Number="1" Title="The order list, replayed from .NET 10" Url="demo/virtualize-csp/orders/net10"
@@ -34,16 +46,8 @@
     <p>
         <code>Virtualize</code> only renders the rows you can see. Above and below them it puts an empty
         <code>div</code>, called a spacer, as tall as the rows it stands in for. That's what lets you scroll. In
-        .NET 10, each spacer's height was an inline style:
+        .NET 10, each spacer's height was an inline style, as in the markup above.
     </p>
-    <div class="fig">
-        <span class="fig-title">What .NET 10 rendered, and what the browser did with it</span>
-        <pre class="snip">&lt;div <span class="err">style="height: 0px; flex-shrink: 0;"</span>&gt;&lt;/div&gt;       <span class="err">refused</span>
-&lt;div class="row"&gt;Order #1&lt;/div&gt;
-<span class="dim">... Order #2 to #18 ...</span>
-&lt;div class="row"&gt;Order #19&lt;/div&gt;
-&lt;div <span class="err">style="height: 39240px; flex-shrink: 0;"</span>&gt;&lt;/div&gt;   <span class="err">refused: 0px</span></pre>
-    </div>
     <p>
         The policy blocks both styles, so the spacers have no height. The list can scroll 760px when it needs
         40,000px. You can never reach Order #20. Nothing throws, and the page doesn't tell you why.
@@ -62,13 +66,15 @@
     <p>
         The height is now plain data. Blazor's script reads it and sets <code>element.style.height</code>. A CSP
         only blocks styles written in the markup, not ones set by script, so the height works. Here's a list on
-        .NET 11, under the same policy, using this app's real orders.
+        .NET 11, under the same policy. It isn't the 1,000 test orders: it's this app's own orders, so the count
+        differs.
     </p>
 
     <DemoFigure Number="2" Title="An order list on .NET 11, same policy" Url="demo/virtualize-csp/orders"
                 Label=".NET 11 · live">
         <Caption>
-            Scroll the list. It goes all the way to the oldest order. The policy is on here too: the line above
+            Scroll the list. It goes all the way to the oldest order. Orders are sorted by date, so their numbers
+            aren't always in order. The policy is on here too: the line above
             the list asks to be red, and it stays grey because the policy blocks it.
         </Caption>
     </DemoFigure>
@@ -77,7 +83,7 @@
 
     <CodeFigure Number="3" Path="Components/Guide/Demos/VirtualizeCsp/OrdersNet10.razor" Feature="virtualize-csp">
         <Caption>
-            Fig. 1: the markup the .NET 10 app produced, served with the same policy as Fig. 2. Highlighted: the two
+            Fig. 1: the markup the .NET 10 app produced, recorded, and served live with the same policy as Fig. 2. Highlighted: the two
             spacers your browser blocks.
         </Caption>
     </CodeFigure>

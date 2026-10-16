@@ -5,7 +5,7 @@
     <button @onclick="PostAsync" disabled="@posting">@(posting ? "Posting…" : "Post count")</button>
     <span data-posted>@(posting ? "Posting…" : Posted is null ? "Not posted" : $"Posted at {Posted}")</span>
 </div>
-<p class="ledger" data-ledger>The warehouse has this count @Times(StockLedger.Posts(Sheet))</p>
+<p class="ledger" data-ledger>@Ledger(StockLedger.Posts(Sheet))</p>
 
 @code {
     // Kept across a pause, like the counts.
@@ -33,7 +33,11 @@
     }
     // /xray:circuit-auto-pause
 
-    static string Times(int n) => n switch { 0 => "0 times", 1 => "once", 2 => "twice", _ => $"{n} times" };
+    static string Ledger(int n) => "The warehouse " + n switch
+    {
+        0 => "doesn't have this count yet.", 1 => "has this count once.",
+        2 => "has this count twice.", _ => $"has this count {n} times."
+    };
 
     // Raised from other circuits' threads. If this circuit has gone, there's nothing to redraw.
     async void Refresh()

@@ -19,13 +19,27 @@
         <code>sales@@</code>, so one press of Save breaks both rules.
     </p>
     <p>
-        This version is translated the .NET 10 way: each attribute points at its own translation in a resource
-        (a <code>.resx</code> file or a class of strings). One was missed, as often happens in real code. The
-        browser's own check is off, so every message you see comes from server validation, the part this page is
-        about.
+        In .NET 10 the only way to translate a message was on the attribute itself: each one points at its own
+        translation in a resource (a <code>.resx</code> file or a class of strings). An attribute with no setting
+        keeps its English message. Here, <code>[EmailAddress]</code> has none:
+    </p>
+    <div class="fig">
+        <span class="fig-title">The .NET 10 model the form posts</span>
+        <pre class="snip">[Required(ErrorMessageResourceType = typeof(Net10Messages), ErrorMessageResourceName = "Required")]
+[Display(ResourceType = typeof(Net10Messages), Name = "Company")]
+public string? Company { get; set; }
+
+[Required(ErrorMessageResourceType = typeof(Net10Messages), ErrorMessageResourceName = "Required")]
+<span class="err">[EmailAddress]</span>
+[Display(ResourceType = typeof(Net10Messages), Name = "Email")]
+public string? Email { get; set; } = "sales@@";</pre>
+    </div>
+    <p>
+        The browser's own check is off, so every message you see comes from server validation, the part this page
+        is about.
     </p>
 
-    <DemoFigure Number="1" Title="A resource on every attribute, and one missed" Url="demo/validation-localization/suppliers/new/net10?culture=de-DE"
+    <DemoFigure Number="1" Title="A translation set on each attribute" Url="demo/validation-localization/suppliers/new/net10?culture=de-DE"
                 Label=".NET 10: a resource on every attribute" Side="before">
         <Caption>
             Press <b>Lieferant speichern</b> (Save supplier). <b>Firma</b> says "Firma ist ein Pflichtfeld." in
@@ -34,17 +48,6 @@
     </DemoFigure>
 
     <h2><small>The problem</small>Each attribute translates itself</h2>
-    <p>Here's the model behind Fig. 1:</p>
-    <div class="fig">
-        <span class="fig-title">The model the form posts</span>
-        <pre class="snip">[Required(ErrorMessageResourceType = typeof(Net10Messages),
-          ErrorMessageResourceName = "Required")]          <span class="ok">✓ German</span>
-public string? Company { get; set; }
-
-[Required(ErrorMessageResourceType = ..., ErrorMessageResourceName = ...)]
-[EmailAddress]                                            <span class="err">✗ English</span>
-public string? Email { get; set; }</pre>
-    </div>
     <p>
         In .NET 10, Blazor validation never asks an <code>IStringLocalizer</code> for anything. Registering one with
         <code>AddLocalization()</code> doesn't help: plain attributes still answer in English, even on a German
@@ -55,7 +58,8 @@ public string? Email { get; set; }</pre>
     <h2><small>The fix</small>One localizer, keyed by rule name</h2>
     <p>
         Leave the attributes plain. Put one translation per rule type (<code>Required</code>,
-        <code>EmailAddress</code> and so on) in a single shared localizer.
+        <code>EmailAddress</code> and so on) in one localizer. This demo's is <code>SupplierMessages</code>, a
+        dictionary.
     </p>
     <div class="fig">
         <span class="fig-title">The whole fix</span>
@@ -66,21 +70,25 @@ public sealed class NewSupplierForm
     [Required, EmailAddress, Display(Name = "Email")] ...
 }
 
-<span class="dim">// ValidationMessages.de.resx: {0} is the field's display name</span>
-<span class="hl">RequiredAttribute_Error</span>      {0} ist ein Pflichtfeld.
-<span class="hl">EmailAddressAttribute_Error</span>  {0} ist keine gültige E-Mail-Adresse.
-Company                      Firma
+<span class="dim">// SupplierMessages: {0} is the field's display name</span>
+[<span class="hl">"RequiredAttribute_Error"</span>] = "{0} ist ein Pflichtfeld.",
+[<span class="hl">"EmailAddressAttribute_Error"</span>] = "{0} ist keine gültige E-Mail-Adresse.",
+["Company"] = "Firma",
 
-<span class="dim">// Program.cs</span>
-<span class="hl">builder.Services.AddLocalization();</span>
-<span class="hl">builder.Services.AddValidation(o =&gt;</span>
-<span class="hl">    o.LocalizerProvider = (_, f) =&gt; f.Create(typeof(ValidationMessages)));</span></pre>
+<span class="dim">// At startup, after AddLocalization() and AddValidation()</span>
+services.Configure&lt;ValidationOptions&gt;(options =&gt;
+{
+    var fallback = options.LocalizerProvider;
+    <span class="hl">options.LocalizerProvider = (type, factory) =&gt;</span>
+<span class="hl">        type == typeof(NewSupplierForm) ? messages : fallback(type, factory);</span>
+});</pre>
     </div>
     <p>
         Each key is the attribute's class name plus <code>_Error</code>. The field name that fills <code>{0}</code>
         is translated too: <code>[Display(Name = "Company")]</code> is looked up as <code>Company</code>, so the
-        message says "Firma". <code>LocalizerProvider</code> sends every model to the same file. One entry covers
-        that rule everywhere in the app, and there's no attribute left to forget.
+        message says "Firma". <code>LocalizerProvider</code> picks the localizer for each model. Here it sends
+        <code>NewSupplierForm</code> to <code>SupplierMessages</code>, and leaves every other model as it was. One
+        entry covers that rule on every field, and there's no attribute left to forget.
     </p>
     <p>
         You need both <code>AddValidation()</code> and <code>[ValidatableType]</code>, or the messages stay in
@@ -89,7 +97,7 @@ Company                      Firma
         model the form binds to, and the classes inside it are covered too. What's new in .NET 11 is that this
         validator now asks a localizer for its messages.
     </p>
-    <p>Here's the same form, using the plain model.</p>
+    <p>Here's the same form, posting <code>NewSupplierForm</code>: no message settings on any attribute.</p>
 
     <DemoFigure Number="2" Title="Plain attributes, one localizer" Url="demo/validation-localization/suppliers/new?culture=de-DE"
                 Label=".NET 11: one localizer">
@@ -111,8 +119,8 @@ Company                      Firma
     <CodeFigure Number="4" Path="Components/Guide/Demos/ValidationLocalization/ValidationLocalizationSetup.cs" Feature="validation-localization">
         <Caption>
             <code>ValidationOptions.LocalizerProvider</code> chooses the localizer for each model type. This demo only
-            sends Fig. 2's model to <code>SupplierMessages</code>, so the rest of this app is unaffected. In your app
-            you'd usually send every type to one shared localizer, as in the fix above.
+            sends Fig. 2's model to <code>SupplierMessages</code>, so the rest of this app is unaffected. In your own app
+            you could send every type to one shared localizer instead.
         </Caption>
     </CodeFigure>
 
@@ -139,7 +147,7 @@ Company                      Firma
   <span class="err">ErrorMessageResourceType</span> = typeof(Messages),
   <span class="err">ErrorMessageResourceName</span> = "Required")]</pre>
                 <span class="why">point every attribute at its own translation, as Fig. 1 does</span>
-                <div class="verdict bad">✗ two settings on every attribute, and any you miss stays English</div>
+                <div class="verdict bad">✗ two settings on every attribute, and any without them stays English</div>
             </div>
             <div class="box">
                 <pre class="snip">public class LocalizedRequiredAttribute

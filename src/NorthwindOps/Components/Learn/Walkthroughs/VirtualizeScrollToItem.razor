@@ -19,14 +19,25 @@
     </p>
     <p>
         This is the .NET 10 way: guess each message's height, work out a pixel position, and scroll there with a bit
-        of JavaScript. Message #300 is yellow.
+        of JavaScript:
     </p>
+    <div class="fig">
+        <span class="fig-title">The .NET 10 list</span>
+        <pre class="snip">&lt;Virtualize Items="messages" Context="m" <span class="err">ItemSize="120"</span>&gt;
+    ...
+&lt;/Virtualize&gt;
+
+<span class="dim">// once the list is on screen: guess that every message is 120px</span>
+await JS.InvokeVoidAsync("scrollToOffset", thread,
+    <span class="err">((Message ?? 1) - 1) * 120</span>);</pre>
+    </div>
+    <p>Here it is running. Message #300 is yellow.</p>
 
     <DemoFigure Number="1" Title="The thread, scrolled to an offset" Url="demo/scroll-to-item/incident/net10?message=300"
                 Label=".NET 10: scroll to an offset" Side="before">
         <Caption>
-            It has already missed. Only the yellow end of #300 shows at the top. Its header is above the box, out
-            of sight. Type <code>35</code> into <b>Jump to message #</b> and press <b>Go</b>: it lands a few messages
+            It has already missed. The box opens a few messages past #300, and the yellow message isn't in view.
+            Scroll up a little to find it. Then type <code>35</code> into <b>Jump to message #</b> and press <b>Go</b>: it lands a few messages
             past #35.
         </Caption>
     </DemoFigure>
@@ -61,12 +72,12 @@
     &lt;/Virtualize&gt;
 }
 
-<span class="dim">// Later, from a button, once the circuit has started (number is 1-based, like #35)</span>
+<span class="dim">// Later, from a button, once the circuit has started</span>
 <span class="hl">await list!.ScrollToItemAsync(number - 1);</span></pre>
     </div>
     <p>
-        <code>Message</code> is the <code>?message=300</code> from the link. <code>InitialItemIndex</code> and
-        <code>ScrollToItemAsync</code> both take an index that starts at 0, so message #300 is index 299. <code>Virtualize</code> draws the messages around it and puts that message at the
+        <code>Message</code> is the <code>?message=300</code> from the link. Messages are numbered from 1, but
+        indexes count from 0, so message #300 is index 299. That's the <code>- 1</code>. <code>Virtualize</code> draws the messages around it and puts that message at the
         top of the box. It measures the real message, so heights don't matter. Here's the same thread and link.
     </p>
 

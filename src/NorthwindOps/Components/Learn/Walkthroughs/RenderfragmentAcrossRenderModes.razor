@@ -24,16 +24,28 @@
         the card as a stand-in for something that does need C#, like tabs that load on demand or a dialog with its own
         state. What matters is the setup: an interactive component with static markup inside it.
     </p>
+    <p>Here's the page. The table sits between the card's tags:</p>
+    <div class="fig">
+        <span class="fig-title">The page</span>
+        <pre class="snip">&lt;h1&gt;Warehouse&lt;/h1&gt;
+
+&lt;Collapsible <span class="err">@@rendermode="InteractiveServer"</span> Title="Low stock"&gt;
+    <span class="err">&lt;p class="stamp"&gt;Queried at &lt;b&gt;@@queriedAt.ToString("HH:mm:ss")&lt;/b&gt;&lt;/p&gt;</span>
+    <span class="err">&lt;table class="quickgrid"&gt;</span>
+        ...
+    <span class="err">&lt;/table&gt;</span>
+&lt;/Collapsible&gt;</pre>
+    </div>
     <p>
-        The .NET 10 failure can't happen on .NET 11, so Fig. 1 replays what our .NET 10 build returned for the same
+        The .NET 10 failure can't happen on .NET 11, so Fig. 1 replays what our .NET 10 build returned for this
         page.
     </p>
 
     <DemoFigure Number="1" Title="The page, as .NET 10 ran it" Url="demo/static-content/low-stock/net10"
                 Label=".NET 10 · recorded" Side="before">
         <Caption>
-            This is a recording, so its buttons do nothing. It replays <code>GET /warehouse</code>, our .NET 10 copy of
-            the page in Fig. 3. The build gave no warnings.
+            A recording. Our .NET 10 app had the same page at <code>/warehouse</code>, so that's the request it
+            replays. The whole page fails with a 500. The build gave no warnings.
         </Caption>
     </DemoFigure>
 
@@ -54,26 +66,12 @@
     </p>
 
     <h2><small>The fix</small>Nothing to change</h2>
-    <p>The page that failed on .NET 10 now works. Pass markup to an interactive component as usual:</p>
-    <div class="fig">
-        <span class="fig-title">The whole page, in short</span>
-        <pre class="snip"><span class="hl">&lt;Collapsible @@rendermode="InteractiveServer" Title="Low stock"&gt;</span>
-    &lt;p&gt;Queried at @@queriedAt&lt;/p&gt;
-    &lt;table&gt;...&lt;/table&gt;
-<span class="hl">&lt;/Collapsible&gt;</span></pre>
-    </div>
+    <p>On .NET 11, the same page works. You don't change a line.</p>
     <p>
         .NET 11 doesn't send the code. The static page runs the fragment while it renders, keeps the markup it
         produced, and sends that to the card. The card then shows it like any other <code>ChildContent</code>.
+        Here's the same page, live on .NET 11.
     </p>
-    <div class="fig">
-        <span class="fig-title">What gets lost, without an error</span>
-        <pre class="snip">&lt;Collapsible @@rendermode="InteractiveServer" Title="Low stock"&gt;
-    &lt;button <span class="err">@@onclick="Reorder"</span>&gt;Reorder&lt;/button&gt;
-&lt;/Collapsible&gt;</pre>
-        <div class="verdict bad">✗ the button shows, but its click handler is dropped. Only a warning in the server log tells you. The same goes for <code>@@ref</code> and <code>@@formname</code>. Put buttons that run C# inside the interactive component, not in the markup you pass it.</div>
-    </div>
-    <p>Here's the same page, live on .NET 11.</p>
 
     <DemoFigure Number="2" Title="The same page, on .NET 11" Url="demo/static-content/low-stock"
                 Label=".NET 11 · live">
@@ -135,6 +133,7 @@
     <ul class="gk">
         <li><b>It must render the first time.</b> With <code>prerender: false</code>, or content inside an <code>@@if</code> that's false when the page renders, there's nothing to capture, and the page throws when it runs. The build can't catch this. That's why the card starts open.</li>
         <li><b>Only plain <code>RenderFragment</code> works.</b> A <code>RenderFragment&lt;T&gt;</code>, like a grid's row template, still throws, as in .NET 10.</li>
-        <li><b>Watch the size.</b> The captured markup is sent to the server when the circuit starts, packed in a form several times bigger than the HTML the visitor sees. The circuit runs on SignalR, which limits a message to 32 KB by default. This app's dashboard puts two tables in cards like this and went over it, so <code>Program.cs</code> raises <code>MaximumReceiveMessageSize</code> to 64 KB. A short table is fine; a long report isn't.</li>
+        <li><b>Button clicks in the content are dropped.</b> A <code>&lt;button @@onclick="Reorder"&gt;</code> inside the card's content shows, but clicking it does nothing. Only a warning in the server log tells you. The same goes for <code>@@ref</code> and <code>@@formname</code>. Put buttons that run C# inside the interactive component itself.</li>
+        <li><b>Watch the size.</b> The captured markup goes to the browser inside the page. When the circuit starts, the browser sends it back to the server, packed in a form several times bigger than the HTML the visitor sees. The circuit runs on SignalR, which limits a message to 32 KB by default. This app's dashboard puts two tables in cards like this and went over it, so <code>Program.cs</code> raises <code>MaximumReceiveMessageSize</code> to 64 KB. A short table is fine; a long report isn't.</li>
     </ul>
 </article>

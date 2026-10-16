@@ -19,6 +19,17 @@
         renders it first (that's "prerendering"), then it starts running in the browser.
     </p>
     <p>
+        Here's the code. The page prerenders the invoice, and the invoice formats its numbers the plain way:
+    </p>
+    <div class="fig">
+        <span class="fig-title">The page, and the invoice component</span>
+        <pre class="snip">&lt;InvoiceSummary Lines="lines" Due="due" @@rendermode="InteractiveWebAssembly" /&gt;
+
+<span class="dim">// InvoiceSummary.razor</span>
+&lt;th&gt;<span class="err">@@Total.ToString("N2")</span>&lt;/th&gt;
+&lt;p&gt;Payment due &lt;b&gt;<span class="err">@@Due.ToString("D")</span>&lt;/b&gt;&lt;/p&gt;</pre>
+    </div>
+    <p>
         The browser has its own language, and it may not be German. Fig. 1 shows what happened on .NET 10 in an English
         browser. It's a recording, because this app runs .NET 11.
     </p>
@@ -27,8 +38,10 @@
                 Label=".NET 10 · recorded" Side="before">
         <Caption>
             A recording, one row per moment. The server sent <b>1.234,56</b> and <b>Freitag</b>. Once WebAssembly
-            started, the same invoice said <b>1,234.56</b> and <b>Friday</b>. The last row passed the culture in as a
-            parameter: the total stayed German, but the date still turned English.
+            started, it used the browser's culture, <b>en-US</b>, and the same invoice said <b>1,234.56</b> and
+            <b>Friday</b>. The last row is a workaround: the page passed "de-DE" in as a parameter. WebAssembly still
+            ran in en-US, but the total was formatted with the culture passed in, so it stayed German. The date
+            wasn't, so it turned English.
         </Caption>
     </DemoFigure>
 
@@ -92,10 +105,10 @@ app.UseRequestLocalization(...);
 
     <CodeFigure Number="5" Path="Components/Guide/Demos/WasmCulture/WasmCultureSetup.cs" Feature="wasm-culture-from-server">
         <Caption>
-            You don't need this file for the fix. It's a small helper this demo wrote. It sets
-            <code>Components:UseCultureFromServer</code> to <code>"true"</code>, which is already the case because the
-            app calls <code>AddLocalization()</code>. You'd only set that yourself to turn the feature off. Or to turn
-            it on, in an app that doesn't call <code>AddLocalization()</code>.
+            The setting behind the fix, <code>Components:UseCultureFromServer</code>. This demo sets it to
+            <code>"true"</code> to show it, but it's already on because the app calls <code>AddLocalization()</code>.
+            You'd only set it yourself to turn the feature off, or to turn it on in an app without
+            <code>AddLocalization()</code>.
         </Caption>
     </CodeFigure>
 

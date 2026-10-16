@@ -18,23 +18,36 @@
     <p>
         Below is a <i>Recent orders</i> list that runs in the browser. It gets its API address with
         <code>Config["Orders:ApiUrl"]</code>. The build's <code>wwwroot/appsettings.json</code> points at a staging
-        server that doesn't exist. The real server knows the right address. It sends it with the page as
-        <code>Orders__ApiUrl</code>, a value that .NET in the browser treats as an environment variable.
+        server that doesn't exist. The right address is <code>demo/env-config/api/orders</code>, on this server, and
+        only the server knows it.
     </p>
     <p>
-        That value is <code>demo/env-config/api/orders</code>. It's a relative path, so the browser treats it as
-        "this server's orders API".
+        In .NET 10 the server had no C# way to pass it on. You wrote a start-up script yourself, which sent it to the
+        browser as an environment variable, <code>Orders__ApiUrl</code>:
     </p>
+    <div class="fig">
+        <span class="fig-title">.NET 10: the server's script, and the client's read</span>
+        <pre class="snip"><span class="dim">&lt;!-- App.razor, on the server --&gt;</span>
+&lt;script src="_framework/blazor.web.js" autostart="false"&gt;&lt;/script&gt;
+&lt;script&gt;
+  Blazor.start({ webAssembly: {
+    configureRuntime: dotnet =&gt;
+      dotnet.withEnvironmentVariable("Orders__ApiUrl", "@@apiUrl") } });
+&lt;/script&gt;
+
+<span class="dim">// The client component</span>
+<span class="err">apiUrl = Config["Orders:ApiUrl"];</span></pre>
+    </div>
     <p>
-        .NET 11 changed how WebAssembly apps read these values, so the .NET 10 version can't run live. Fig. 1 replays what a real .NET 10 app
-        did when its server sent the same variable.
+        .NET 11 changed how WebAssembly apps read these values, so this can't run live. Fig. 1 replays what a real
+        .NET 10 app did.
     </p>
 
     <DemoFigure Number="1" Title="The list on .NET 10" Url="demo/env-config/orders/net10"
                 Label=".NET 10 · recorded" Side="before">
         <Caption>
-            A recording, not a live run. The list called the staging URL and failed to load. The table shows why: the
-            server's value arrived (<b>Variable</b>), but <b>Config[key]</b> still gave the file's staging URL.
+            A recording, not a live run. The script's value reached the browser (<b>Variable</b>), but
+            <b>Config[key]</b> still gave the file's staging URL. So the list called staging and failed to load.
         </Caption>
     </DemoFigure>
 
@@ -48,8 +61,7 @@
     </div>
     <p>
         The variable did reach the app. <code>Environment.GetEnvironmentVariable</code> could see it. But
-        <code>IConfiguration</code>, where the rest of the app looks for settings, only saw the file. And the server
-        could only send the variable from a hand-written <code>Blazor.start</code> script. There was no C# way.
+        <code>IConfiguration</code>, where the rest of the app looks for settings, only saw the file.
     </p>
 
     <h2><small>The fix</small>Set it in C#, read it as a setting</h2>
@@ -104,7 +116,7 @@ apiUrl = Config["Orders:ApiUrl"];</pre>
     </CodeFigure>
 
     <h2><small>The .NET 10 way</small>A file per server, or a script and a package</h2>
-    <p>In .NET 10, people tried three things to let the server choose. Only the last one worked:</p>
+    <p>In .NET 10 there were three things to try:</p>
     <div class="fig">
         <span class="fig-title">.NET 10 workarounds, and what they cost</span>
         <div class="flow">
@@ -137,8 +149,8 @@ builder.Configuration
         </div>
     </div>
     <p>
-        So it worked, but only with a script on the server, plus <code>AddEnvironmentVariables()</code> and its
-        package in the client. There was no <code>BrowserOptions</code> to do it in C#.
+        Only the last one let the server choose. It took a script you wrote yourself on the server, plus
+        <code>AddEnvironmentVariables()</code> and its package in the client.
     </p>
 
     <h2><small>.NET 11</small>A server setting, read like any other</h2>

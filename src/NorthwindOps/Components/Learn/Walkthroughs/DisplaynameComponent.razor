@@ -109,7 +109,7 @@ Contact    Main contact     Hauptansprechpartner</pre>
     <ul class="gk">
         <li><b>Why <code>HeaderTemplate</code>?</b> <code>Title</code> only takes a string, and <code>DisplayName</code> is a component.</li>
         <li><b>A <code>HeaderTemplate</code> drops QuickGrid's sort button.</b> On a sortable column, wrap the name in your own <code>&lt;button @@onclick="() =&gt; context.Grid.SortByColumnAsync(context)"&gt;</code>.</li>
-                <li><b>It reads attributes, not <code>IStringLocalizer</code>.</b> To translate, use <code>[Display(ResourceType = ...)]</code>, as this model does.</li>
+        <li><b>It reads attributes, not <code>IStringLocalizer</code>.</b> To translate, use <code>[Display(ResourceType = ...)]</code>, as this model does.</li>
         <li><b>If there's no <code>[Display]</code></b>, it falls back to <code>[DisplayName]</code>, then to the property name.</li>
     </ul>
 </article>

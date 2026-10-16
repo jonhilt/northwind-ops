@@ -16,8 +16,16 @@
 
     <p>
         Picture a deploy. Before the server restarts, a script asks every open tab to pause, so each tab saves its
-        half-filled form and picks up again on the new server. The script goes through the tabs one at a time:
+        half-filled form and picks up again on the new server. In .NET 10 there's no server method for that, so
+        server code calls the browser's own pause function:
     </p>
+    <div class="fig">
+        <span class="fig-title">The .NET 10 way to ask, from the order form in Fig. 3</span>
+        <pre class="snip"><span class="dim">// .NET 10: no server API, so call the browser's own pause function.</span>
+<span class="err">await JS.InvokeVoidAsync("Blazor.pauseCircuit");</span>
+Board.Answered(id, "paused");</pre>
+    </div>
+    <p>The deploy script asks the tabs this way, one at a time:</p>
 
     <figure class="fig anim" data-anim>
         <figcaption class="fig-title">Fig. 1 · .NET 10: a deploy script asks three tabs to pause</figcaption>
@@ -121,7 +129,8 @@ public override Task OnCircuitOpenedAsync(Circuit circuit, CancellationToken can
 
     <CodeFigure Number="4" Path="Components/Guide/Demos/CircuitPause/CircuitTracker.cs" Feature="server-initiated-circuit-pause">
         <Caption>
-            Where the circuit comes from. Nothing highlighted here is new: circuit handlers have always been given
+            Where the circuit comes from. The highlighted lines keep each tab's <code>Circuit</code>, so Fig. 3 can
+            call <code>RequestCircuitPauseAsync</code> on it. They aren't new: circuit handlers have always been given
             their <code>Circuit</code>. Each tab gets its own tracker, so it never sees another visitor's tab.
         </Caption>
     </CodeFigure>
@@ -147,7 +156,8 @@ public override Task OnCircuitOpenedAsync(Circuit circuit, CancellationToken can
 window.remotePause =
     () =&gt; { Blazor.pauseCircuit(); };</pre>
                 <span class="why">called from server code, it returns before the circuit closes; the tab pauses with its data</span>
-                <div class="verdict bad">✗ works, but it's a script to ship, and you don't learn whether the tab was asked</div>
+                <div class="verdict ok">✓ works</div>
+                <div class="verdict bad">✗ but it's a script to ship, and you don't learn whether the tab was asked</div>
             </div>
         </div>
     </div>

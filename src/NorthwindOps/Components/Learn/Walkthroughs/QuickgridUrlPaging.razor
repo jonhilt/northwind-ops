@@ -17,6 +17,17 @@
         Below is a products grid on a static page, with sortable columns and a pager. We asked it for
         <code>?sort=Price&amp;direction=desc&amp;page=2</code>: page 2, highest price first.
     </p>
+    <p>Here's the .NET 10 page. It's a normal grid, with no render mode:</p>
+    <div class="fig">
+        <span class="fig-title">The .NET 10 page</span>
+        <pre class="snip">@@page "/static"
+&lt;QuickGrid Items="Product.All" Pagination="pagination"&gt;
+    &lt;PropertyColumn Title="Product" Property="p =&gt; p.Name" <span class="err">Sortable="true"</span>
+                    IsDefaultSortColumn="true" /&gt;
+    &lt;PropertyColumn Title="Price" Property="p =&gt; p.UnitPrice" <span class="err">Sortable="true"</span> /&gt;
+&lt;/QuickGrid&gt;
+<span class="err">&lt;Paginator State="pagination" /&gt;</span></pre>
+    </div>
     <p>
         The old grid can't run in this app, so Fig. 1 replays what .NET 10 sent back. It uses its own sample
         products, so its rows won't match Fig. 2. Compare what each grid does with the URL, not the rows.
@@ -44,9 +55,13 @@
     </p>
 
     <h2><small>The fix</small>Upgrade. That's it.</h2>
-    <p>There's nothing to turn on. A normal QuickGrid and Paginator on a static page is the whole fix:</p>
+    <p>
+        You don't change any code. On .NET 11, the same grid reads <code>sort</code>, <code>direction</code> and
+        <code>page</code> from the URL. Each sortable header and pager arrow becomes a link, so a click just loads a
+        new URL.
+    </p>
     <div class="fig">
-        <span class="fig-title">The whole fix: the grid you'd write anyway</span>
+        <span class="fig-title">The .NET 11 demo: the same grid code</span>
         <pre class="snip">@@page "/demo/grid-url/products"
 <span class="dim">@@* no @@rendermode, so the page is static SSR *@@</span>
 
@@ -57,16 +72,17 @@
 &lt;Paginator State="pagination" /&gt;</pre>
     </div>
     <p>
-        In .NET 11, QuickGrid reads <code>sort</code>, <code>direction</code> and <code>page</code> from the URL.
-        Each sortable header and pager arrow is a link to the next view. A click just loads a new URL.
-        <code>sort=Price</code> picks the column whose <code>Title</code> is Price. Here's the same URL on .NET 11.
+        The highlighted parts aren't new. They're just how a column takes part: <code>Sortable="true"</code> lets
+        you sort by it, and <code>sort=Price</code> in the URL picks the column whose <code>Title</code> is Price.
+        Here's the same URL on .NET 11.
     </p>
 
     <DemoFigure Number="2" Title="The same query string, on .NET 11" Url="demo/grid-url/products?sort=Price&direction=desc&page=2"
                 Label=".NET 11 · live" Side="after">
         <Caption>
-            This time the grid follows the URL: page 2, highest price first. Click <b>Price</b> or <b>‹</b> and watch
-            the address change. Press <b>⟳</b> and you stay on the same view.
+            This time the grid follows the URL: page 2, highest price first. Click <b>‹</b> to go back to page 1,
+            or click <b>Price</b> to flip the order, and watch the address change. Press <b>⟳</b> and you stay on the
+            same view.
         </Caption>
     </DemoFigure>
 

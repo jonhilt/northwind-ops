@@ -19,9 +19,17 @@
     </p>
     <p>
         A WebAssembly component is rendered on the server first (prerendered), then starts again in the browser. This
-        version of the panel asks <code>IWebAssemblyHostEnvironment</code> for the environment, the way .NET 10 apps
-        did.
+        version of the panel asks for the environment the way .NET 10 apps did:
     </p>
+    <div class="fig">
+        <span class="fig-title">The .NET 10 debug panel</span>
+        <pre class="snip"><span class="err">@@inject IWebAssemblyHostEnvironment Env</span>
+
+@@if (!Env.IsProduction())
+{
+    &lt;aside class="debug"&gt;Environment: @@Env.Environment&lt;/aside&gt;
+}</pre>
+    </div>
 
     <DemoFigure Number="1" Title="The page, with the .NET 10 debug panel" Url="demo/environment-view/orders/net10"
                 Label=".NET 10: IWebAssemblyHostEnvironment" Side="before">
@@ -134,7 +142,8 @@ IHostEnvironment              <span class="ok">✓</span>                   <spa
     <p>
         The second option now works, without the package: one <code>@@inject</code> line that both the server and the browser can supply.
         <code>&lt;EnvironmentView&gt;</code> replaces the <code>if</code>: list environments in <code>Include</code>
-        or <code>Exclude</code>. Fig. 5 uses both.
+        or <code>Exclude</code>. Fig. 5's page has one of each: <code>Exclude</code> for its banner and
+        <code>Include</code> for its warning.
     </p>
 
     <h2><small>Good to know</small></h2>

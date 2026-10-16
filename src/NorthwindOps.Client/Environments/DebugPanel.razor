@@ -4,7 +4,7 @@
 *@
 @using Microsoft.Extensions.Hosting
 @* xray:environment-view *@
-@* The fix: workaround 2's line, but .NET 11 registers it in WebAssembly, with no extra package. *@
+@* The fix: IHostEnvironment. .NET 11 registers it in WebAssembly too, with no extra package. *@
 @inject IHostEnvironment Env
 @* /xray:environment-view *@
 

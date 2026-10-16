@@ -16,8 +16,19 @@
 
     <p>
         Below is a <i>Stock by category</i> page. Its report takes 1.5 seconds, so it caches its data for 10
-        seconds with <code>IMemoryCache</code>, the usual .NET 10 approach. <b>Page rendered at</b> shows when the
-        page was built. <b>Figures calculated at</b> shows when the report last ran.
+        seconds with <code>IMemoryCache</code>, the usual .NET 10 approach:
+    </p>
+    <div class="fig">
+        <span class="fig-title">The .NET 10 report's own cache</span>
+        <pre class="snip"><span class="err">report = (await Cache.GetOrCreateAsync("stock-report", async entry =&gt;</span>
+{
+    entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(10);
+    <span class="err">return new Report(await StockQuery.RunAsync(DbFactory), DateTime.Now);</span>
+}))!;</pre>
+    </div>
+    <p>
+        In the demo, <b>Page rendered at</b> shows when the page was built. <b>Figures calculated at</b> shows when
+        the report last ran.
     </p>
     <p>
         The <b>Five visitors at once</b> button waits for the cached figures to expire, then sends five requests at
@@ -25,7 +36,7 @@
         shows how many those five ran.
     </p>
 
-    <DemoFigure Number="1" Title="The report caches its own data" Url="demo/cacheview/stock/net10"
+    <DemoFigure Number="1" Title="The report's own cache, with five visitors at once" Url="demo/cacheview/stock/net10"
                 Label=".NET 10: IMemoryCache in the component" Side="before">
         <Caption>
             Press <b>Five visitors at once</b>. You'll see <b>5 visitors, 5 queries ran</b>: every visitor ran the
@@ -114,16 +125,11 @@ visitor 5  GetOrCreateAsync("stock-report")  <span class="err">miss → runs the
         </div>
     </div>
     <p>
-        <code>HybridCache</code> does fix the five-queries problem. It's in .NET 9 and later, in the
-        <code>Microsoft.Extensions.Caching.Hybrid</code> package. Its <code>GetOrCreateAsync</code> makes the other
-        visitors wait for the first query. But it still caches data, not HTML. The component is still created and
-        rendered every time, and the key and expiry still live in the component.
+        <code>HybridCache</code> (.NET 9 and later, in its own package) would stop the five queries: it makes the
+        other visitors wait for the first. But it's still a data cache. The component is still created and draws its
+        table on every request, and the caching code still lives inside it. CacheView fixes all of that from the
+        page.
     </p>
-    <div class="fig">
-        <span class="fig-title">CacheView in a .NET 10 project</span>
-        <pre class="snip">&lt;CacheView ExpiresAfter="TimeSpan.FromSeconds(10)"&gt;</pre>
-        <div class="verdict bad">✗ not a build error: only warning RZ10012, "unexpected name 'CacheView'". The page sends a literal <code>&lt;CacheView&gt;</code> tag to the browser and stays slow on every request.</div>
-    </div>
 
     <h2><small>.NET 11</small>Cache the HTML, not the data</h2>
     <p>

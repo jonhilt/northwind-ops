@@ -17,18 +17,28 @@
         Below is a long support thread. Some messages are one line. Others are long emails. Long messages are cut
         to three lines at first. Each has a <b>Show more</b> button, and <b>Expand all</b> above the list opens them all.
     </p>
+    <p>Here's the list. It's plain <code>Virtualize</code>, with nothing new:</p>
+    <div class="fig">
+        <span class="fig-title">The list, in .NET 10 and .NET 11 alike</span>
+        <pre class="snip">&lt;div class="thread"&gt;   <span class="dim">@@* height: 440px; overflow-y: auto *@@</span>
+    <span class="err">&lt;Virtualize Items="messages" Context="m" ItemSize="80"&gt;</span>
+        &lt;article class="msg"&gt;...&lt;/article&gt;
+    &lt;/Virtualize&gt;
+&lt;/div&gt;</pre>
+    </div>
     <p>
         On .NET 10, this list made the scrollbar jump, and expanding a message moved the page. .NET 11 fixed that
-        inside <code>Virtualize</code>, so the old behaviour can't run on this site. Fig. 1 is a
-        video of the same <code>Virtualize</code> markup running on .NET 10.
+        inside <code>Virtualize</code>, so the old behaviour can't run on this site. Fig. 1 is a video of a small
+        .NET 10 app with this markup. Its thread is a stand-in: 420 messages, one-line <b>sync-bot</b> log entries
+        mixed with long emails from <b>Dana</b>.
     </p>
 
     <DemoFigure Number="1" Title="The thread on .NET 10, recorded" Url="demo/variable-height/incident/net10"
                 Label=".NET 10 · recorded" Side="before">
         <Caption>
-            Just watch. The video scrolls down the list, then presses <b>Expand all</b>. The scrollbar keeps
-            jumping, which is hard to see on video, so the bar at the bottom measures it: the list's height swings by
-            <b>13,191px</b>. Then Expand all shoves the message being read <b>274px</b> down.
+            Just watch. The video scrolls down the list, then presses <b>Expand all</b>. The scrollbar jumps, which
+            is hard to see on video. The line under the video gives the measured numbers: while scrolling, the
+            list's height swung by <b>13,191px</b>. Then Expand all pushed the message being read <b>274px</b> down.
         </Caption>
     </DemoFigure>
 
@@ -54,30 +64,22 @@ scroll on: log lines again   <span class="dim">small average</span>  → range <
     </p>
 
     <h2><small>The fix</small>Same code, on .NET 11</h2>
-    <p>There's no new API. Put the list in a scrolling box with a height, and let messages be their natural size.</p>
-    <div class="fig">
-        <span class="fig-title">The whole list</span>
-        <pre class="snip">&lt;div class="thread"&gt;   <span class="dim">@@* height: 440px; overflow-y: auto *@@</span>
-    &lt;Virtualize Items="messages" Context="m" ItemSize="80"&gt;
-        &lt;article class="msg"&gt;...&lt;/article&gt;
-    &lt;/Virtualize&gt;
-&lt;/div&gt;</pre>
-    </div>
     <p>
-        This is the same markup as in .NET 10. <code>ItemSize</code> is now just a first guess.
+        There's no new API. Keep the markup above: a scrolling box with a height, and messages at their natural
+        size. <code>ItemSize</code> is now just a first guess.
         .NET 11 averages every item it has measured so far, so the size settles down. It also leaves the browser's
-        "keep my place" feature on, so what you're reading stays put. Here's the same thread, live.
+        "keep my place" feature on, so what you're reading stays put. Here's the list live, on this site's real support thread.
     </p>
 
-    <DemoFigure Number="2" Title="The same thread, live on .NET 11" Url="demo/variable-height/incident"
+    <DemoFigure Number="2" Title="The list, live on .NET 11" Url="demo/variable-height/incident"
                 Label=".NET 11 · live">
         <Caption>
-            Scroll the list down and back up. The bar under it measures the same thing as Fig. 1: the height
-            barely moves. Then, part way down, press <b>Expand all</b>. The message at the top stays where it is.
+            Scroll the list down and back up. The numbers under it measure the same thing as Fig. 1: the
+            height barely moves. Then, part way down, press <b>Expand all</b>. The message at the top stays where it is.
         </Caption>
     </DemoFigure>
 
-    <p>Both figures use the same <code>Virtualize</code> markup. Here's Fig. 2's:</p>
+    <p>Both figures use the same <code>Virtualize</code> markup. Here's Fig. 2's page in full:</p>
 
     <CodeFigure Number="3" Path="Components/Guide/Demos/VariableHeight/IncidentThread.razor" Feature="virtualize-variable-height">
         <Caption>
@@ -118,8 +120,8 @@ scroll on: log lines again   <span class="dim">small average</span>  → range <
         above you moves what you're reading by about 1px. That's what Fig. 2 shows.
     </p>
     <p>
-        If you used fixed heights, keep <code>ItemSize</code> but drop the rest: the fixed-height box, its
-        <code>overflow: hidden</code> and the dialog. Let messages be their natural size.
+        If you used fixed heights, drop the fixed-height box, its <code>overflow: hidden</code> and the dialog. Let
+        messages be their natural size. You can leave <code>ItemSize</code> in place: it becomes the first guess.
     </p>
     <p>
         <b>One thing changes when you upgrade:</b> more items render. <code>OverscanCount</code> now defaults to 15

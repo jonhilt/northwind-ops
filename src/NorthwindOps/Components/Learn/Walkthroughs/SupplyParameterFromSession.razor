@@ -19,15 +19,29 @@
     </p>
     <p>
         The page is static SSR: the server remembers nothing between requests. The quick .NET 10 answer is to carry
-        step 1's numbers into step 2 as hidden form fields. That's what this page does.
+        step 1's numbers into step 2 as hidden form fields. That's what this page does:
     </p>
+    <div class="fig">
+        <span class="fig-title">The .NET 10 page: step 2 and its Send handler</span>
+        <pre class="snip">@@foreach (var (id, packs) in draft)
+{
+    &lt;div&gt;@@packs packs of @@Name(id)&lt;/div&gt;
+    <span class="err">&lt;input type="hidden" name="Draft[@@id]" value="@@packs" /&gt;</span>
+}
+&lt;button type="submit"&gt;Send to supplier&lt;/button&gt;
+
+<span class="err">[SupplyParameterFromForm(FormName = "restock-send")]</span>
+<span class="err">public Dictionary&lt;int, int&gt;? Draft { get; set; }</span></pre>
+    </div>
 
     <DemoFigure Number="1" Title="Two steps, carried in hidden fields" Url="demo/session/restock/net10"
                 Label=".NET 10: hidden fields" Side="before">
         <Caption>
-            Enter some quantities and press <b>Review order →</b>. Then press <b>⟳</b> above the frame. You're back
-            on an empty step 1. Review again and press <b>Send with one hidden field edited to 9999</b>. That's
-            what anyone can do in DevTools. It sends 9999 packs, past step 1's 99-pack limit.
+            <b>1.</b> Enter some quantities and press <b>Review order →</b>. Then press <b>⟳</b> above the frame.
+            You're back on an empty step 1. The draft is lost.
+            <br /><b>2.</b> Enter quantities and review again. This time press <b>Send with one hidden field edited to
+            9999</b>, which is what anyone can do in DevTools. The order goes out with 9999 packs, past step 1's
+            99-pack limit.
         </Caption>
     </DemoFigure>
 
@@ -75,7 +89,8 @@ Navigation.NavigateTo("demo/session/restock/review");</pre>
         <Caption>
             Enter some quantities and press <b>Review order →</b>. Press <b>⟳</b> above the frame, or
             <b>← Change quantities</b>. Your numbers are still there. Review again and press
-            <b>Send to supplier</b>. The draft is gone, and step 1 is empty again.
+            <b>Send to supplier</b>. It says "Sent to the supplier". The order is done, so the page clears the
+            draft on purpose.
         </Caption>
     </DemoFigure>
 

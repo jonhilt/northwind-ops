@@ -26,7 +26,7 @@
     List<Order> orders = [];
 
     // xray:tempdata-ssr
-    // .NET 10: EditOrderNet10 redirects here with ?saved=11078. The flag stays in the
+    // .NET 10: EditOrderNet10 redirects here with ?saved={Id}. The flag stays in the
     // address, so a refresh, a bookmark or a shared link shows "saved" again.
     [SupplyParameterFromQuery] public int? Saved { get; set; }
     // /xray:tempdata-ssr

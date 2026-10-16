@@ -26,8 +26,21 @@
     <p>
         The catch is when to pause. Here's a stock take. Posting the count to the warehouse takes 20 seconds. The user
         presses <b>Post count</b>, switches to another tab, and comes back 30 seconds later. In .NET 10 you pause a
-        hidden tab with a script of your own. This one pauses after the tab has been hidden for 10 seconds:
+        hidden tab with a script of your own. This one pauses once the tab has been hidden for 10 seconds:
     </p>
+    <div class="fig">
+        <span class="fig-title">The .NET 10 pause script</span>
+        <pre class="snip">document.addEventListener("visibilitychange", async () =&gt; {
+  clearTimeout(timer);
+  if (document.hidden) {
+    <span class="err">timer = setTimeout(async () =&gt;
+      paused = await Blazor.pauseCircuit(), 10_000);</span>
+  } else if (paused) {
+    paused = !await Blazor.resumeCircuit();
+  }
+});</pre>
+    </div>
+    <p>It doesn't check whether anything is still running. Here's what that does to the stock take:</p>
 
     <figure class="fig anim" data-anim>
         <figcaption class="fig-title">Fig. 1 · .NET 10: the user posts the count, then hides the tab for 30 seconds</figcaption>
@@ -57,7 +70,8 @@
                 Label=".NET 10: your own pause script" Side="before">
         <Caption>
             Press <b>Post count</b>, switch to another tab for about 30 seconds, then come back. It says
-            <b>Not posted</b>, but the line under it says the warehouse has the count.
+            <b>Not posted</b>, but the line under it says the warehouse has the count. The line at the top says
+            the tab was paused for about 20 seconds.
         </Caption>
     </DemoFigure>
 
@@ -113,8 +127,8 @@
                 Label=".NET 11: AutoPause">
         <Caption>
             Press <b>Post count</b>, switch to another tab for about 30 seconds, then come back. This
-            time it says <b>Posted at</b> a time. The line at the top says the tab was paused for about 10 seconds,
-            not 20, because it waited for the post.
+            time it says <b>Posted at</b> a time. The line at the top says the tab was paused for about 10
+            seconds, not 20 as in Fig. 2. It paused later, once the post was done.
         </Caption>
     </DemoFigure>
 
@@ -142,7 +156,7 @@
     </CodeFigure>
 
     <h2><small>The .NET 10 way</small>Leave it, or pause it yourself</h2>
-    <p>We tried both on .NET 10, with a page that keeps a count and a note in <code>[PersistentState]</code>:</p>
+    <p>We tried both on .NET 10, on this stock take and on a page where the user is typing a note:</p>
     <div class="fig">
         <span class="fig-title">Two ways to handle a hidden tab in .NET 10, and what happened</span>
         <div class="flow">
@@ -156,13 +170,12 @@
 <span class="hl">Blazor.pauseCircuit()</span></pre>
                 <span class="why">pause it yourself once the tab has been hidden a while</span>
                 <div class="verdict ok">✓ freed the circuit; the count and note came back on a new one</div>
-                <div class="verdict bad">✗ paused mid-typing: the part of the note the server hadn't seen was lost</div>
+                <div class="verdict bad">✗ paused whatever was going on: a post still running, as in Fig. 2, or a half-typed note, whose unsent part was lost</div>
             </div>
         </div>
     </div>
     <p>
-        The script works, but it pauses whatever the user is doing: typing a note, or waiting on a click.
-        Checking for that was up to you.
+        The script frees the circuit, but it pauses whatever the user is doing. Checking for that was up to you.
     </p>
 
     <h2><small>.NET 11</small>A pause that waits its turn</h2>

@@ -38,7 +38,7 @@ public class WasmHostedServicesDemoTests(AppFactory app) : IClassFixture<AppFact
         // Each row names the panel or workaround it stands for.
         Assert.Matches(Row("Timer in the page", "this bell", "5", "gone", "1"), html);
         Assert.Matches(Row("AddHostedService", "the .NET 11 line", "0", "0", "0"), html);
-        Assert.Matches(Row("Started by hand", "workaround 2", "5", "8", "10"), html);
+        Assert.Matches(Row("Started by hand", "StartAsync in Program.cs", "5", "8", "10"), html);
     }
 
     static Regex Row(string name, string role, params string[] cells) =>
