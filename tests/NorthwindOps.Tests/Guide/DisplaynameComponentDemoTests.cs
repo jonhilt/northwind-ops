@@ -19,9 +19,9 @@ public partial class DisplaynameComponentDemoTests(AppFactory app) : IClassFixtu
     }
 
     [Fact]
-    public async Task In_English_only_the_untitled_column_misses_the_model()
+    public async Task In_English_both_grids_show_the_model_names()
     {
-        Assert.Equal(["Supplier code", "Company name", "Contact"],
+        Assert.Equal(["Supplier code", "Company name", "Main contact"],
             await HeadersAsync("/demo/displayname/suppliers/net10"));
         Assert.Equal(["Supplier code", "Company name", "Main contact"],
             await HeadersAsync("/demo/displayname/suppliers"));
@@ -30,7 +30,7 @@ public partial class DisplaynameComponentDemoTests(AppFactory app) : IClassFixtu
     [Fact]
     public async Task Only_DisplayName_headers_follow_the_model_into_German()
     {
-        Assert.Equal(["Supplier code", "Company name", "Contact"],
+        Assert.Equal(["Supplier code", "Company name", "Main contact"],
             await HeadersAsync("/demo/displayname/suppliers/net10?culture=de-DE"));
         Assert.Equal(["Lieferantencode", "Firmenname", "Hauptansprechpartner"],
             await HeadersAsync("/demo/displayname/suppliers?culture=de-DE"));

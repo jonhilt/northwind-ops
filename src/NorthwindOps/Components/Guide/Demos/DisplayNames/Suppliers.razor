@@ -2,13 +2,13 @@
 @layout DemoLayout
 @inject IDbContextFactory<NorthwindDb> DbFactory
 
-@* Deutsch adds ?culture=de-DE, which request localization reads (see Program.cs) *@
+@* Deutsch adds ?culture=de-DE, which sets the request's language *@
 <nav class="languages">
     <a href="demo/displayname/suppliers" class="@(german ? null : "on")">English</a>
     <a href="demo/displayname/suppliers?culture=de-DE" class="@(german ? "on" : null)">Deutsch</a>
 </nav>
 
-<h1>Suppliers</h1>
+<h1>@(german ? "Lieferanten" : "Suppliers")</h1>
 
 <div class="grid">
 <QuickGrid Items="suppliers">
@@ -28,7 +28,7 @@
 </div>
 
 @code {
-    // Marks the language picked, so you can see German is on even where the headers stay English.
+    // The page title and the picked language show which language the request is in.
     static bool german => System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "de";
 
     // xray:displayname-component

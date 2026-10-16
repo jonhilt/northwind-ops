@@ -5,156 +5,111 @@
 
 <article class="l-article" data-learn>
     <h1 class="l-title">DisplayName</h1>
-    <p class="l-sub">Your form's model already names every field with <code>[Display]</code>. Why does the grid type them again?</p>
-    <p class="l-meta">.NET 11 · Forms · Any render mode · about 5 minutes</p>
+    <p class="l-sub">Your model already names its fields. Why does your grid type the names again?</p>
+    <p class="l-meta">.NET 11 · Forms · Any render mode · about 4 minutes</p>
     <p class="l-new">
-        <b>What's new in .NET 11:</b> a <code>&lt;DisplayName For="..." /&gt;</code> component that shows a
-        property's <code>[Display]</code> name as plain text. In .NET 10, validation messages already used
-        <code>[Display]</code>, but Blazor had no way to show the name on the page. MVC did this with
-        <code>@@Html.DisplayNameFor</code>.
+        <b>What's new in .NET 11:</b> <code>&lt;DisplayName For="..." /&gt;</code>, a component that shows a
+        property's <code>[Display]</code> name on the page. In .NET 10, Blazor had nothing built in for that, so
+        you typed the name again.
     </p>
 
-    <p>
-        Below is a <i>Suppliers</i> grid. Its columns match the fields of the <i>New supplier</i> form. That form's
-        model names each field with <code>[Display]</code>, in English and German.
-    </p>
-    <p>
-        The grid's headers are done the .NET 10 way: two have a typed <code>Title</code>, and one has none. The
-        model calls that third field <b>Main contact</b>, or <b>Hauptansprechpartner</b> in German.
-    </p>
+    <p>Here's a supplier model. Each field gets its name from <code>[Display]</code>:</p>
+    <div class="fig">
+        <span class="fig-title">The model: each name is set once, here</span>
+        <pre class="snip">public class SupplierForm
+{
+    [Display(Name = "Code", ResourceType = typeof(SupplierText))]
+    public string? Code { get; set; }
 
-    <DemoFigure Number="1" Title="The grid, with typed headers" Url="demo/displayname/suppliers/net10"
+    <span class="dim">// Company and Contact the same way</span>
+}</pre>
+    </div>
+    <p>
+        With <code>ResourceType</code>, each <code>Name</code> is a key in a resource file, looked up in the
+        visitor's language. None of this is new:
+    </p>
+    <div class="fig">
+        <span class="fig-title">The names in SupplierText.resx and SupplierText.de.resx</span>
+        <pre class="snip"><span class="dim">key        English          German</span>
+Code       Supplier code    Lieferantencode
+Company    Company name     Firmenname
+Contact    Main contact     Hauptansprechpartner</pre>
+    </div>
+    <p>Now you want a grid of suppliers, with those names as its column headers. In .NET 10 you'd write this:</p>
+    <div class="fig">
+        <span class="fig-title">The .NET 10 grid</span>
+        <pre class="snip">&lt;QuickGrid Items="suppliers"&gt;
+    &lt;PropertyColumn <span class="err">Title="Supplier code"</span> Property="s =&gt; s.Code" /&gt;
+    &lt;PropertyColumn <span class="err">Title="Company name"</span>  Property="s =&gt; s.Company" /&gt;
+    &lt;PropertyColumn <span class="err">Title="Main contact"</span>  Property="s =&gt; s.Contact" /&gt;
+&lt;/QuickGrid&gt;</pre>
+    </div>
+    <p>The names are typed again, in English. Here it is running, for a visitor who reads German.</p>
+
+    <DemoFigure Number="1" Title="The .NET 10 grid" Url="demo/displayname/suppliers/net10?culture=de-DE"
                 Label=".NET 10: headers typed as Title" Side="before">
         <Caption>
-            The third header shows the property name, <b>Contact</b>, not the model's Main contact. (The grid prints
-            headers in capitals.) Click <b>Deutsch</b> at the top of the frame. Every header stays in English.
+            The page is in German (<b>Lieferanten</b>), but the headers are still in English. The model has German
+            names for all three. The grid never asks for them. Click <b>English</b> to compare.
         </Caption>
     </DemoFigure>
 
-    <h2><small>The problem</small>Typed headers don't follow the model</h2>
-    <p>The name is defined once, on the model, but the grid doesn't use it:</p>
-    <div class="fig">
-        <span class="fig-title">Where each header comes from</span>
-        <pre class="snip">SupplierForm.Code     <span class="dim">[Display] Supplier code / Lieferantencode</span>
-  └─ header: Title="Supplier code"     <span class="err">typed again, English only</span>
-SupplierForm.Company  <span class="dim">[Display] Company name / Firmenname</span>
-  └─ header: Title="Company name"      <span class="err">typed again, English only</span>
-SupplierForm.Contact  <span class="dim">[Display] Main contact / Hauptansprechpartner</span>
-  └─ header: no Title                  <span class="err">"Contact", the property name</span></pre>
-    </div>
+    <h2><small>The problem</small>The names live in two places</h2>
     <p>
-        The model's <code>[Display]</code> names use <code>ResourceType</code> (see Fig. 4), so they come out in
-        the current request's language. A typed <code>Title</code> is fixed text. If you rename or translate a field on the model, the grid
-        keeps the old words. Leave <code>Title</code> out and QuickGrid shows the raw property name.
+        The model knows each field's name in every language. The grid doesn't ask it: it has its own English copy.
+        So the headers can't follow the language, and if you rename a field on the model, the grid keeps the old
+        name.
     </p>
 
-    <h2><small>The fix</small>Point each header at the model</h2>
-    <p>Put a <code>&lt;DisplayName For&gt;</code> in each column's <code>HeaderTemplate</code>.</p>
+    <h2><small>The fix</small>Ask the model for the name</h2>
+    <p>Put a <code>&lt;DisplayName For&gt;</code> in each column's header:</p>
     <div class="fig">
-        <span class="fig-title">The whole fix, for one column</span>
+        <span class="fig-title">The .NET 11 grid</span>
         <pre class="snip">&lt;PropertyColumn Property="s =&gt; s.Contact"&gt;
     &lt;HeaderTemplate&gt;<span class="hl">&lt;DisplayName For="() =&gt; form.Contact" /&gt;</span>&lt;/HeaderTemplate&gt;
-&lt;/PropertyColumn&gt;
-
-<span class="hl">SupplierForm form = null!;</span>   <span class="dim">// never dereferenced</span></pre>
-    </div>
-    <p>
-        <b>Why <code>HeaderTemplate</code> and not <code>Title</code>?</b> <code>Title</code> takes a string,
-        and <code>DisplayName</code> is a component, so it can't go there. .NET 11 doesn't add a method that
-        returns the name as a string. If you'd rather keep <code>Title</code>, you still need your own helper, as
-        in the .NET 10 way below.
-    </p>
-    <p>
-        <b>Why point at the form's model?</b> The <code>[Display]</code> names are on <code>SupplierForm</code>. The
-        grid's rows are <code>Supplier</code> entities, which have no names, so pointing at <code>Supplier</code>
-        would show "Contact" again. A <code>HeaderTemplate</code> doesn't give you a row anyway, so the page
-        keeps a <code>SupplierForm</code> field for <code>For</code> to point at. <code>For</code> only checks which
-        property you named. It never reads the field's value, so the field can stay <code>null</code>.
-    </p>
-    <p>
-        <code>DisplayName</code> reads <code>[Display]</code> each time it renders, so it always shows the current
-        language.
-    </p>
-    <p>
-        <b>The catch: a <code>HeaderTemplate</code> removes QuickGrid's sort button.</b> On a sortable column, add
-        the button back inside the template, as below. Don't switch back to a typed <code>Title</code> to keep
-        sorting: the header would stop following the model again. (Sorting needs an interactive render mode; the demos here are static and don't sort.)
-    </p>
-    <div class="fig">
-        <span class="fig-title">A sortable column with DisplayName</span>
-        <pre class="snip">&lt;PropertyColumn Property="s =&gt; s.Contact" Sortable="true"&gt;
-    &lt;HeaderTemplate&gt;
-        <span class="hl">&lt;button @@onclick="() =&gt; context.Grid.SortByColumnAsync(context)"&gt;</span>
-            &lt;DisplayName For="() =&gt; form.Contact" /&gt;
-        <span class="hl">&lt;/button&gt;</span>
-    &lt;/HeaderTemplate&gt;
 &lt;/PropertyColumn&gt;</pre>
     </div>
-    <p>Here's the same grid with the fix on every column.</p>
+    <p>
+        <code>DisplayName</code> reads the <code>[Display]</code> name for <code>form.Contact</code> and shows it as
+        plain text, in the current language. Here's the same grid with the fix on every column.
+    </p>
 
-    <DemoFigure Number="2" Title="The same grid, with DisplayName" Url="demo/displayname/suppliers"
+    <DemoFigure Number="2" Title="The same grid, with DisplayName" Url="demo/displayname/suppliers?culture=de-DE"
                 Label=".NET 11: DisplayName">
         <Caption>
-            The third header now says <b>Main contact</b>, the model's name. Click <b>Deutsch</b> at the top of
-            the frame: the headers switch to German. The German comes from the model's resource file, not the grid.
+            The same German page. This time the headers are in German too: <b>Lieferantencode</b>,
+            <b>Firmenname</b>, <b>Hauptansprechpartner</b>. They come from the model. Click <b>English</b> and they
+            switch back.
         </Caption>
     </DemoFigure>
-
-    <p>Here's the page behind Fig. 2, the model it points at, and the page behind Fig. 1:</p>
 
     <CodeFigure Number="3" Path="Components/Guide/Demos/DisplayNames/Suppliers.razor" Feature="displayname-component">
         <Caption>
-            Fig. 2's grid. Each header points at <code>SupplierForm</code>, the form's model, not the grid's row type.
+            Fig. 2's page in full. The grid's rows are <code>Supplier</code> database records, which have no
+            <code>[Display]</code> names, so the headers point at the form's model instead: an empty
+            <code>SupplierForm</code> field. <code>DisplayName</code> only needs to know which property you mean. It
+            never reads the value, so the field can stay <code>null</code>.
         </Caption>
     </CodeFigure>
 
-    <CodeFigure Number="4" Path="Components/Guide/Demos/DisplayNames/SupplierForm.cs" Feature="displayname-component">
-        <Caption>
-            Not new: the model, where each name is set once. <code>ResourceType</code> makes each name a key that's
-            looked up in the request's language.
-        </Caption>
-    </CodeFigure>
-
-    <CodeFigure Number="5" Path="Components/Guide/Demos/DisplayNames/SuppliersNet10.razor" Feature="displayname-component">
-        <Caption>
-            Fig. 1's grid: two names typed again as <code>Title</code>, and one missing.
-        </Caption>
-    </CodeFigure>
-
-    <h2><small>The .NET 10 way</small>A second copy, or your own helper</h2>
-    <p>Fig. 1 shows a typed <code>Title</code>. Here are the other options in .NET 10:</p>
-    <div class="fig">
-        <span class="fig-title">Column headers in .NET 10</span>
-        <div class="flow">
-            <div class="box">
-                <pre class="snip">&lt;PropertyColumn Property="s =&gt; s.Contact"
-    Title="@@L["MainContact"]" /&gt;</pre>
-                <span class="why"><code>IStringLocalizer</code> looks the key up per request</span>
-                <div class="verdict bad">✗ translates, but you now keep the name in two places: rename it on the model and the header keeps the old name</div>
-            </div>
-            <div class="box">
-                <pre class="snip">Title="@@DisplayNames.For(() =&gt; form.Contact)"</pre>
-                <span class="why">a helper you write that reads the property's <code>DisplayAttribute</code></span>
-                <div class="verdict ok">✓ works, and keeps sorting; one more helper to write, test and copy between projects</div>
-            </div>
-            <div class="box">
-                <pre class="snip">&lt;DisplayName For="..." /&gt;</pre>
-                <div class="verdict bad">✗ warning RZ10012, "unexpected name 'DisplayName'": an empty, unknown element, so the headers are blank</div>
-            </div>
-        </div>
-    </div>
-
-    <h2><small>.NET 11</small>A component that shows the name</h2>
+    <h2><small>The .NET 10 way</small>Type the name, or write a helper</h2>
     <p>
-        <code>&lt;DisplayName For&gt;</code> is like <code>&lt;Label For&gt;</code>, but text only. It's Blazor's
-        version of MVC's <code>DisplayNameFor</code>. It renders just the name, with no surrounding element, so it
-        fits in a header, a table cell or a sentence. That's what Fig. 2 runs.
+        You could type the names, as Fig. 1 does, or write your own helper that reads <code>[Display]</code> with
+        reflection and returns a string for <code>Title</code>. That works, but it's one more thing to write, test
+        and copy between projects.
+    </p>
+
+    <h2><small>.NET 11</small>One component, like MVC's DisplayNameFor</h2>
+    <p>
+        <code>&lt;DisplayName&gt;</code> is Blazor's version of MVC's <code>@@Html.DisplayNameFor</code>. It shows
+        just the text, with no tag around it, so it works in a header, a table cell or a sentence.
     </p>
 
     <h2><small>Good to know</small></h2>
     <ul class="gk">
-        <li><b>It reads attributes, not <code>IStringLocalizer</code>.</b> If you translate with <code>IStringLocalizer</code> keys, like <code>Title="@@L[...]"</code> above, <code>DisplayName</code> won't see them. Move the names to <code>[Display(ResourceType = ...)]</code>, as this model does.</li>
-        <li><b>Works in any render mode.</b> These demos are rendered once on the server, with no live connection. <code>DisplayName</code> shows the same text on an interactive page.</li>
-        <li><b>Fallback order:</b> <code>[Display(Name)]</code>, then <code>[DisplayName]</code>, then the property name.</li>
+        <li><b>Why <code>HeaderTemplate</code>?</b> <code>Title</code> only takes a string, and <code>DisplayName</code> is a component.</li>
+        <li><b>A <code>HeaderTemplate</code> drops QuickGrid's sort button.</b> On a sortable column, wrap the name in your own <code>&lt;button @@onclick="() =&gt; context.Grid.SortByColumnAsync(context)"&gt;</code>.</li>
+                <li><b>It reads attributes, not <code>IStringLocalizer</code>.</b> To translate, use <code>[Display(ResourceType = ...)]</code>, as this model does.</li>
+        <li><b>If there's no <code>[Display]</code></b>, it falls back to <code>[DisplayName]</code>, then to the property name.</li>
     </ul>
 </article>
