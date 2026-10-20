@@ -18,21 +18,30 @@
         The model names both with <code>[Display]</code>.
     </p>
     <p>
-        The form labels its fields in two common .NET 10 ways. <b>Company name</b> types an <code>id</code> on both
-        the label and the input, with a typo. <b>Email</b> wraps its input, and its label text is typed by hand:
+        The form labels its fields in two common .NET 10 ways. <b>Company name</b> types the same <code>id</code>
+        twice, once in the label's <code>for</code> and once on the input. <b>Email</b> wraps its input, and its
+        label text is typed by hand:
     </p>
     <div class="fig">
         <span class="fig-title">The .NET 10 form</span>
-        <pre class="snip">&lt;label for="<span class="err">supplier-compnay</span>"&gt;Company name&lt;/label&gt;
-&lt;InputText id="supplier-company" @@bind-Value="Input!.Company" /&gt;
+        <pre class="snip">&lt;label for="supplier-<span class="err">compnay</span>"&gt;Company name&lt;/label&gt;
+&lt;InputText id="supplier-<span class="ok">company</span>" @@bind-Value="Input!.Company" /&gt;
+@(new string(' ', 24))<span class="err">↑ "compnay" ≠ "company": the label points at nothing</span>
 
-&lt;label&gt;<span class="err">Email</span> &lt;InputText @@bind-Value="Input!.Email" type="email" /&gt;&lt;/label&gt;</pre>
+&lt;label&gt;<span class="err">Email</span> &lt;InputText @@bind-Value="Input!.Email" type="email" /&gt;&lt;/label&gt;
+@(new string(' ', 7))<span class="err">↑ typed by hand: the model calls this field "Contact email"</span></pre>
     </div>
+    <p>
+        Look closely at the two ids: the label says <code>supplier-<b>compnay</b></code>, the input says
+        <code>supplier-<b>company</b></code>. The typo is deliberate. A label finds its input only by an exact
+        id match, so this one is linked to nothing. Nothing warns you: it builds, renders and looks fine.
+    </p>
 
     <DemoFigure Number="1" Title="The form, labelled by hand" Url="demo/labels/suppliers/new/net10"
                 Label=".NET 10: ids and names typed by hand" Side="before">
         <Caption>
-            Click the words <b>Company name</b>. Nothing happens: the cursor doesn't go into the field. Now press
+            Click the words <b>Company name</b>. Nothing happens: the cursor doesn't go into the field, because
+            the label's <code>for</code> has the typo. Screen readers can't name the field either. Now press
             <b>Save supplier</b> with the form empty. The label says <b>Email</b>, but its message says
             "Contact email".
         </Caption>
@@ -45,8 +54,8 @@
     <p>In .NET 10, a label and its input are linked only by text you type:</p>
     <div class="fig">
         <span class="fig-title">What .NET 10 renders for that form</span>
-        <pre class="snip">&lt;label for="<span class="err">supplier-compnay</span>"&gt;Company name&lt;/label&gt;
-&lt;input id="supplier-company" name="Input.Company"&gt;   <span class="err">no label points here</span>
+        <pre class="snip">&lt;label for="supplier-<span class="err">compnay</span>"&gt;Company name&lt;/label&gt;   <span class="err">✗ no element has this id</span>
+&lt;input id="supplier-<span class="ok">company</span>" name="Input.Company"&gt;   <span class="err">✗ no label points here</span>
 
 &lt;label&gt;Email &lt;input name="Input.Email"&gt;&lt;/label&gt;   <span class="ok">✓ clicking "Email" focuses the input</span>
 <span class="dim">The Contact email field is required.</span>      <span class="err">✗ says "Contact email", the label says "Email"</span></pre>
