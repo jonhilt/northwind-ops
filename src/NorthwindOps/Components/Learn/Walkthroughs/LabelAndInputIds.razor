@@ -40,15 +40,18 @@
     <DemoFigure Number="1" Title="The form, labelled by hand" Url="demo/labels/suppliers/new/net10"
                 Label=".NET 10: ids and names typed by hand" Side="before">
         <Caption>
-            Click the words <b>Company name</b>. Nothing happens: the cursor doesn't go into the field, because
-            the label's <code>for</code> has the typo. Screen readers can't name the field either. Now press
-            <b>Save supplier</b> with the form empty. The label says <b>Email</b>, but its message says
-            "Contact email".
+            <p>
+                <b>Company name: the id typo.</b> Click the words <b>Company name</b>. Nothing happens: the cursor
+                doesn't go into the field, because the label's <code>for</code> has the typo. Screen readers can't
+                name the field either.
+            </p>
+            <p>
+                <b>Email: the hand-typed name.</b> Clicking <b>Email</b> does put the cursor in its field, because
+                the label wraps its input. Now press <b>Save supplier</b> with the form empty. The label says
+                <b>Email</b>, but the message under it says "Contact email".
+            </p>
         </Caption>
     </DemoFigure>
-    <p>
-        Clicking the <b>Email</b> label does put the cursor in its field, because the label wraps its input.
-    </p>
 
     <h2><small>The problem</small>Every label is typed twice</h2>
     <p>In .NET 10, a label and its input are linked only by text you type:</p>
@@ -87,8 +90,11 @@
     <DemoFigure Number="2" Title="The same form, with Label For" Url="demo/labels/suppliers/new"
                 Label=".NET 11: Label For">
         <Caption>
-            Click the words <b>Company name</b>. The cursor goes into the field. Press <b>Save supplier</b> with the
-            form empty: the label and the message both say "Contact email".
+            <p><b>Company name:</b> click the words <b>Company name</b>. The cursor goes into the field.</p>
+            <p>
+                <b>Contact email:</b> press <b>Save supplier</b> with the form empty. The label and the message
+                under it both say "Contact email".
+            </p>
         </Caption>
     </DemoFigure>
 
