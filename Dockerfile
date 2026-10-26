@@ -20,4 +20,7 @@ ENV ASPNETCORE_ENVIRONMENT=Demo \
 
 EXPOSE 8080
 USER $APP_UID
+# The commit being built, for /version. Set last so a new commit doesn't invalidate any cached layer above.
+ARG GIT_SHA=unknown
+ENV GIT_SHA=$GIT_SHA
 ENTRYPOINT ["dotnet", "NorthwindOps.dll"]

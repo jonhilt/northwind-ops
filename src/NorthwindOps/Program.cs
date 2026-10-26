@@ -191,6 +191,13 @@ app.Use(async (context, next) =>
 
 app.MapStaticAssets();
 app.MapHealthChecks("/healthz");
+// The commit this image was built from (deploy.sh passes it in as GIT_SHA). The Deploy workflow polls this to confirm
+// the live site is serving a merge. no-store keeps Cloudflare and browsers from answering with an old one.
+app.MapGet("/version", (HttpContext context) =>
+{
+    context.Response.Headers.CacheControl = "no-store";
+    return Environment.GetEnvironmentVariable("GIT_SHA") ?? "unknown";
+});
 
 // X-ray drawer content: a Razor component rendered as an HTML fragment, fetched by wwwroot/js/xray.js.
 app.MapGet("/xray/{id}/panel", IResult (string id, FeatureRegistry registry) =>
