@@ -15,7 +15,7 @@ public partial class GuideServerTests(AppFactory app) : IClassFixture<AppFactory
         var stockTake = await BrowserOptionsOf(client, "/demo/auto-pause/stock-take");
         var pickList = await BrowserOptionsOf(client, "/demo/browser-options/pick-list");
         var environment = await BrowserOptionsOf(client, "/demo/env-config/orders");
-        // Visited after them: in RC2, a leak through WithBrowserOptions' shared object would show up here.
+        // Visited after them: in RC2 and RC3, a leak through WithBrowserOptions' shared object would show up here.
         var elsewhere = await BrowserOptionsOf(client, "/demo/anchor-mode/inbox");
 
         Assert.Equal(10_000, stockTake.GetProperty("server").GetProperty("autoPauseHiddenDelayMilliseconds").GetInt32());

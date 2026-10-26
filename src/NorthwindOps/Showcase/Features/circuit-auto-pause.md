@@ -56,7 +56,7 @@ It checks again every half second while the tab stays hidden, and gives up as so
 
 Gotchas:
 
-- **RC2: `ConfigureBrowser` leaks when `WithBrowserOptions` is set.** `ConfigureBrowser` writes into the options object `WithBrowserOptions` shares between every page, so one visit to a page that turns auto-pause on turns it on everywhere, for everyone. This app doesn't call `WithBrowserOptions`, so auto-pause stays on this demo page.
+- **RC2 and RC3: `ConfigureBrowser` leaks when `WithBrowserOptions` is set.** `ConfigureBrowser` writes into the options object `WithBrowserOptions` shares between every page, so one visit to a page that turns auto-pause on turns it on everywhere, for everyone. This app doesn't call `WithBrowserOptions`, so auto-pause stays on this demo page.
 - **Only persisted state survives.** Anything that isn't `[PersistentState]` (or registered with `PersistentComponentState`) is gone after a resume, as after any circuit pause.
 - **The reconnect dialog opens while it's paused.** The app's `ReconnectModal` shows its "paused" state in the hidden tab, and closes when the tab comes back and resumes. If resuming fails, it stays, with its **Resume** button.
 - **Not on every device.** A mobile browser may freeze or discard a backgrounded tab before the timer fires.

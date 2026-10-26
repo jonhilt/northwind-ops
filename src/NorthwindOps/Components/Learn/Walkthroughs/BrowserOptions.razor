@@ -235,7 +235,7 @@ retryIntervalMilliseconds: 2000</pre>
 
     <h2><small>Good to know</small></h2>
     <ul class="gk">
-        <li><b>Don't use both, at least in RC2.</b> This guide runs on .NET 11 RC2, a preview, so this may change. In RC2, once <code>WithBrowserOptions</code> is set, <code>&lt;ConfigureBrowser&gt;</code> writes into the app-wide settings. One visit to one page would change every page, for everyone.</li>
+        <li><b>Don't use both, at least in RC3.</b> This guide runs on .NET 11 RC3, a preview, so this may change. In RC2 and RC3, once <code>WithBrowserOptions</code> is set, <code>&lt;ConfigureBrowser&gt;</code> writes into the app-wide settings. One visit to one page would change every page, for everyone.</li>
         <li><b>Only pages with an interactive component get them.</b> The settings are written into the page just before its first Server, WebAssembly or Auto component.</li>
         <li><b>Code still needs JavaScript.</b> C# settings can't hold functions. So a retry-interval function, <code>configureSignalR</code> or your own <code>reconnectionHandler</code> stays in <code>Blazor.start()</code>, or in a JS initializer (a script Blazor runs as it starts).</li>
         <li><b>The server end has its own settings.</b> The live connection ends at a SignalR hub on the server. To set the hub's options, use <code>AddInteractiveServerRenderMode(o =&gt; o.ConfigureConnection = …)</code>, also new in .NET 11.</li>

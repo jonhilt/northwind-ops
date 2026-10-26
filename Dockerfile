@@ -1,5 +1,5 @@
-# Northwind Ops: built and run on .NET 11 RC2 images, independent of what the host has installed.
-FROM mcr.microsoft.com/dotnet/sdk:11.0.100-rc.2 AS build
+# Northwind Ops: built and run on .NET 11 RC3 images, independent of what the host has installed.
+FROM mcr.microsoft.com/dotnet/sdk:11.0.100-rc.3 AS build
 WORKDIR /src
 # Restore with the whole project present: restoring from the .csproj alone (to cache the layer) leaves out the
 # package that carries _framework/blazor.web.js, and the published app then serves pages Blazor never starts on.
@@ -7,7 +7,7 @@ COPY global.json ./
 COPY src/ src/
 RUN dotnet publish src/NorthwindOps/NorthwindOps.csproj -c Release -o /app
 
-FROM mcr.microsoft.com/dotnet/aspnet:11.0.0-rc.2 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:11.0.0-rc.3 AS final
 WORKDIR /app
 COPY --from=build /app .
 

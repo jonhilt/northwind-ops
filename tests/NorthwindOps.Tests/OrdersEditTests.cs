@@ -161,14 +161,16 @@ public class OrdersEditTests(AppFactory app) : IClassFixture<AppFactory>
     [Fact]
     public async Task Cross_site_form_post_is_rejected()
     {
-        var order = await FindOrderAsync(q => q.Where(o => o.Status == OrderStatus.Packing).OrderByDescending(o => o.Id));
+        // A delivered order: there are always plenty. Packing orders come only from the last three days, so on a
+        // Monday (after a quiet weekend) there can be just one, and the saving test ships it first.
+        var order = await FindOrderAsync(q => q.Where(o => o.Status == OrderStatus.Delivered).OrderByDescending(o => o.Id));
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/orders/{order.Id}") { Content = Form(OrderStatus.Cancelled, "", "") };
         request.Headers.Add("Sec-Fetch-Site", "cross-site");
 
         var response = await client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Equal(OrderStatus.Packing, (await LoadAsync(order.Id)).Status);
+        Assert.Equal(OrderStatus.Delivered, (await LoadAsync(order.Id)).Status);
     }
 
     [Fact]

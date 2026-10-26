@@ -6,7 +6,7 @@ A working back office for a food wholesaler, built with Blazor on **.NET 11** to
 
 ## Run it
 
-You need the .NET 11 RC2 SDK (`11.0.100-rc.2.26504.105`, pinned in `global.json`).
+You need the .NET 11 RC3 SDK (`11.0.100-rc.3.26522.148`, pinned in `global.json`).
 
 ```bash
 dotnet run --project src/NorthwindOps
